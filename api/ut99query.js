@@ -2,6 +2,7 @@ const config = require('./config.json');
 const Promise = require('promise');
 const dgram = require('dgram');
 const ServerResponse = require('./serverResponse');
+const dns = require('dns');
 
 
 
@@ -30,10 +31,14 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
+            console.log(`${message}`);
+
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
             if(matchingResponse !== null){
+
                 matchingResponse.parsePacket(message);
+
             }else{
                 console.log("There is no matching data for this server");
             }
@@ -60,8 +65,8 @@ class UT99Query{
 
             r = this.responses[i];
 
-            console.log("reeeeeeeeeeeeeeeeeee");
-            console.log(r);
+           // console.log("reeeeeeeeeeeeeeeeeee");
+           // console.log(r);
 
             if(r.ip == ip && r.port == port){
                 return r;
@@ -84,15 +89,23 @@ class UT99Query{
 
             port = port + 1;
 
-            this.responses.push(new ServerResponse(ip, port, "full", message));
+            dns.lookup(ip, (err, address, family) =>{
 
-            this.server.send('\\status\\\\xserverquery\\\\teams\\', port, ip, (err) =>{
+                if(err) console.trace(err);
 
-                if(err){
-                    throw new Error(err);
-                }
+                //console.log('address: %j family: IPv%s', address, family);
 
+                this.responses.push(new ServerResponse(address, port, "full", message));
+
+                this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\', port, address, (err) =>{
+
+                    if(err){
+                        throw new Error(err);
+                    }
+
+                });
             });
+
 
         }catch(err){
             console.trace(err);

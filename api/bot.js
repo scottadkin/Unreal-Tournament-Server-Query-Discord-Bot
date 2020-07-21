@@ -36,7 +36,9 @@ class Bot{
             if(!message.author.bot){
                 console.log(message.content);
 
-                this.query.getFullServer('139.162.235.20', 7777, message);
+                if(message.content == "test"){
+                    this.query.getFullServer('139.162.235.20', 7777, message);
+                }
             }
         });
 

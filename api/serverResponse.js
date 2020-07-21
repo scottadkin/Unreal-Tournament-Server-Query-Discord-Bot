@@ -1,3 +1,5 @@
+const Discord = require('discord.js');
+
 class ServerResponse{
 
     constructor(ip, port, type, discordMessage){
@@ -39,15 +41,35 @@ class ServerResponse{
         const finalReg = /\\final\\$/i;
 
         if(finalReg.test(data)){
-            this.bReceivedFinal = true;
 
-            this.discordMessage.channel.send("Got server response").then(() =>{
-
-                this.bSentMessage = true;
-            });
+            this.sendFullServerResponse();
         }
 
-        console.log(this);
+        //console.log(this);
+    }
+
+    sendFullServerResponse(){
+
+        this.bReceivedFinal = true;
+
+        const description = `**:office: Unknown
+:wrestling: Players ${this.currentPlayers}/${this.maxPlayers}
+:pushpin: ${this.gametype}
+:map: ${this.mapName}
+:goal: Target Score ${this.goalscore}**
+        `;
+
+        const embed = new Discord.MessageEmbed()
+        .setTitle(this.name)
+        .setColor('#ff0000')
+        .setDescription(description)
+        .setTimestamp();
+
+        this.discordMessage.channel.send(embed).then(() =>{
+
+            this.bSentMessage = true;
+            
+        });
     }
 
     parseServerInfoData(data){

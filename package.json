@@ -1,0 +1,24 @@
+{
+  "name": "discordutserverquerybot",
+  "version": "1.0.0",
+  "description": "A Discord bot that can communicate with Unreal Tournament servers and display their responses.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ut",
+    "discord",
+    "server",
+    "query",
+    "bot",
+    "ut99",
+    "ut"
+  ],
+  "author": "Scott Adkin",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^12.2.0",
+    "promise": "^8.1.0"
+  }
+}

@@ -1,9 +1,11 @@
 const Discord = require('discord.js');
+const geoip = require('geoip-country');
 
 class ServerResponse{
 
     constructor(ip, port, type, discordMessage){
 
+        console.log(geoip.lookup(ip));
         this.ip = ip;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
@@ -71,10 +73,17 @@ class ServerResponse{
 
             if(!bSpectator){
 
-                if(parseInt(p.team) == team){
+                if(team == -99){
 
-                    if(p.mesh.toLowerCase() != "spectator"){
-                        string += `${currentFlag} **${p.name}** ${p.frags}\n`;
+                    string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+
+                }else{
+
+                    if(parseInt(p.team) == team){
+
+                        if(p.mesh.toLowerCase() != "spectator"){
+                            string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+                        }
                     }
                 }
 
@@ -94,7 +103,11 @@ class ServerResponse{
         }
 
         if(string == ""){
-            string = "No players.";
+            if(!bSpectator){
+                string = "No players.";
+            }else{
+                string = "There are currently no spectators.";
+            }
         }
 
         return string;
@@ -105,18 +118,26 @@ class ServerResponse{
         const fields = [];
 
         const teamNames = [
-            "Red Team",
-            "Blue Team",
-            "Green Team",
-            "Yellow Team"
+            `:red_square: Red Team ${this.teams[0].score}`,
+            `:blue_square: Blue Team ${this.teams[1].score}`,
+            `:green_square: Green Team ${this.teams[2].score}`,
+            `:yellow_square: Yellow Team ${this.teams[3].score}`
         ];
 
         this.maxTeams = parseInt(this.maxTeams);
 
-        for(let i = 0; i < this.maxTeams; i++){
 
+        if(this.maxTeams === this.maxTeams){
+
+            for(let i = 0; i < this.maxTeams; i++){
+
+                fields.push(
+                    {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
+                );
+            }
+        }else{
             fields.push(
-                {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": (i < 2) ? true : false }
+                {"name": ":wrestling: Players", "value":this.createPlayersString(-99, false), "inline": false}
             );
         }
 
@@ -165,6 +186,7 @@ class ServerResponse{
         .setColor('#ff0000')
         .setDescription(description)
         .addFields(fields)
+        .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
         .setTimestamp();
 
         this.discordMessage.channel.send(embed).then(() =>{

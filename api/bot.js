@@ -38,7 +38,11 @@ class Bot{
 
                 if(message.content == "test"){
                     //185.107.96.18:7777
-                    this.query.getFullServer('185.107.96.18', 7777, message);
+                    //66.85.80.155:7797
+                    //74.91.116.241:3529
+                    //78.46.187.162:7777
+                    //66.150.121.123:7777
+                    this.query.getFullServer('74.91.116.241', 3529, message);
                 }
             }
         });

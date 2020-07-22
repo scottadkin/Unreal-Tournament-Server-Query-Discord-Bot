@@ -44,7 +44,7 @@ class Bot{
                     //66.150.121.123:7777
                     //139.162.235.20:7777
                     //	66.150.121.125:7777
-                    this.query.getFullServer('139.162.235.20', 7777, message);
+                    this.query.getFullServer('66.150.121.125', 7777, message);
                 }
             }
         });

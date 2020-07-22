@@ -216,9 +216,13 @@ class ServerResponse{
         }
 
         if(this.remainingTime !== undefined){
-            description += `:stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes`;
+            description += `:stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes
+            `;
         }
 
+        if(this.protection !== undefined){
+            description += `:shield: ${this.protection}`;
+        }
        // console.table(this.players);
 
         const fields = this.createPlayerFields();
@@ -256,6 +260,7 @@ class ServerResponse{
             /\\mutators\\(.+?)\\/i,
             /\\timelimit\\(.+?)\\/i,
             /\\remainingTime\\(.+?)\\/i,
+            /\\protection\\(.+?)\\/i,
         ];
 
         const keys = [
@@ -271,7 +276,8 @@ class ServerResponse{
             "goalscore",
             "mutators",
             "timeLimit",
-            "remainingTime"
+            "remainingTime",
+            "protection"
 
         ];
 

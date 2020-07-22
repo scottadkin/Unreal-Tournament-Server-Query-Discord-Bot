@@ -1,11 +1,16 @@
 const Discord = require('discord.js');
-const geoip = require('geoip-country');
+const geoip = require('geoip-lite');
+const countryList = require('country-list');
+
+console.log(countryList);
 
 class ServerResponse{
 
     constructor(ip, port, type, discordMessage){
 
-        console.log(geoip.lookup(ip));
+        //console.log(geoip.lookup(ip));
+        this.geo = geoip.lookup(ip);
+        console.log(this.geo);
         this.ip = ip;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
@@ -95,6 +100,9 @@ class ServerResponse{
                         string += ", ";
                     }
 
+                    if(currentFlag == ":video_game:"){
+                        currentFlag = ":eyes:";
+                    }
                     string += `${currentFlag} ${p.name}`;
                 }
             }
@@ -104,9 +112,9 @@ class ServerResponse{
 
         if(string == ""){
             if(!bSpectator){
-                string = "No players.";
+                string = ":zzz: No players.";
             }else{
-                string = "There are currently no spectators.";
+                string = ":zzz: There are currently no spectators.";
             }
         }
 
@@ -142,7 +150,7 @@ class ServerResponse{
         }
 
         fields.push({
-            "name": "Spectators", "value": `${this.createPlayersString(-1, true)}`, "inline": false}
+            "name": ":eye: Spectators", "value": `${this.createPlayersString(-1, true)}`, "inline": false}
         );
 
 
@@ -151,8 +159,24 @@ class ServerResponse{
         return fields;
     }
 
-    sendFullServerResponse(){
+    getMMSS(input){
 
+        let seconds = Math.floor(input % 60);
+        let minutes = "";
+
+        if(seconds < 10){
+            seconds = "0"+seconds;
+        }
+
+        if(minutes < 10){
+            minutes = "0"+minutes;
+        }
+
+        return minutes+":"+seconds;
+        
+    }
+
+    sendFullServerResponse(){
 
         this.players.sort((a, b) =>{
 
@@ -170,21 +194,40 @@ class ServerResponse{
 
         this.bReceivedFinal = true;
 
-        const description = `**:office: Unknown
+        let city = "";
+
+        if(this.geo.city !== ''){
+            city = this.geo.city+", "
+        }
+
+        let description = `:flag_${this.geo.country.toLowerCase()}: ${city}${countryList.getName(this.geo.country)}
 :wrestling: Players ${this.totalPlayers}/${this.maxPlayers}
 :pushpin: ${this.gametype}
 :map: ${this.mapName}
-:goal: Target Score ${this.goalscore}**
-        `;
+:goal: Target Score ${this.goalscore}
+`;
 
-        console.table(this.players);
+        /*description = :stopwatch: Time Limit ${this.timeLimit} Minutes
+        :stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes*/
+
+        if(this.timeLimit !== undefined){
+            description += `:stopwatch: Time Limit ${this.timeLimit} Minutes
+            `;
+        }
+
+        if(this.remainingTime !== undefined){
+            description += `:stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes`;
+        }
+
+       // console.table(this.players);
 
         const fields = this.createPlayerFields();
 
+        
         const embed = new Discord.MessageEmbed()
-        .setTitle(this.name)
+        .setTitle(`:flag_${this.geo.country.toLowerCase()}: ${this.name}`)
         .setColor('#ff0000')
-        .setDescription(description)
+        .setDescription(`**${description}**`)
         .addFields(fields)
         .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
         .setTimestamp();
@@ -211,6 +254,8 @@ class ServerResponse{
             /\\goalteamscore\\(\d+?)\\/i,
             /\\fraglimit\\(\d+?)\\/i,
             /\\mutators\\(.+?)\\/i,
+            /\\timelimit\\(.+?)\\/i,
+            /\\remainingTime\\(.+?)\\/i,
         ];
 
         const keys = [
@@ -225,6 +270,8 @@ class ServerResponse{
             "goalscore",
             "goalscore",
             "mutators",
+            "timeLimit",
+            "remainingTime"
 
         ];
 

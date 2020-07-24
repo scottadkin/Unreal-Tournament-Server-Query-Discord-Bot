@@ -162,7 +162,7 @@ class ServerResponse{
     getMMSS(input){
 
         let seconds = Math.floor(input % 60);
-        let minutes = "";
+        let minutes = Math.floor(input / 60);
 
         if(seconds < 10){
             seconds = "0"+seconds;
@@ -200,23 +200,23 @@ class ServerResponse{
             city = this.geo.city+", "
         }
 
-        let description = `:flag_${this.geo.country.toLowerCase()}: ${city}${countryList.getName(this.geo.country)}
-:wrestling: Players ${this.totalPlayers}/${this.maxPlayers}
+        let description = `**:flag_${this.geo.country.toLowerCase()}: ${city}${countryList.getName(this.geo.country)}**
+:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}
 :pushpin: ${this.gametype}
-:map: ${this.mapName}
-:goal: Target Score ${this.goalscore}
+:map: ${this.mapName}**
+:goal: Target Score **${this.goalscore}**
 `;
 
         /*description = :stopwatch: Time Limit ${this.timeLimit} Minutes
         :stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes*/
 
         if(this.timeLimit !== undefined){
-            description += `:stopwatch: Time Limit ${this.timeLimit} Minutes
+            description += `:stopwatch: Time Limit **${this.timeLimit} Minutes**
             `;
         }
 
         if(this.remainingTime !== undefined){
-            description += `:stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes
+            description += `:stopwatch: Time Remaining **${this.getMMSS(this.remainingTime)} Minutes**
             `;
         }
 
@@ -231,7 +231,7 @@ class ServerResponse{
         const embed = new Discord.MessageEmbed()
         .setTitle(`:flag_${this.geo.country.toLowerCase()}: ${this.name}`)
         .setColor('#ff0000')
-        .setDescription(`**${description}**`)
+        .setDescription(`${description}`)
         .addFields(fields)
         .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
         .setTimestamp();
@@ -259,7 +259,7 @@ class ServerResponse{
             /\\fraglimit\\(\d+?)\\/i,
             /\\mutators\\(.+?)\\/i,
             /\\timelimit\\(.+?)\\/i,
-            /\\remainingTime\\(.+?)\\/i,
+            /\\remainingtime\\(.+?)\\/i,
             /\\protection\\(.+?)\\/i,
         ];
 

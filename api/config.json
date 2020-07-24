@@ -1,3 +1,6 @@
 {
-    "token": ""
+    "token": "",
+    "defaultAdminRole": "Toilet Brush",
+    "commandPrefix": ".",
+    "databaseFile": "./db/data.db"
 }

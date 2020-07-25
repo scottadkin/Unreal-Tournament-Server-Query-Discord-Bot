@@ -6,7 +6,7 @@ const queries = [
         added INTEGER NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS channels(
-        name TEXT NOT NULL,
+        id TEXT NOT NULL,
         added INTEGER NOT NULL
     )`
 ];

@@ -377,9 +377,7 @@ class Bot{
         }
     }
 
-    bChannelExist(message, channelName){
-
-        channelName = channelName.toLowerCase();
+    bChannelExist(message, channelId){
 
         const channels = message.guild.channels.cache.array();
 
@@ -389,7 +387,7 @@ class Bot{
 
             c = channels[i];
 
-            if(c.name.toLowerCase() == channelName){
+            if(c.id == channelId){
                 return true;
             }
         }
@@ -397,15 +395,13 @@ class Bot{
         return false;
     }
 
-    bChannelAdded(name){
+    bChannelAdded(id){
 
         return new Promise((resolve, reject) =>{
 
-            name = name.toLowerCase();
+            const query = "SELECT COUNT(*) as total_channels FROM channels WHERE id=?";
 
-            const query = "SELECT COUNT(*) as total_channels FROM channels WHERE name=?";
-
-            db.get(query, [name], (err, row) =>{
+            db.get(query, [id], (err, row) =>{
 
                 if(err) reject(err);
 
@@ -423,9 +419,7 @@ class Bot{
         
     }
 
-    insertChannel(name){
-
-        name = name.toLowerCase();
+    insertChannel(id){
 
         return new Promise((resolve, reject) =>{
 
@@ -433,7 +427,7 @@ class Bot{
 
             const now = Math.floor(Date.now() * 0.001)
 
-            db.run(query, [name, now], (err) =>{
+            db.run(query, [id, now], (err) =>{
 
                 if(err) reject(err);
 
@@ -447,25 +441,23 @@ class Bot{
 
         try{
 
-
-            if(!this.bChannelExist(message, message.channel.name)){
+            if(!this.bChannelExist(message, message.channel.id)){
 
                 message.channel.send(`${this.failIcon} There is no channel called **${message.channel.name}** in this server.`);
 
             }else{
 
-                const exists = await this.bChannelAdded(message.channel.name);
+                const exists = await this.bChannelAdded(message.channel.id);
 
                 if(!exists){
 
-                    await this.insertChannel(message.channel.name);
+                    await this.insertChannel(message.channel.id);
 
                     message.channel.send(`${this.passIcon} The bot can now be used in this channel.`);
                 
                 }else{
                     message.channel.send(`${this.failIcon} This channel has already been enabled for bot use.`);
                 }
-
             }
 
         }catch(err){
@@ -474,15 +466,13 @@ class Bot{
     }
 
 
-    deleteChannel(name){
+    deleteChannel(id){
 
         return new Promise((resolve, reject) =>{
-            
-            name = name.toLowerCase();
 
-            const query = "DELETE FROM channels WHERE name=?";
+            const query = "DELETE FROM channels WHERE id=?";
 
-            db.run(query, [name], (err) =>{
+            db.run(query, [id], (err) =>{
 
                 if(err) reject(err);
 
@@ -496,13 +486,13 @@ class Bot{
 
         try{
 
-            if(this.bChannelExist(message, message.channel.name)){
+            if(this.bChannelExist(message, message.channel.id)){
 
-                const exists = this.bChannelAdded(message.channel.name);
+                const exists = this.bChannelAdded(message.channel.id);
 
                 if(exists){
 
-                    await this.deleteChannel(message.channel.name);
+                    await this.deleteChannel(message.channel.id);
 
                     message.channel.send(`${this.passIcon} Users can no longer use the bot in this channel.`);
 
@@ -556,13 +546,26 @@ class Bot{
             let c = 0;
             let added = 0;
 
+            const discordChannels = message.guild.channels.cache;
+
+            let currentChannel = 0;
+
             for(let i = 0; i < channels.length; i++){
 
                 c = channels[i];
 
+                currentChannel = discordChannels.get(c.id)
+
+                //console.log(discordChannels.get("fdsfds"));
+
                 added = new Date(c.added * 1000);
 
-                string += `:small_blue_diamond: **${c.name}** Enabled at ${added.toString()}\n`;
+                if(currentChannel !== undefined){
+                    string += `:small_blue_diamond: **${currentChannel.name}** Enabled at ${added.toString()}\n`;
+                }else{
+                    string += `:no_entry: Channel no longer exists, deleting it from database!\n`;
+                    await this.deleteChannel(c.id);
+                }
             }
 
             if(string == ""){
@@ -572,6 +575,7 @@ class Bot{
             string = `:large_orange_diamond: **Channels the bot is enabled in.\n**`+string;
 
             message.channel.send(string);
+
         }catch(err){
             console.trace(err);
         }

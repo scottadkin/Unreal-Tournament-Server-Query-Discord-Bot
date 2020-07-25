@@ -2,7 +2,7 @@ const db = require('./api/db');
 
 const queries = [
     `CREATE TABLE IF NOT EXISTS roles(
-        name TEXT NOT NULL,
+        id TEXT NOT NULL,
         added INTEGER NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS channels(

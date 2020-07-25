@@ -38,7 +38,8 @@ class Bot{
         this.client.on('message', (message) =>{
 
             if(!message.author.bot){
-                console.log(message.content);
+
+                //console.log(message.content);
 
                 if(message.content == "test"){
                     //185.107.96.18:7777
@@ -192,7 +193,7 @@ class Bot{
 
         return new Promise((resolve, reject) =>{
 
-            const query = "SELECT COUNT(*) as total_roles FROM roles WHERE name=?";
+            const query = "SELECT COUNT(*) as total_roles FROM roles WHERE id=?";
 
             db.get(query, [role], (err, row) =>{
 
@@ -221,14 +222,23 @@ class Bot{
 
             if(result !== null){
 
-                const bRoleExist = await this.bRoleAdded(result[1].toLowerCase());
+                const roleData = this.getRole(result[1], message);
 
-                if(bRoleExist){
+                if(roleData !== null){
 
-                    await this.deleteRole(result[1].toLowerCase(), message);
+                    const bRoleExist = await this.bRoleAdded(roleData.id);
 
+                    if(bRoleExist){
+
+                        await this.deleteRole(roleData.id, message, roleData.name);
+
+                        message.channel.send(`${this.passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
+
+                    }else{
+                        message.channel.send(`${this.failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
+                    }
                 }else{
-                    message.channel.send(`${this.failIcon} The role **${result[1]}** has not been enabled to use admin commands.`);
+                    message.channel.send(`${this.failIcon} The role **${roleData.name}** does not exist in this server.`);
                 }
             }
 
@@ -238,17 +248,16 @@ class Bot{
         }
     }
 
-    deleteRole(role, message){
+    deleteRole(role, message, roleName){
 
         return new Promise((resolve, reject) =>{
 
-            const query = "DELETE FROM roles WHERE name=?";
+            const query = "DELETE FROM roles WHERE id=?";
 
             db.run(query, [role], (err) =>{
 
                 if(err) reject(err);
 
-                message.channel.send(`${this.passIcon} Users with the role **${role}** can no longer use the bots admin commands.`);
                 resolve();
             });
 
@@ -256,9 +265,7 @@ class Bot{
 
     }
 
-    insertRole(role, message){
-
-        //role = role.toLowerCase();
+    insertRole(role, message, roleName){
 
         return new Promise((resolve, reject) =>{
 
@@ -270,27 +277,48 @@ class Bot{
 
                 if(err) reject(err);
 
-                message.channel.send(`${this.passIcon} User with the role **${role}** can now use admin commands.`);
+                message.channel.send(`${this.passIcon} User with the role **${roleName}** can now use admin commands.`);
+
                 resolve();
             });
         });
 
     }
 
+    getRole(name, message){
+
+        const roles = message.guild.roles.cache.array();
+
+        for(let i = 0; i < roles.length; i++){
+
+            if(roles[i].name.toLowerCase() == name.toLowerCase()){
+                return roles[i];
+            }
+        }
+
+        return null;
+    }
+
     async addRole(role, message){
 
         try{
 
-            const bRoleExist = await this.bRoleAdded(role);
+            const roleData = this.getRole(role, message);
 
-            if(!bRoleExist){
+            if(roleData !== null){
 
-                console.log("doesnt exist");
+                const bRoleAdded = await this.bRoleAdded(roleData.id);
 
-                await this.insertRole(role, message);
+                if(!bRoleAdded){
+
+                    await this.insertRole(roleData.id, message, roleData.name);
+
+                }else{
+                    message.channel.send(`${this.failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
+                }
 
             }else{
-                message.channel.send(`${this.failIcon} **${role}** has already been allowed to use the bots admin commands.`);
+                message.channel.send(`${this.failIcon} `);
             }
 
         }catch(err){
@@ -309,9 +337,29 @@ class Bot{
             return;
         }
 
-        const channelRoles = message.channel.guild.roles.cache;
+        const channelRoles = message.channel.guild.roles.cache.array();
 
-        if(channelRoles.some((r => r.name.toLowerCase() == result[1].toLowerCase()))){
+        let c = 0;
+
+        let bFound = false;
+
+        for(let i = 0; i < channelRoles.length; i++){
+
+            c = channelRoles[i];
+
+            if(c.name.toLowerCase() == result[1].toLowerCase()){
+
+                bFound = true;
+                this.addRole(c.name, message);
+                break;
+            }
+        }
+
+        if(!bFound){
+            message.channel.send(`${this.failIcon} There is no role called **${result[1]}** in this channel.`);
+        }
+
+       /* if(channelRoles.some((r => r.name.toLowerCase() == result[1].toLowerCase()))){
 
             console.log("role exists");
 
@@ -319,7 +367,7 @@ class Bot{
 
         }else{
             message.channel.send(`${this.failIcon} There is no role called **${result[1]}** in this channel.`);
-        }
+        }*/
     }
 
     getAllAddedRoles(){
@@ -352,10 +400,14 @@ class Bot{
 
             const roles = await this.getAllAddedRoles();
 
+            const discordRoles = message.guild.roles.cache;
+
             let string = ``;
 
             let r = 0;
             let added = 0;
+
+            let currentRole = 0;
 
             for(let i = 0; i < roles.length; i++){
 
@@ -363,13 +415,22 @@ class Bot{
 
                 added = new Date(r.added * 1000);
 
-                string += `:small_blue_diamond: **${r.name}** Added ${added}\n`
+                currentRole = discordRoles.get(r.id);
+
+                if(currentRole !== undefined){
+                    string += `:small_blue_diamond: **${currentRole.name}** Added ${added}\n`;
+                }else{
+                    string += `:no_entry: This role no longer exists in this server, removing it from database.\n`;
+
+                    await this.deleteRole(r.id, message, "DELETED");
+                }
             }
 
             if(string == ""){
                 string = "There are currently no roles allowed to use the bots admin commands.";
             }
             string = `:large_orange_diamond: **User roles that have admin privileges**\n`+string;
+
             message.channel.send(string);
 
         }catch(err){
@@ -555,8 +616,6 @@ class Bot{
                 c = channels[i];
 
                 currentChannel = discordChannels.get(c.id)
-
-                //console.log(discordChannels.get("fdsfds"));
 
                 added = new Date(c.added * 1000);
 

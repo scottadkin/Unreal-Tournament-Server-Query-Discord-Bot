@@ -65,9 +65,6 @@ class UT99Query{
 
             r = this.responses[i];
 
-           // console.log("reeeeeeeeeeeeeeeeeee");
-           // console.log(r);
-
             if(r.ip == ip && r.port == port && !r.bSentMessage){
                 return r;
             }

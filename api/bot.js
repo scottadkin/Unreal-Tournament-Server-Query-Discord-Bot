@@ -11,6 +11,9 @@ class Bot{
         this.client = null;
         this.query = new UT99Query();
 
+        this.passIcon = ":white_check_mark:";
+        this.failIcon = ":no_entry:";
+
         this.createClient();
     }
 
@@ -56,11 +59,71 @@ class Bot{
                     }else{
                         console.log("user is not an admin");
                     }
+
+                    this.normalCommands(message);
                 }
             }
         });
 
         this.client.login(config.token);
+    }
+
+    normalCommands(message){
+
+        const helpReg = /^.help$/i;
+
+        if(helpReg.test(message.content)){
+
+            this.helpCommand(message);
+        }
+    }
+
+    helpCommand(message){
+
+        const p = config.commandPrefix;
+
+        const adminCommands = [
+
+            {"name": `${p}allowchannel`, "content": `Enables the bot to be used in the current channel.`},
+            {"name": `${p}blockchannel`, "content": `Disables the bot in the current channel.`},
+            {"name": `${p}listchannels`, "content": `Displays a list of channels the bot can be used in.`},
+            {"name": `${p}allowrole role`, "content": `Allows users with specified role to use admin bot commands.`},
+            {"name": `${p}removerole role`, "content": `Stops users with specified role being able to use admin bot commands.`},
+            {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
+            {"name": `${p}`, "content": ``},
+            {"name": `${p}`, "content": ``}
+
+        ];
+
+        const userCommands = [
+            {"name": `${p}help`, "content": `Shows this command.`}
+        ];
+
+        const icon = `:small_orange_diamond:`;
+
+        let string = `**Unreal Tournament Server Query Discord Bot Help**\n\n`;
+
+        string += `${icon+icon} **User Commands** ${icon+icon}\n`;
+
+        let c = 0;
+
+        for(let i = 0; i < userCommands.length; i++){
+
+            c = userCommands[i];
+
+            string += `**${c.name}** ${c.content}\n`;
+        }
+    
+        string += `\n${icon+icon} **Admin Commands** ${icon+icon}\n`;
+
+        for(let i = 0; i < adminCommands.length; i++){
+
+            c = adminCommands[i];
+
+            string += `**${c.name}** ${c.content}\n`;
+        }
+
+        message.channel.send(string);
     }
 
     bUserAdmin(message){
@@ -96,42 +159,421 @@ class Bot{
 
     adminCommands(message){
 
-        if(message.content.startsWith(`${config.commandPrefix}allowrole `)){
+        const m = message.content;
+        const p = config.commandPrefix;
+
+        if(m.startsWith(`${p}allowrole `)){
+
             this.allowRole(message);
+
+        }else if(m.startsWith(`${p}removerole `)){
+
+            this.removeRole(message);
+
+        }else if(m.startsWith(`${p}listroles`)){
+
+            this.listRoles(message);
+            
+        }else if(m.startsWith(`${p}allowchannel`)){
+
+            this.allowChannel(message);
+
+        }else if(m.startsWith(`${p}blockchannel`)){
+
+            this.blockChannel(message);
+
+        }else if(m.startsWith(`${p}listchannels`)){
+
+            this.listChannels(message);
         }
     }
 
-
-    addRole(role){
+    bRoleAdded(role){
 
         return new Promise((resolve, reject) =>{
 
+            const query = "SELECT COUNT(*) as total_roles FROM roles WHERE name=?";
+
+            db.get(query, [role], (err, row) =>{
+
+                if(err) reject(err);
+
+                if(row != undefined){
+
+                    if(row.total_roles > 0){
+                        resolve(true);
+                    }
+                }
+
+                resolve(false);
+            });
         });
     }
 
-    async allowRole(message){
+
+    async removeRole(message){
+
+        try{
+
+            const reg = /^.removerole (.+)$/i;
+
+            const result = reg.exec(message.content);
+
+            if(result !== null){
+
+                const bRoleExist = await this.bRoleAdded(result[1].toLowerCase());
+
+                if(bRoleExist){
+
+                    await this.deleteRole(result[1].toLowerCase(), message);
+
+                }else{
+                    message.channel.send(`${this.failIcon} The role **${result[1]}** has not been enabled to use admin commands.`);
+                }
+            }
+
+        }catch(err){
+
+            if(err) console.trace(err);
+        }
+    }
+
+    deleteRole(role, message){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "DELETE FROM roles WHERE name=?";
+
+            db.run(query, [role], (err) =>{
+
+                if(err) reject(err);
+
+                message.channel.send(`${this.passIcon} Users with the role **${role}** can no longer use the bots admin commands.`);
+                resolve();
+            });
+
+        });
+
+    }
+
+    insertRole(role, message){
+
+        //role = role.toLowerCase();
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "INSERT INTO roles VALUES(?,?)";
+
+            const now = Math.floor(Date.now() * 0.001);
+
+            db.run(query, [role, now], (err) =>{
+
+                if(err) reject(err);
+
+                message.channel.send(`${this.passIcon} User with the role **${role}** can now use admin commands.`);
+                resolve();
+            });
+        });
+
+    }
+
+    async addRole(role, message){
+
+        try{
+
+            const bRoleExist = await this.bRoleAdded(role);
+
+            if(!bRoleExist){
+
+                console.log("doesnt exist");
+
+                await this.insertRole(role, message);
+
+            }else{
+                message.channel.send(`${this.failIcon} **${role}** has already been allowed to use the bots admin commands.`);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+    allowRole(message){
 
         const reg = /^.allowrole (.+)$/i;
 
         const result = reg.exec(message.content);
 
         if(result === null){
-            message.channel.send(`Wrong syntax for allowrole command.`);
+            message.channel.send(`${this.failIcon} Wrong syntax for allowrole command.`);
             return;
         }
-        console.log(result);
 
         const channelRoles = message.channel.guild.roles.cache;
-
-        console.log(channelRoles);
 
         if(channelRoles.some((r => r.name.toLowerCase() == result[1].toLowerCase()))){
 
             console.log("role exists");
 
-            await this.addRole(result[1]);
+            this.addRole(result[1], message);
+
         }else{
-            message.channel.send(`There is no role called **${result[1]}** in this channel.`);
+            message.channel.send(`${this.failIcon} There is no role called **${result[1]}** in this channel.`);
+        }
+    }
+
+    getAllAddedRoles(){
+
+        return new Promise((resolve, reject) =>{
+
+            const roles = [];
+
+            const query = "SELECT * FROM roles";
+
+            db.each(query, (err, row) =>{
+
+                if(err) reject(err);
+
+                roles.push(row);
+
+            }, (err) =>{
+
+                if(err) reject(err);
+
+                resolve(roles);
+            });
+        });
+    }
+
+
+    async listRoles(message){
+
+        try{
+
+            const roles = await this.getAllAddedRoles();
+
+            let string = ``;
+
+            let r = 0;
+            let added = 0;
+
+            for(let i = 0; i < roles.length; i++){
+
+                r = roles[i];
+
+                added = new Date(r.added * 1000);
+
+                string += `:small_blue_diamond: **${r.name}** Added ${added}\n`
+            }
+
+            if(string == ""){
+                string = "There are currently no roles allowed to use the bots admin commands.";
+            }
+            string = `:large_orange_diamond: **User roles that have admin privileges**\n`+string;
+            message.channel.send(string);
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+    bChannelExist(message, channelName){
+
+        channelName = channelName.toLowerCase();
+
+        const channels = message.guild.channels.cache.array();
+
+        let c = 0;
+
+        for(let i = 0; i < channels.length; i++){
+
+            c = channels[i];
+
+            if(c.name.toLowerCase() == channelName){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bChannelAdded(name){
+
+        return new Promise((resolve, reject) =>{
+
+            name = name.toLowerCase();
+
+            const query = "SELECT COUNT(*) as total_channels FROM channels WHERE name=?";
+
+            db.get(query, [name], (err, row) =>{
+
+                if(err) reject(err);
+
+                if(row !== undefined){
+
+                    if(row.total_channels > 0){
+                        resolve(true);
+                    }
+                }
+
+                resolve(false);
+            });
+
+        });
+        
+    }
+
+    insertChannel(name){
+
+        name = name.toLowerCase();
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "INSERT INTO channels VALUES(?,?)";
+
+            const now = Math.floor(Date.now() * 0.001)
+
+            db.run(query, [name, now], (err) =>{
+
+                if(err) reject(err);
+
+                resolve();
+            });
+
+        });
+    }
+
+    async allowChannel(message){
+
+        try{
+
+
+            if(!this.bChannelExist(message, message.channel.name)){
+
+                message.channel.send(`${this.failIcon} There is no channel called **${message.channel.name}** in this server.`);
+
+            }else{
+
+                const exists = await this.bChannelAdded(message.channel.name);
+
+                if(!exists){
+
+                    await this.insertChannel(message.channel.name);
+
+                    message.channel.send(`${this.passIcon} The bot can now be used in this channel.`);
+                
+                }else{
+                    message.channel.send(`${this.failIcon} This channel has already been enabled for bot use.`);
+                }
+
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+
+    deleteChannel(name){
+
+        return new Promise((resolve, reject) =>{
+            
+            name = name.toLowerCase();
+
+            const query = "DELETE FROM channels WHERE name=?";
+
+            db.run(query, [name], (err) =>{
+
+                if(err) reject(err);
+
+                resolve();
+            });
+        });
+    }
+
+    async blockChannel(message){
+
+
+        try{
+
+            if(this.bChannelExist(message, message.channel.name)){
+
+                const exists = this.bChannelAdded(message.channel.name);
+
+                if(exists){
+
+                    await this.deleteChannel(message.channel.name);
+
+                    message.channel.send(`${this.passIcon} Users can no longer use the bot in this channel.`);
+
+                }else{
+                    message.channel.send(`${this.failIcon} This channel has not been enabled for bot use.`);
+                }
+
+            }else{
+                message.channel.send(`${this.failIcon} The channel specified doesn't exist.`);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+    getAllAllowedChannels(){
+
+        return new Promise((resolve, reject) =>{
+
+            const channels = [];
+
+            const query = "SELECT * FROM channels";
+
+            db.each(query, (err, row) =>{
+
+                if(err) reject(err);
+
+                channels.push(row);
+
+            }, (err, totalRows) =>{
+
+                if(err) reject(err);
+
+                resolve(channels);
+            });
+        });
+    }
+
+
+    async listChannels(message){
+
+        try{
+
+            const channels = await this.getAllAllowedChannels();
+
+            console.table(channels);
+
+            let string = "";
+
+            let c = 0;
+            let added = 0;
+
+            for(let i = 0; i < channels.length; i++){
+
+                c = channels[i];
+
+                added = new Date(c.added * 1000);
+
+                string += `:small_blue_diamond: **${c.name}** Enabled at ${added.toString()}\n`;
+            }
+
+            if(string == ""){
+                string = `There are currently no channels enabled for bot use.`;
+            }
+
+            string = `:large_orange_diamond: **Channels the bot is enabled in.\n**`+string;
+
+            message.channel.send(string);
+        }catch(err){
+            console.trace(err);
         }
     }
 }

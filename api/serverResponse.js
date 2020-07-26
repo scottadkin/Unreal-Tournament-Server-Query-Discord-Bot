@@ -1,8 +1,7 @@
 const Discord = require('discord.js');
 const geoip = require('geoip-lite');
 const countryList = require('country-list');
-
-console.log(countryList);
+const config = require('./config.json');
 
 class ServerResponse{
 
@@ -188,6 +187,9 @@ class ServerResponse{
 
         this.players.sort((a, b) =>{
 
+            if(a.frags === undefined) return;
+            if(b.frags === undefined) return;
+
             a = a.frags;
             b = b.frags;
 
@@ -199,6 +201,8 @@ class ServerResponse{
 
             return 0;
         });
+
+        console.table(this.players);
 
         this.bReceivedFinal = true;
 
@@ -238,7 +242,7 @@ class ServerResponse{
         
         const embed = new Discord.MessageEmbed()
         .setTitle(`:flag_${this.geo.country.toLowerCase()}: ${this.name}`)
-        .setColor('#ff0000')
+        .setColor(config.embedColor)
         .setDescription(`${description}`)
         .addFields(fields)
         .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)

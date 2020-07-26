@@ -321,7 +321,7 @@ class ServerResponse{
 
     parseTeamData(data){
 
-        const teamScoreReg = /\\score_(\d)\\(\d+?)\\/ig;
+        const teamScoreReg = /\\score_(\d)\\(.+?)\\/ig;
         const teamSizeReg = /\\size_(\d)\\(\d+?)\\/ig;
 
         let result = "";
@@ -376,30 +376,37 @@ class ServerResponse{
         let result = "";
         let oldResult = "";
 
+        let currentMesh = "";
+
         while(result !== null){
 
-            result = nameReg.exec(data);
-            if(result !== null) this.updatePlayer(result[1], "name", result[2]);
+            currentMesh = "";
 
-            result = fragsReg.exec(data);
-            if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
+            result = nameReg.exec(data);
+
+            if(result !== null) this.updatePlayer(result[1], "name", result[2]);
 
             result = teamReg.exec(data);
             if(result !== null) this.updatePlayer(result[1], "team", result[2]);
 
             result = meshReg.exec(data);
-            if(result !== null) this.updatePlayer(result[1], "mesh", result[2]);
+            if(result !== null){
+                currentMesh = result[2].toLowerCase();
+                this.updatePlayer(result[1], "mesh", result[2]);
+            }
 
             result = faceReg.exec(data);
             if(result !== null) this.updatePlayer(result[1], "face", result[2]);
 
 
-            oldResult = result;
-
             result = countryReg.exec(data);
             if(result !== null) this.updatePlayer(result[1], "country", result[2]);
 
-            result = oldResult;
+            if(currentMesh != "spectator"){
+                result = fragsReg.exec(data);
+
+                if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
+            }
 
         }
 

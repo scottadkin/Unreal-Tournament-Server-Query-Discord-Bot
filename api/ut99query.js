@@ -30,8 +30,6 @@ class UT99Query{
 
         setInterval(() =>{
 
-            console.table(this.responses);
-
             const now = Math.floor(Date.now() * 0.001);
 
             let r = 0;
@@ -55,7 +53,7 @@ class UT99Query{
                 }
             });
 
-            
+
 
         }, config.serverTimout * 1000);
     }

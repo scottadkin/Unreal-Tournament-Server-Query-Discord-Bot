@@ -16,6 +16,7 @@ class ServerResponse{
         this.timeStamp = Math.floor(Date.now() * 0.001);
         this.type = type;
         this.bReceivedFinal = false;
+        this.bTimedOut = false;
         this.bSentMessage = false;
         this.discordMessage = discordMessage;
 
@@ -177,6 +178,13 @@ class ServerResponse{
     }
 
     sendFullServerResponse(){
+
+
+        if(this.bTimedOut){
+            this.discordMessage.channel.send(`:no_entry: **${this.ip}:${this.port}** has timedout!`);
+            this.bSentMessage = true;
+            return;
+        }
 
         this.players.sort((a, b) =>{
 

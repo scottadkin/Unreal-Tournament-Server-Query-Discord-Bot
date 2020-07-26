@@ -23,6 +23,41 @@ class UT99Query{
         //this.getFullServer('95.31.20.140', 7977);
         //this.getFullServer('66.85.80.155',7797);
         
+        this.init();
+    }
+
+    init(){
+
+        setInterval(() =>{
+
+            console.table(this.responses);
+
+            const now = Math.floor(Date.now() * 0.001);
+
+            let r = 0;
+
+            for(let i = 0; i < this.responses.length; i++){
+
+                r = this.responses[i];
+
+                if(now - r.timeStamp > config.serverTimout && !r.bSentMessage){
+
+                    r.bReceivedFinal = true;
+                    r.bTimedOut = true;
+                    r.sendFullServerResponse();
+                }
+            }
+
+            this.responses = this.responses.filter((a) =>{
+
+                if(!a.bSentMessage){
+                    return true;
+                }
+            });
+
+            
+
+        }, config.serverTimout * 1000);
     }
 
     createClient(){

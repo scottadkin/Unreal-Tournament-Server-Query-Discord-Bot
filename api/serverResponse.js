@@ -358,12 +358,12 @@ class ServerResponse{
 
     parsePlayerData(data){
 
-        const nameReg = /\\player_(\d+)\\(.+?)\\/ig;
-        const fragsReg = /\\frags_(\d+)\\(.+?)\\/ig;
-        const teamReg = /\\team_(\d+)\\(\d+?)\\/ig;
-        const meshReg = /\\mesh_(\d+)\\(.+?)\\/ig;
-        const faceReg = /\\face_(\d+)\\(.{0,}?)\\/ig;
-        const countryReg = /\\countryc_(\d+)\\(.+?)\\/ig;
+        const nameReg = /\\player_(\d+?)\\(.+?)\\/ig;
+        const fragsReg = /\\frags_(\d+?)\\(\d+?)\\/ig;
+        const teamReg = /\\team_(\d+?)\\(\d+?)\\/ig;
+        const meshReg = /\\mesh_(\d+?)\\(.+?)\\/ig;
+        const faceReg = /\\face_(\d+?)\\(.{0,}?)\\/ig;
+        const countryReg = /\\countryc_(\d+?)\\(.+?)\\/ig;
 
         let result = "";
         let oldResult = "";

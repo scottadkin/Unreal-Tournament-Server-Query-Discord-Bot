@@ -55,10 +55,13 @@ class Bot{
                 if(message.content.startsWith(config.commandPrefix)){
 
                     if(this.bUserAdmin(message)){
-                        console.log("user is an admin");
-                        this.adminCommands(message);
+                       // console.log("user is an admin");
+
+                        if(this.adminCommands(message)){
+                            return;
+                        }
                     }else{
-                        console.log("user is not an admin");
+                       // console.log("user is not an admin");
                     }
 
                     this.normalCommands(message);
@@ -69,13 +72,56 @@ class Bot{
         this.client.login(config.token);
     }
 
-    normalCommands(message){
+    bBotCanCommentInChannel(message){
 
-        const helpReg = /^.help$/i;
+        return new Promise((resolve, reject) =>{
 
-        if(helpReg.test(message.content)){
+            const channelId = message.channel.id;
 
-            this.helpCommand(message);
+            const query = "SELECT COUNT(*) as total_channels from channels WHERE id=?";
+
+            db.get(query, [channelId], (err, row) =>{
+
+                if(err) reject(err);
+
+                if(row.total_channels > 0){
+
+                    resolve(true);
+                }
+
+                resolve(false);
+            });
+
+
+
+        });
+    }
+
+    async normalCommands(message){
+
+        try{
+
+            if(await this.bBotCanCommentInChannel(message)){
+
+                const helpReg = /^.help$/i;
+                const serverQueryReg = /^.q .+$/i;
+
+                if(helpReg.test(message.content)){
+
+                    this.helpCommand(message);
+
+                }else if(serverQueryReg.test(message.content)){
+
+                    this.queryServer(message);
+                }
+
+
+            }else{
+                message.channel.send(`${this.failIcon} The bot is not enabled in this channel.`);
+            }
+
+        }catch(err){
+            console.trace(err);
         }
     }
 
@@ -167,26 +213,40 @@ class Bot{
 
             this.allowRole(message);
 
+            return true;
+
         }else if(m.startsWith(`${p}removerole `)){
 
             this.removeRole(message);
+            
+            return true;
 
         }else if(m.startsWith(`${p}listroles`)){
 
             this.listRoles(message);
+
+            return true;
             
         }else if(m.startsWith(`${p}allowchannel`)){
 
             this.allowChannel(message);
 
+            return true;
+
         }else if(m.startsWith(`${p}blockchannel`)){
 
             this.blockChannel(message);
 
+            return true;
+
         }else if(m.startsWith(`${p}listchannels`)){
 
             this.listChannels(message);
+
+            return true;
         }
+
+        return false;
     }
 
     bRoleAdded(role){
@@ -429,6 +489,7 @@ class Bot{
             if(string == ""){
                 string = "There are currently no roles allowed to use the bots admin commands.";
             }
+            
             string = `:large_orange_diamond: **User roles that have admin privileges**\n`+string;
 
             message.channel.send(string);
@@ -638,6 +699,52 @@ class Bot{
         }catch(err){
             console.trace(err);
         }
+    }
+
+    queryServer(message){
+
+        const reg = /^.q (((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(.{0,}))|((.+?)(.{0}|:\d{1,})))$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result !== null){
+
+          
+            //check if an ip or domain name
+            if(result[2] === undefined){
+
+                const domainName = result[6];
+                let port = 7777;
+
+                if(result[7] !== ''){
+
+                    port = parseInt(result[7].replace(':',''));            
+
+                }
+
+                this.query.getFullServer(domainName, port, message);
+
+                return;
+
+            }else{
+
+                const ip = result[3];
+
+                let port = 7777;
+
+                if(result[4] !== ''){      
+                    port = parseInt(result[4].replace(':',''));
+                }
+
+                this.query.getFullServer(ip, port, message);
+
+                console.log("found an ip");
+            }
+
+
+        }
+
+        console.log(result);
     }
 }
 

@@ -136,13 +136,12 @@ class Bot{
             {"name": `${p}listchannels`, "content": `Displays a list of channels the bot can be used in.`},
             {"name": `${p}allowrole role`, "content": `Allows users with specified role to use admin bot commands.`},
             {"name": `${p}removerole role`, "content": `Stops users with specified role being able to use admin bot commands.`},
-            {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
-            {"name": `${p}`, "content": ``},
-            {"name": `${p}`, "content": ``}
+            {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`}
 
         ];
 
         const userCommands = [
+            {"name": `${p}q ip:port`, "content": `Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
             {"name": `${p}help`, "content": `Shows this command.`}
         ];
 
@@ -169,6 +168,8 @@ class Bot{
 
             string += `**${c.name}** ${c.content}\n`;
         }
+
+        string += `\n:orange_book: **Github Repo** <https://github.com/scottadkin/Unreal-Tournament-Server-Query-Discord-Bot>`;
 
         message.channel.send(string);
     }
@@ -242,6 +243,12 @@ class Bot{
         }else if(m.startsWith(`${p}listchannels`)){
 
             this.listChannels(message);
+
+            return true;
+
+        }else if(m.startsWith(`${p}addserver`)){
+
+            this.addServer(message);
 
             return true;
         }
@@ -737,15 +744,66 @@ class Bot{
                 }
 
                 this.query.getFullServer(ip, port, message);
-
-                console.log("found an ip");
             }
-
-
         }
-
-        console.log(result);
     }
+
+    addServer(message){
+
+    }
+
+    bServerAdded(ip, realIp){
+
+        return new Promise((resolve, reject) =>{
+
+        });
+    }
+
+    insertServer(ip, realIp, alias, port){
+
+        return new Promise((resolve, reject) =>{
+
+            /**
+             *   ip TEXT NOT NULL,
+        real_ip TEXT NOT NULL,
+        port INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        alias TEXT NOT NULL,
+        players INTEGER NOT NULL,
+        max_players INTEGER NOT NULL,
+        gametype TEXT NOT NULL,
+        map TEXT NOT NULL,
+        created INTEGER NOT NULL,
+        modified INTEGER NOT NULL
+             */
+            const now = Math.floor(Date.now() * 0.001);
+
+            const query = "INSERT INTO servers VALUES(?,?,?,?,?,0,0,'N/A','N/A',?,?)";
+
+            const vars = [
+                ip, 
+                realIp, 
+                port, 
+                "Another UT Server",
+                alias,
+                now,
+                now
+            ];
+
+            db.run(query, vars, (err) =>{
+
+                if(err) reject(err);
+
+                resolve();
+            });
+        });
+    }
+
+    deleteServer(serverId){
+
+    }
+
+    
 }
 
 

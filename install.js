@@ -10,6 +10,7 @@ const queries = [
         added INTEGER NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS servers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         ip TEXT NOT NULL,
         real_ip TEXT NOT NULL,
         port INTEGER NOT NULL,

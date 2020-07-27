@@ -876,7 +876,7 @@ class Bot{
 
             const now = Math.floor(Date.now() * 0.001);
 
-            const query = "INSERT INTO servers VALUES(?,?,?,?,?,0,0,'N/A','N/A',?,?)";
+            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,?,0,0,'N/A','N/A',?,?)";
 
             const vars = [
                 ip, 
@@ -897,13 +897,13 @@ class Bot{
         });
     }
 
-    deleteServer(ip, port){
+    deleteServer(id){
 
         return new Promise((resolve, reject) =>{
 
-            const query = "DELETE FROM servers WHERE ip=? AND port=?";
+            const query = "DELETE FROM servers WHERE id=?";
 
-            db.run(query, [ip, port], (err) =>{
+            db.run(query, [id], (err) =>{
 
                 if(err) reject(err);
 
@@ -959,7 +959,7 @@ class Bot{
                     message.channel.send(`${this.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver, id must be a valid integer.`);
                     return;
 
-                }else if(id > servers.length - 1 || id < 1){
+                }else if(id > servers.length || id < 1){
 
                     message.channel.send(`${this.failIcon} There are no servers with the id ${id}`);
                     return;
@@ -970,7 +970,7 @@ class Bot{
 
                 const s = servers[id];
 
-                await this.deleteServer(s.ip, s.port);
+                await this.deleteServer(s.id);
 
                 message.channel.send(`${this.passIcon} Deleted server successfully.`);        
 
@@ -1070,7 +1070,7 @@ class Bot{
                 if(string == ""){
                     string = "There are currently no active servers.";
                 }
-                
+
             }else{
 
                 if(string == ""){

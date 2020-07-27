@@ -3,6 +3,7 @@ const Discord = require('discord.js');
 const config = require('./config.json');
 const UT99Query = require('./ut99query.js');
 const db = require('./db');
+const dns = require('dns');
 
 class Bot{
 
@@ -251,6 +252,7 @@ class Bot{
             this.addServer(message);
 
             return true;
+
         }
 
         return false;
@@ -748,18 +750,74 @@ class Bot{
         }
     }
 
-    addServer(message){
+    async addServer(message){
+
+        try{
+
+            const reg = /^.addserver ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:(\d{1,5})|))|(.+?)(:\d{1,5}|))$/i;
+
+            const result = reg.exec(message.content);
+
+            console.log(result);
+
+            if(result === null){
+
+                message.content.send(`${this.failIcon} Incorrect syntax for **addserver**`);
+
+            }else{
+
+                if(result[5] !== undefined){
+
+                    const ip = dns.lookup(result[5], async (err, result) =>{
+
+                        if(err) message.content.send(`${this.failIcon} There was a DNS error looking up server ip.`);
+                        console.log(result);
+
+                        let port = 7777;
+
+                        if(result[6] !== undefined){
+                            port = result[6].replace(':', '');
+                        }
+
+                        //ip, realIp, alias, port
+                        await this.insertServer(result[5], result, "test", port);
+
+                    });
+                    
+                }
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
 
     }
 
-    bServerAdded(ip, realIp){
+    bServerAdded(ip){
 
         return new Promise((resolve, reject) =>{
 
+            const query = "SELECT COUNT(*) as total_servers FROM servers WHERE real_ip=?";
+
+            db.get(query, [ip], (err, row) =>{
+
+                if(err) reject(err);
+
+                if(row !== undefined){
+
+                    if(row.total_servers > 0){
+                        resolve(true);
+                    }
+                }
+
+                resolve(false);
+            });
         });
     }
 
     insertServer(ip, realIp, alias, port){
+
+        console.log(`${ip}, ${realIp}, ${alias}, ${port}`);
 
         return new Promise((resolve, reject) =>{
 

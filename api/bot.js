@@ -106,6 +106,8 @@ class Bot{
 
                 const helpReg = /^.help$/i;
                 const serverQueryReg = /^.q .+$/i;
+                const listReg = /^.list/i;
+                const activeReg = /^.active/i;
 
                 if(helpReg.test(message.content)){
 
@@ -114,6 +116,14 @@ class Bot{
                 }else if(serverQueryReg.test(message.content)){
 
                     this.queryServer(message);
+
+                }else if(listReg.test(message.content)){
+
+                    this.listServers(message);
+
+                }else if(activeReg.test(message.content)){
+
+                    this.listServers(message, true);
                 }
 
 
@@ -137,11 +147,14 @@ class Bot{
             {"name": `${p}listchannels`, "content": `Displays a list of channels the bot can be used in.`},
             {"name": `${p}allowrole role`, "content": `Allows users with specified role to use admin bot commands.`},
             {"name": `${p}removerole role`, "content": `Stops users with specified role being able to use admin bot commands.`},
-            {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`}
+            {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
+            {"name": `${p}addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
+            {"name": `${p}removeserver serverid`, "content": `Removes the specified server from the database.`}
 
         ];
 
         const userCommands = [
+            {"name": `${p}list`, "content": `Lists all servers added to the database.`},
             {"name": `${p}q ip:port`, "content": `Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
             {"name": `${p}help`, "content": `Shows this command.`}
         ];
@@ -253,6 +266,11 @@ class Bot{
 
             return true;
 
+        }else if(m.startsWith(`${p}removeserver`)){
+
+            this.removeServer(message);
+
+            return true;
         }
 
         return false;
@@ -754,51 +772,71 @@ class Bot{
 
         try{
 
-            const reg = /^.addserver ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
+            const reg = /^.addserver (.+?) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
 
             const result = reg.exec(message.content);
 
-            console.log(result);
-
             if(result === null){
 
-                message.content.send(`${this.failIcon} Incorrect syntax for **addserver**`);
+                message.channel.send(`${this.failIcon} Incorrect syntax for **addserver**`);
+                return;
 
             }else{
 
                 let port = 7777;
                 let ip = 0;
 
-                if(result[2] === undefined){
+                if(result[3] === undefined){
 
-                    ip = dns.lookup(result[5], async (err, ipResult) =>{
+                    ip = dns.lookup(result[6], async (err, ipResult) =>{
 
-                        if(err) message.content.send(`${this.failIcon} There was a DNS error looking up server ip.`);
+                        if(err){
+                            message.channel.send(`${this.failIcon} There is no matching ip for that domain address.`);
+                            return;
+                        }
 
-                        if(result[7] !== undefined){
+                        /*if(ipResult === undefined){
 
-                            if(result[7] !== ''){
-                                port = parseInt(result[7]);
+                            message.channel.send(`${this.failIcon} There is no matching ip for that domain address.`);
+                            return;
+                        }*/
+
+                        if(result[8] !== undefined){
+
+                            if(result[8] !== ''){
+                                port = parseInt(result[8]);
                             }
                         }
 
+                        //console.log(await this.bServerAdded(ipResult));
                         //ip, realIp, alias, port
-                        await this.insertServer(result[5], ipResult, "test", port);
 
-                        message.channel.send(`${this.passIcon} Server added successfully.`);
+                        if(!await this.bServerAdded(ipResult, port)){
 
+                            await this.insertServer(result[6], ipResult, result[1], port);
+                            message.channel.send(`${this.passIcon} Server added successfully.`);
+
+                        }else{
+                            message.channel.send(`${this.failIcon} Server with that ip and port has already added to database.`);
+                        }
                     });   
 
                 }else{
 
-                    ip = result[2];
+                    ip = result[3];
 
-                    if(result[4] !== undefined){
-                        port = parseInt(result[4]);
+                    if(result[5] !== undefined){
+                        port = parseInt(result[5]);
                     }
 
-                    await this.insertServer(ip, ip, "test alt", port);
-                    message.channel.send(`${this.passIcon} Server added successfully.`);
+                    if(!await this.bServerAdded(ip, port)){
+
+                        await this.insertServer(ip, ip, result[1], port);
+                        message.channel.send(`${this.passIcon} Server added successfully.`);
+
+                    }else{
+                        message.channel.send(`${this.failIcon} Server with that ip and port has already added to database.`);
+                    }
                 }
             }
 
@@ -808,23 +846,23 @@ class Bot{
 
     }
 
-    bServerAdded(ip){
+    bServerAdded(ip, port){
 
         return new Promise((resolve, reject) =>{
 
-            const query = "SELECT COUNT(*) as total_servers FROM servers WHERE real_ip=?";
+            const query = "SELECT COUNT(*) as total_servers FROM servers WHERE real_ip=? AND port=?";
 
-            db.get(query, [ip], (err, row) =>{
+            db.get(query, [ip, port], (err, row) =>{
 
                 if(err) reject(err);
 
                 if(row !== undefined){
 
                     if(row.total_servers > 0){
+                        console.log(`Total servers = ${row.total_servers}`);
                         resolve(true);
                     }
                 }
-
                 resolve(false);
             });
         });
@@ -836,19 +874,6 @@ class Bot{
 
         return new Promise((resolve, reject) =>{
 
-            /**
-             *   ip TEXT NOT NULL,
-        real_ip TEXT NOT NULL,
-        port INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        alias TEXT NOT NULL,
-        players INTEGER NOT NULL,
-        max_players INTEGER NOT NULL,
-        gametype TEXT NOT NULL,
-        map TEXT NOT NULL,
-        created INTEGER NOT NULL,
-        modified INTEGER NOT NULL
-             */
             const now = Math.floor(Date.now() * 0.001);
 
             const query = "INSERT INTO servers VALUES(?,?,?,?,?,0,0,'N/A','N/A',?,?)";
@@ -872,7 +897,205 @@ class Bot{
         });
     }
 
-    deleteServer(serverId){
+    deleteServer(ip, port){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "DELETE FROM servers WHERE ip=? AND port=?";
+
+            db.run(query, [ip, port], (err) =>{
+
+                if(err) reject(err);
+
+                resolve();
+            });
+        });
+    }
+
+
+    getAllServers(){
+
+        return new Promise((resolve, reject) =>{
+
+            const servers = [];
+
+            const query = "SELECT * FROM servers ORDER BY created ASC";
+
+            db.each(query, (err, row) =>{
+
+                if(err) reject(err);
+
+                servers.push(row);
+
+            }, (err) =>{
+
+                if(err) reject(err);
+
+                resolve(servers);
+            });
+        });
+    }
+
+
+
+    async removeServer(message){
+
+        try{
+
+            const reg = /^.removeserver (\d+)$/i;
+
+            const result = reg.exec(message.content);
+
+            if(result !== null){
+
+                const servers = await this.getAllServers();
+
+                //console.table(servers);
+
+                let id = parseInt(result[1]);
+
+                if(id !== id){
+
+                    message.channel.send(`${this.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver, id must be a valid integer.`);
+                    return;
+
+                }else if(id > servers.length - 1 || id < 1){
+
+                    message.channel.send(`${this.failIcon} There are no servers with the id ${id}`);
+                    return;
+
+                }
+
+                id = id - 1;
+
+                const s = servers[id];
+
+                await this.deleteServer(s.ip, s.port);
+
+                message.channel.send(`${this.passIcon} Deleted server successfully.`);        
+
+            }else{
+
+                message.channel.send(`${this.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver.`);
+            }
+
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+    createServerString(id, server){
+
+        const idLength = 2;
+        const aliasLength = 20;
+        const mapLength = 20;
+        const playersLength = 7;
+
+        const fixValue = (input, limit, bSpecial) =>{
+
+            input = input.toString();
+
+            if(input.length > limit){
+                input.slice(0, limit);
+            }
+
+            while(input.length < limit){
+
+                if(bSpecial === undefined){
+                    input += " ";
+                }else{
+                    input = " "+input;
+                }
+           
+            }
+
+            return input;
+        }
+
+
+        let serverId = fixValue(id, idLength);
+        let alias = fixValue(server.alias, aliasLength);
+        let map = fixValue(server.map, mapLength);
+
+        let playerString = "";
+
+        if(server.max_players == "ers"){
+            playerString = "Players";
+        }else{
+            playerString = server.players+"/"+server.max_players;
+        }
+
+        let players = fixValue(playerString, playersLength, true);
+
+        let string = `\`${serverId} - ${alias} ${map} ${players}\``;
+
+        return string;
+    }
+
+    async listServers(message, bOnlyActive){
+
+        try{
+
+            const servers = await this.getAllServers();
+
+            let string = "";
+
+            let s = 0;
+
+            for(let i = 0; i < servers.length; i++){
+
+                s = servers[i];
+
+                if(bOnlyActive === undefined){
+                    string += this.createServerString(i + 1, s)+"\n";
+                }else{
+
+                    if(s.players > 0){
+                        string += this.createServerString(i + 1, s)+"\n";
+                    }
+                }
+            }
+
+            
+
+            const embed = new Discord.MessageEmbed();
+
+            let title = "Unreal Tournament Server List";
+
+            if(bOnlyActive !== undefined){
+
+                title = "Active Unreal Tournament Server List";
+
+                if(string == ""){
+                    string = "There are currently no active servers.";
+                }
+                
+            }else{
+
+                if(string == ""){
+                    string = "There are currently no servers added.";
+                }
+            }
+
+            embed.setColor(config.embedColor)
+            .setTitle(title)
+            .setDescription(`Use ${config.commandPrefix}q serverid for easier server querying.`)
+            .addField(this.createServerString("ID", {
+                "alias": "Alias",
+                "players": "Play",
+                "max_players": "ers",
+                "map": "Map"
+
+            }), string ,false)
+            .setTimestamp();
+            //"`Id - alias - players - maxplayers`"
+            message.channel.send(embed);
+
+        }catch(err){
+            console.trace(err);
+        }
+
 
     }
 

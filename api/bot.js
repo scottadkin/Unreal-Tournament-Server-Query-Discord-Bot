@@ -754,7 +754,7 @@ class Bot{
 
         try{
 
-            const reg = /^.addserver ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:(\d{1,5})|))|(.+?)(:\d{1,5}|))$/i;
+            const reg = /^.addserver ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
 
             const result = reg.exec(message.content);
 
@@ -766,24 +766,39 @@ class Bot{
 
             }else{
 
-                if(result[5] !== undefined){
+                let port = 7777;
+                let ip = 0;
 
-                    const ip = dns.lookup(result[5], async (err, result) =>{
+                if(result[2] === undefined){
+
+                    ip = dns.lookup(result[5], async (err, ipResult) =>{
 
                         if(err) message.content.send(`${this.failIcon} There was a DNS error looking up server ip.`);
-                        console.log(result);
 
-                        let port = 7777;
+                        if(result[7] !== undefined){
 
-                        if(result[6] !== undefined){
-                            port = result[6].replace(':', '');
+                            if(result[7] !== ''){
+                                port = parseInt(result[7]);
+                            }
                         }
 
                         //ip, realIp, alias, port
-                        await this.insertServer(result[5], result, "test", port);
+                        await this.insertServer(result[5], ipResult, "test", port);
 
-                    });
-                    
+                        message.channel.send(`${this.passIcon} Server added successfully.`);
+
+                    });   
+
+                }else{
+
+                    ip = result[2];
+
+                    if(result[4] !== undefined){
+                        port = parseInt(result[4]);
+                    }
+
+                    await this.insertServer(ip, ip, "test alt", port);
+                    message.channel.send(`${this.passIcon} Server added successfully.`);
                 }
             }
 

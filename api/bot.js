@@ -4,16 +4,18 @@ const config = require('./config.json');
 const UT99Query = require('./ut99query.js');
 const db = require('./db');
 const dns = require('dns');
+const Servers = require('./servers');
 
 class Bot{
 
     constructor(){
 
         this.client = null;
-        this.query = new UT99Query();
+        this.query = new UT99Query(db);
 
-        this.passIcon = ":white_check_mark:";
-        this.failIcon = ":no_entry:";
+        
+
+        this.servers = new Servers(db);
 
         this.createClient();
     }
@@ -150,7 +152,7 @@ class Bot{
 
 
             }else{
-                message.channel.send(`${this.failIcon} The bot is not enabled in this channel.`);
+                message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
             }
 
         }catch(err){
@@ -280,7 +282,7 @@ class Bot{
             for(let i = 0; i < commands.length; i++){
 
                 if(message.content.startsWith(commands[i])){
-                    message.channel.send(`${this.failIcon} Only users with an admin role can use that command.`);
+                    message.channel.send(`${config.failIcon} Only users with an admin role can use that command.`);
                     return true;
                 }
             }
@@ -326,13 +328,13 @@ class Bot{
 
         }else if(m.startsWith(commands[6])){
 
-            this.addServer(message);
+            this.servers.addServer(message);
 
             return true;
 
         }else if(m.startsWith(commands[7])){
 
-            this.removeServer(message);
+            this.servers.removeServer(message);
 
             return true;
         }
@@ -383,13 +385,13 @@ class Bot{
 
                         await this.deleteRole(roleData.id, message, roleData.name);
 
-                        message.channel.send(`${this.passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
+                        message.channel.send(`${config.passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
 
                     }else{
-                        message.channel.send(`${this.failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
+                        message.channel.send(`${config.failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
                     }
                 }else{
-                    message.channel.send(`${this.failIcon} The role **${roleData.name}** does not exist in this server.`);
+                    message.channel.send(`${config.failIcon} The role **${roleData.name}** does not exist in this server.`);
                 }
             }
 
@@ -428,7 +430,7 @@ class Bot{
 
                 if(err) reject(err);
 
-                message.channel.send(`${this.passIcon} User with the role **${roleName}** can now use admin commands.`);
+                message.channel.send(`${config.passIcon} User with the role **${roleName}** can now use admin commands.`);
 
                 resolve();
             });
@@ -465,11 +467,11 @@ class Bot{
                     await this.insertRole(roleData.id, message, roleData.name);
 
                 }else{
-                    message.channel.send(`${this.failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
+                    message.channel.send(`${config.failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
                 }
 
             }else{
-                message.channel.send(`${this.failIcon} `);
+                message.channel.send(`${config.failIcon} `);
             }
 
         }catch(err){
@@ -484,7 +486,7 @@ class Bot{
         const result = reg.exec(message.content);
 
         if(result === null){
-            message.channel.send(`${this.failIcon} Wrong syntax for allowrole command.`);
+            message.channel.send(`${config.failIcon} Wrong syntax for allowrole command.`);
             return;
         }
 
@@ -507,7 +509,7 @@ class Bot{
         }
 
         if(!bFound){
-            message.channel.send(`${this.failIcon} There is no role called **${result[1]}** in this channel.`);
+            message.channel.send(`${config.failIcon} There is no role called **${result[1]}** in this channel.`);
         }
 
        /* if(channelRoles.some((r => r.name.toLowerCase() == result[1].toLowerCase()))){
@@ -517,7 +519,7 @@ class Bot{
             this.addRole(result[1], message);
 
         }else{
-            message.channel.send(`${this.failIcon} There is no role called **${result[1]}** in this channel.`);
+            message.channel.send(`${config.failIcon} There is no role called **${result[1]}** in this channel.`);
         }*/
     }
 
@@ -656,7 +658,7 @@ class Bot{
 
             if(!this.bChannelExist(message, message.channel.id)){
 
-                message.channel.send(`${this.failIcon} There is no channel called **${message.channel.name}** in this server.`);
+                message.channel.send(`${config.failIcon} There is no channel called **${message.channel.name}** in this server.`);
 
             }else{
 
@@ -666,10 +668,10 @@ class Bot{
 
                     await this.insertChannel(message.channel.id);
 
-                    message.channel.send(`${this.passIcon} The bot can now be used in this channel.`);
+                    message.channel.send(`${config.passIcon} The bot can now be used in this channel.`);
                 
                 }else{
-                    message.channel.send(`${this.failIcon} This channel has already been enabled for bot use.`);
+                    message.channel.send(`${config.failIcon} This channel has already been enabled for bot use.`);
                 }
             }
 
@@ -707,14 +709,14 @@ class Bot{
 
                     await this.deleteChannel(message.channel.id);
 
-                    message.channel.send(`${this.passIcon} Users can no longer use the bot in this channel.`);
+                    message.channel.send(`${config.passIcon} Users can no longer use the bot in this channel.`);
 
                 }else{
-                    message.channel.send(`${this.failIcon} This channel has not been enabled for bot use.`);
+                    message.channel.send(`${config.failIcon} This channel has not been enabled for bot use.`);
                 }
 
             }else{
-                message.channel.send(`${this.failIcon} The channel specified doesn't exist.`);
+                message.channel.send(`${config.failIcon} The channel specified doesn't exist.`);
             }
 
         }catch(err){
@@ -804,13 +806,13 @@ class Bot{
 
                 let id = parseInt(result[1]);
 
-                const servers = await this.getAllServers();
+                const servers = await this.servers.getAllServers();
 
                 id = id - 1;
 
                 if(id < 0 || id > servers.length){
 
-                    message.channel.send(`${this.failIcon} There is no server with the id of ${id + 1}.`);
+                    message.channel.send(`${config.failIcon} There is no server with the id of ${id + 1}.`);
 
                 }else{
 
@@ -819,7 +821,7 @@ class Bot{
                 
             }else{
 
-                message.channel.send(`${this.failIcon} Incorrect syntax for ${config.commandPrefix}q serverid.`);
+                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}q serverid.`);
             }
 
         }catch(err){
@@ -867,228 +869,12 @@ class Bot{
         }
     }
 
-    async addServer(message){
-
-        try{
-
-            const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
-
-            const result = reg.exec(message.content);
-
-            if(result === null){
-
-                message.channel.send(`${this.failIcon} Incorrect syntax for **addserver**`);
-                return;
-
-            }else{
-
-                let port = 7777;
-                let ip = 0;
-
-                if(result[3] === undefined){
-
-                    ip = dns.lookup(result[6], async (err, ipResult) =>{
-
-                        if(err){
-                            message.channel.send(`${this.failIcon} There is no matching ip for that domain address.`);
-                            return;
-                        }
-
-                        /*if(ipResult === undefined){
-
-                            message.channel.send(`${this.failIcon} There is no matching ip for that domain address.`);
-                            return;
-                        }*/
-
-                        if(result[8] !== undefined){
-
-                            if(result[8] !== ''){
-                                port = parseInt(result[8]);
-                            }
-                        }
-
-                        //console.log(await this.bServerAdded(ipResult));
-                        //ip, realIp, alias, port
-
-                        if(!await this.bServerAdded(ipResult, port)){
-
-                            await this.insertServer(result[6], ipResult, result[1], port);
-                            message.channel.send(`${this.passIcon} Server added successfully.`);
-
-                        }else{
-                            message.channel.send(`${this.failIcon} Server with that ip and port has already added to database.`);
-                        }
-                    });   
-
-                }else{
-
-                    ip = result[3];
-
-                    if(result[5] !== undefined){
-                        port = parseInt(result[5]);
-                    }
-
-                    if(!await this.bServerAdded(ip, port)){
-
-                        await this.insertServer(ip, ip, result[1], port);
-                        message.channel.send(`${this.passIcon} Server added successfully.`);
-
-                    }else{
-                        message.channel.send(`${this.failIcon} Server with that ip and port has already added to database.`);
-                    }
-                }
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-
-    }
-
-    bServerAdded(ip, port){
-
-        return new Promise((resolve, reject) =>{
-
-            const query = "SELECT COUNT(*) as total_servers FROM servers WHERE real_ip=? AND port=?";
-
-            db.get(query, [ip, port], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row !== undefined){
-
-                    if(row.total_servers > 0){
-                        console.log(`Total servers = ${row.total_servers}`);
-                        resolve(true);
-                    }
-                }
-                resolve(false);
-            });
-        });
-    }
-
-    insertServer(ip, realIp, alias, port){
-
-        console.log(`${ip}, ${realIp}, ${alias}, ${port}`);
-
-        return new Promise((resolve, reject) =>{
-
-            const now = Math.floor(Date.now() * 0.001);
-
-            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,?,0,0,'N/A','N/A',?,?)";
-
-            const vars = [
-                ip, 
-                realIp, 
-                port, 
-                "Another UT Server",
-                alias,
-                now,
-                now
-            ];
-
-            db.run(query, vars, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
-    }
-
-    deleteServer(id){
-
-        return new Promise((resolve, reject) =>{
-
-            const query = "DELETE FROM servers WHERE id=?";
-
-            db.run(query, [id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
-    }
-
-
-    getAllServers(){
-
-        return new Promise((resolve, reject) =>{
-
-            const servers = [];
-
-            const query = "SELECT * FROM servers ORDER BY created ASC";
-
-            db.each(query, (err, row) =>{
-
-                if(err) reject(err);
-
-                servers.push(row);
-
-            }, (err) =>{
-
-                if(err) reject(err);
-
-                resolve(servers);
-            });
-        });
-    }
-
-
-
-    async removeServer(message){
-
-        try{
-
-            const reg = /^.removeserver (\d+)$/i;
-
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                const servers = await this.getAllServers();
-
-                //console.table(servers);
-
-                let id = parseInt(result[1]);
-
-                if(id !== id){
-
-                    message.channel.send(`${this.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver, id must be a valid integer.`);
-                    return;
-
-                }else if(id > servers.length || id < 1){
-
-                    message.channel.send(`${this.failIcon} There are no servers with the id ${id}`);
-                    return;
-
-                }
-
-                id = id - 1;
-
-                const s = servers[id];
-
-                await this.deleteServer(s.id);
-
-                message.channel.send(`${this.passIcon} Deleted server successfully.`);        
-
-            }else{
-
-                message.channel.send(`${this.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver.`);
-            }
-
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
 
     createServerString(id, server){
 
         const idLength = 2;
-        const aliasLength = 20;
-        const mapLength = 20;
+        const aliasLength = 30;
+        const mapLength = 29;
         const playersLength = 7;
 
         const fixValue = (input, limit, bSpecial) =>{
@@ -1136,7 +922,7 @@ class Bot{
 
         try{
 
-            const servers = await this.getAllServers();
+            const servers = await this.servers.getAllServers();
 
             let string = "";
 
@@ -1194,8 +980,6 @@ class Bot{
         }catch(err){
             console.trace(err);
         }
-
-
     }
 
     

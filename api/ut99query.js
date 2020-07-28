@@ -3,19 +3,23 @@ const Promise = require('promise');
 const dgram = require('dgram');
 const ServerResponse = require('./serverResponse');
 const dns = require('dns');
+const Servers = require('./servers');
 
 
 
 class UT99Query{
 
-    constructor(){
+    constructor(db){
 
+        this.db = db;
         this.server = null;
         console.log("New UT99Query instance.");
 
         this.responses = [];
 
         this.createClient();
+
+        this.servers = new Servers(db);
         //139.162.235.20:7777
 
         //95.31.20.140:7977
@@ -38,6 +42,7 @@ class UT99Query{
 
                 r = this.responses[i];
 
+                
                 if(now - r.timeStamp > config.serverTimout && !r.bSentMessage){
 
                     r.bReceivedFinal = true;
@@ -53,9 +58,47 @@ class UT99Query{
                 }
             });
 
-
-
         }, config.serverTimout * 1000);
+
+
+        this.autoServerPingStart();
+    }
+
+
+
+    autoServerPingStart(){
+
+        setInterval(async () =>{
+
+            try{
+
+                const servers = await this.servers.getAllServers();
+
+                let s = 0;
+
+                for(let i = 0; i < servers.length; i++){
+
+                    s = servers[i];
+
+                    setTimeout(() =>{
+
+                        console.log(`Ping ${s.ip}:${s.port}`);
+                        this.getBasicServer(s.ip, s.port);
+
+                    },500);
+                    
+
+                }
+
+                
+
+                
+
+            }catch(err){
+                console.trace(err);
+            }
+
+        }, config.serverInfoPingInterval * 1000);
     }
 
     createClient(){
@@ -125,12 +168,12 @@ class UT99Query{
 
                 //console.log('address: %j family: IPv%s', address, family);
 
-                this.responses.push(new ServerResponse(address, port, "full", message));
+                this.responses.push(new ServerResponse(address, port, "full", message, this.db));
 
                 this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\', port, address, (err) =>{
 
                     if(err){
-                        throw new Error(err);
+                        console.trace(err);
                     }
 
                 });
@@ -140,8 +183,39 @@ class UT99Query{
         }catch(err){
             console.trace(err);
         }
+    }
 
+    getBasicServer(ip, port){
 
+        try{
+
+            port = parseInt(port);
+
+            if(port !== port){
+                throw new Error("port must be a valid integer.");
+            }
+
+            port = port + 1;
+
+            dns.lookup(ip, (err, address, family) =>{
+
+                if(err) throw new Error(err);
+
+                this.responses.push(new ServerResponse(address, port, "basic", null, this.db));
+
+                this.server.send('\\info\\xserverquery\\', port, address, (err) =>{
+
+                    if(err){
+                        console.log(err);
+                    }
+                });
+
+            });
+            
+
+        }catch(err){
+            console.trace(err);
+        }
     }
 }
 

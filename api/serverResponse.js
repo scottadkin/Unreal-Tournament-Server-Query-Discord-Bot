@@ -2,14 +2,15 @@ const Discord = require('discord.js');
 const geoip = require('geoip-lite');
 const countryList = require('country-list');
 const config = require('./config.json');
+const Servers = require('./servers');
 
 class ServerResponse{
 
-    constructor(ip, port, type, discordMessage){
+    constructor(ip, port, type, discordMessage, db){
 
         //console.log(geoip.lookup(ip));
         this.geo = geoip.lookup(ip);
-        console.log(this.geo);
+        //console.log(this.geo);
         this.ip = ip;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
@@ -35,22 +36,37 @@ class ServerResponse{
             {"score": 0, "size": 0}
         ];
 
+        this.servers = new Servers(db);
+
     }
 
-    parsePacket(data){
+    async parsePacket(data){
 
         //console.log(`${data}`);
 
-        this.parseServerInfoData(data);
-        this.parseMapData(data);
-        this.parseTeamData(data);
-        this.parsePlayerData(data);
+        try{
 
-        const finalReg = /\\final\\$/i;
+            this.parseServerInfoData(data);
+            this.parseMapData(data);
+            this.parseTeamData(data);
+            this.parsePlayerData(data);
 
-        if(finalReg.test(data)){
+            const finalReg = /\\final\\$/i;
 
-            this.sendFullServerResponse();
+            if(finalReg.test(data)){
+
+                if(this.type == "full"){
+
+                    this.sendFullServerResponse();
+
+                }else if(this.type == "basic"){
+                    await this.servers.updateInfo(this);
+                    this.bSentMessage = true;
+                }
+            }
+
+        }catch(err){
+            console.trace(err);
         }
 
         //console.log(this);
@@ -143,6 +159,7 @@ class ServerResponse{
                     {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
                 );
             }
+
         }else{
             fields.push(
                 {"name": ":wrestling: Players", "value":this.createPlayersString(-99, false), "inline": false}
@@ -154,7 +171,7 @@ class ServerResponse{
         );
 
 
-        console.table(fields);
+        //console.table(fields);
 
         return fields;
     }
@@ -178,6 +195,9 @@ class ServerResponse{
 
     sendFullServerResponse(){
 
+        if(this.type != "full"){
+            return;
+        }
 
         if(this.bTimedOut){
             this.discordMessage.channel.send(`:no_entry: **${this.ip}:${this.port}** has timedout!`);
@@ -202,7 +222,7 @@ class ServerResponse{
             return 0;
         });
 
-        console.table(this.players);
+       // console.table(this.players);
 
         this.bReceivedFinal = true;
 
@@ -411,9 +431,7 @@ class ServerResponse{
 
                 if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
             }
-
         }
-
     }
 
 }

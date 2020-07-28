@@ -53,24 +53,41 @@ class Bot{
                     this.query.getFullServer('139.162.235.20', 7777, message);
                 }
 
-                if(message.content.startsWith(config.commandPrefix)){
-
-                    if(this.bUserAdmin(message)){
-                       // console.log("user is an admin");
-
-                        if(this.adminCommands(message)){
-                            return;
-                        }
-                    }else{
-                       // console.log("user is not an admin");
-                    }
-
-                    this.normalCommands(message);
-                }
+                this.checkCommand(message);
             }
         });
 
         this.client.login(config.token);
+    }
+
+    async checkCommand(message){
+
+        try{
+
+            if(message.content.startsWith(config.commandPrefix)){
+
+                if(await this.bUserAdmin(message)){
+
+                    console.log("user is an admin");
+
+                    if(this.adminCommands(message)){
+                        return;
+                    }
+                    
+                }else{
+                    console.log("user is not an admin");
+                    if(this.adminCommands(message, true)){
+                        return;
+                    }
+                }
+
+                this.normalCommands(message);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+
     }
 
     bBotCanCommentInChannel(message){
@@ -188,29 +205,44 @@ class Bot{
         message.channel.send(string);
     }
 
-    bUserAdmin(message){
+    async bUserAdmin(message){
 
         try{
 
+            let passed = false;
+
             const userRoles = message.member.roles.cache;
 
-            const testRoles = [config.defaultAdminRole.toLowerCase(), "fart", "fdfd", "hfjhidfj"];
+            const adminRolesData = await this.getAllAddedRoles();
+
+            const adminRoleIds = [];
+
+            let a = 0;
+
+            //console.table(adminRolesData);
+
+            for(let i = 0; i < adminRolesData.length; i++){
+
+                a = adminRolesData[i];
+
+                if(adminRoleIds.indexOf(a.id) === -1){
+                    adminRoleIds.push(a.id);
+                }
+            }
+
+            //console.table(adminRoleIds);
 
             if(userRoles.some((r) =>{
 
-                if(testRoles.indexOf(r.name.toLowerCase()) !== -1){
-        
-                    return true;
+                if(adminRoleIds.indexOf(r.id) !== -1 || r.name.toLowerCase() == config.defaultAdminRole.toLowerCase()){
+               
+                    passed = true;
                 }
 
-                return false;
-
-            })){
-
-                return true;
-            }
+            }));
   
-            return false;
+            console.log(`passed ${passed}`);
+            return passed;
 
         // console.log(this.client.channels.fetch(channelId));
         }catch(err){
@@ -219,54 +251,79 @@ class Bot{
 
     }
 
-    adminCommands(message){
+    adminCommands(message, bFailed){
 
         const m = message.content;
         const p = config.commandPrefix;
 
-        if(m.startsWith(`${p}allowrole `)){
+        const commands = [
+            `${p}allowrole `,
+            `${p}removerole `,
+            `${p}listroles`,
+            `${p}allowchannel`,
+            `${p}blockchannel`,
+            `${p}listchannels`,
+            `${p}addserver`,
+            `${p}removeserver`
+        ];
+
+
+        if(bFailed !== undefined){
+
+            for(let i = 0; i < commands.length; i++){
+
+                if(message.content.startsWith(commands[i])){
+                    message.channel.send(`${this.failIcon} Only users with an admin role can use that command.`);
+                    return true;
+                }
+            }
+
+            
+        }
+
+        if(m.startsWith(commands[0])){
 
             this.allowRole(message);
 
             return true;
 
-        }else if(m.startsWith(`${p}removerole `)){
+        }else if(m.startsWith(commands[1])){
 
             this.removeRole(message);
             
             return true;
 
-        }else if(m.startsWith(`${p}listroles`)){
+        }else if(m.startsWith(commands[2])){
 
             this.listRoles(message);
 
             return true;
             
-        }else if(m.startsWith(`${p}allowchannel`)){
+        }else if(m.startsWith(commands[3])){
 
             this.allowChannel(message);
 
             return true;
 
-        }else if(m.startsWith(`${p}blockchannel`)){
+        }else if(m.startsWith(commands[4])){
 
             this.blockChannel(message);
 
             return true;
 
-        }else if(m.startsWith(`${p}listchannels`)){
+        }else if(m.startsWith(commands[5])){
 
             this.listChannels(message);
 
             return true;
 
-        }else if(m.startsWith(`${p}addserver`)){
+        }else if(m.startsWith(commands[6])){
 
             this.addServer(message);
 
             return true;
 
-        }else if(m.startsWith(`${p}removeserver`)){
+        }else if(m.startsWith(commands[7])){
 
             this.removeServer(message);
 

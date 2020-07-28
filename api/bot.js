@@ -122,14 +122,19 @@ class Bot{
             if(await this.bBotCanCommentInChannel(message)){
 
                 const helpReg = /^.help$/i;
+                const shortServerQueryReg = /^.q\d+$/i;
                 const serverQueryReg = /^.q .+$/i;
-                const listReg = /^.list/i;
+                const listReg = /^.servers/i;
                 const activeReg = /^.active/i;
 
                 if(helpReg.test(message.content)){
 
                     this.helpCommand(message);
 
+                }else if(shortServerQueryReg.test(message.content)){
+                    
+                    this.shortQueryServer(message);
+                    
                 }else if(serverQueryReg.test(message.content)){
 
                     this.queryServer(message);
@@ -171,8 +176,10 @@ class Bot{
         ];
 
         const userCommands = [
-            {"name": `${p}list`, "content": `Lists all servers added to the database.`},
+            {"name": `${p}servers`, "content": `Lists all servers added to the database.`},
+            {"name": `${p}active`, "content": `Lists all servers added to the database that have at least one player.`},
             {"name": `${p}q ip:port`, "content": `Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
+            {"name": `${p}q serverID`, "content": `Query a Unreal Tournament server by just using the server's id instead of it's ip and port. Use the ${config.commandPrefix}servers command to find a server's id.`},
             {"name": `${p}help`, "content": `Shows this command.`}
         ];
 
@@ -785,6 +792,41 @@ class Bot{
         }
     }
 
+    async shortQueryServer(message){
+
+        try{
+
+            const reg = /^.q(\d+)$/i;
+
+            const result = reg.exec(message.content);
+
+            if(result !== null){
+
+                let id = parseInt(result[1]);
+
+                const servers = await this.getAllServers();
+
+                id = id - 1;
+
+                if(id < 0 || id > servers.length){
+
+                    message.channel.send(`${this.failIcon} There is no server with the id of ${id + 1}.`);
+
+                }else{
+
+                    this.query.getFullServer(servers[id].ip, servers[id].port, message)
+                }
+                
+            }else{
+
+                message.channel.send(`${this.failIcon} Incorrect syntax for ${config.commandPrefix}q serverid.`);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
     queryServer(message){
 
         const reg = /^.q (((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(.{0,}))|((.+?)(.{0}|:\d{1,})))$/i;
@@ -829,7 +871,7 @@ class Bot{
 
         try{
 
-            const reg = /^.addserver (.+?) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
+            const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
 
             const result = reg.exec(message.content);
 
@@ -1137,7 +1179,6 @@ class Bot{
 
             embed.setColor(config.embedColor)
             .setTitle(title)
-            .setDescription(`Use ${config.commandPrefix}q serverid for easier server querying.`)
             .addField(this.createServerString("ID", {
                 "alias": "Alias",
                 "players": "Play",
@@ -1145,6 +1186,7 @@ class Bot{
                 "map": "Map"
 
             }), string ,false)
+            .addField("Shorter server query command", `Type **${config.commandPrefix}q id** for easier command usage for servers added to the database.` ,false)
             .setTimestamp();
             //"`Id - alias - players - maxplayers`"
             message.channel.send(embed);

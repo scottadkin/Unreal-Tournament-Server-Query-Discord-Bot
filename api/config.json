@@ -5,7 +5,7 @@
     "databaseFile": "./db/data.db",
     "serverTimout": 2,
     "embedColor": "#ff0000",
-    "serverInfoPingInterval": 5,
+    "serverInfoPingInterval": 5555,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:"
 }

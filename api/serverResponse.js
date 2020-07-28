@@ -84,6 +84,8 @@ class ServerResponse{
 
             p = this.players[i];
 
+            console.log(p.name + " "+ p.frags);
+
             if(p.country === undefined){
                 currentFlag = ":video_game:";
             }else{
@@ -96,7 +98,9 @@ class ServerResponse{
 
                 if(team == -99){
 
-                    string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+                    if(p.frags !== undefined){
+                        string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+                    }
 
                 }else{
 
@@ -110,7 +114,7 @@ class ServerResponse{
 
             }else if(bSpectator){
                     
-                if(p.mesh.toLowerCase() == "spectator"){
+                if(p.mesh.toLowerCase() == "spectator" || p.frags === undefined){
 
                     if(string != ""){
                         string += ", ";
@@ -207,11 +211,18 @@ class ServerResponse{
 
         this.players.sort((a, b) =>{
 
-            if(a.frags === undefined) return;
-            if(b.frags === undefined) return;
+            if(a.frags === undefined){
+                a = -Infinity;
+            }else{
+                a = a.frags;
+            }
 
-            a = a.frags;
-            b = b.frags;
+            if(b.frags === undefined){
+                b = -Infinity;
+            }else{
+                b = b.frags;
+            }
+
 
             if(a < b){
                 return 1;
@@ -384,7 +395,7 @@ class ServerResponse{
         }
 
         this.players.push(
-            {"id": id, "name": value}
+            {"id": id, "name": value.replace(/`/ig,'') }
         );
     }
 
@@ -393,8 +404,8 @@ class ServerResponse{
         const nameReg = /\\player_(\d+?)\\(.+?)\\/ig;
         const fragsReg = /\\frags_(\d+?)\\(\d+?)\\/ig;
         const teamReg = /\\team_(\d+?)\\(\d+?)\\/ig;
-        const meshReg = /\\mesh_(\d+?)\\(.+?)\\/ig;
-        const faceReg = /\\face_(\d+?)\\(.{0,}?)\\/ig;
+        const meshReg = /\\mesh_(\d+?)\\(.*?)\\/ig;
+        const faceReg = /\\face_(\d+?)\\(.*?)\\/ig;
         const countryReg = /\\countryc_(\d+?)\\(.+?)\\/ig;
 
         let result = "";
@@ -402,18 +413,26 @@ class ServerResponse{
 
         let currentMesh = "";
 
-        while(result !== null){
+        while(true){
 
             currentMesh = "";
 
             result = nameReg.exec(data);
 
-            if(result !== null) this.updatePlayer(result[1], "name", result[2]);
+            if(result !== null){
+                this.updatePlayer(result[1], "name", result[2]);
+            
+            }else{
+                console.table(this.players);
+                return;
+            }
 
             result = teamReg.exec(data);
             if(result !== null) this.updatePlayer(result[1], "team", result[2]);
 
             result = meshReg.exec(data);
+
+           // console.log(result);
             if(result !== null){
                 currentMesh = result[2].toLowerCase();
                 this.updatePlayer(result[1], "mesh", result[2]);
@@ -426,12 +445,14 @@ class ServerResponse{
             result = countryReg.exec(data);
             if(result !== null) this.updatePlayer(result[1], "country", result[2]);
 
-            if(currentMesh != "spectator"){
-                result = fragsReg.exec(data);
 
-                if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
-            }
+            result = fragsReg.exec(data);
+
+            if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
+            
         }
+
+        console.table(this.players);
     }
 
 }

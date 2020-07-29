@@ -1,6 +1,7 @@
 const config = require('./config.json');
 const db = require('./db');
 const dns = require('dns');
+const Discord = require('discord.js');
 
 class Servers{
 
@@ -117,7 +118,7 @@ class Servers{
 
             const now = Math.floor(Date.now() * 0.001);
 
-            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,?,0,0,'N/A','N/A',?,?)";
+            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,?,0,0,'N/A','N/A',?,?,-1)";
 
             const vars = [
                 ip, 
@@ -290,6 +291,133 @@ class Servers{
             }
 
 
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+
+    createServerString(id, server){
+
+        const idLength = 2;
+        const aliasLength = 28;
+        const mapLength = 30;
+        const playersLength = 7;
+
+        const now = Math.floor(Date.now() * 0.001);
+        const diff = now - server.modified;
+
+        
+
+        const fixValue = (input, limit, bSpecial) =>{
+
+            input = input.toString();
+
+            if(input.length > limit){
+                input = input.substring(0, limit);
+            }
+
+            while(input.length < limit){
+
+                if(bSpecial === undefined){
+                    input += " ";
+                }else{
+                    input = " "+input;
+                }
+           
+            }
+
+            return input;
+        }
+
+
+        let serverId = fixValue(id, idLength);
+        let alias = fixValue(server.alias, aliasLength);
+        
+
+        let playerString = "";
+
+        if(server.max_players == "ers"){
+            playerString = "Players";
+        }else{
+            playerString = server.players+"/"+server.max_players;
+        }
+
+        if(diff >= config.serverListTimeout && server.modified !== undefined){
+            server.map = "Timed Out!";
+            playerString = "N/A";
+        }
+
+        let map = fixValue(server.map, mapLength);
+      
+
+        let players = fixValue(playerString, playersLength, true);
+
+        let string = `\`${serverId} - ${alias} ${map} ${players}\``;
+
+        return string;
+    }
+
+
+    async listServers(message, bOnlyActive){
+
+        try{
+
+            const servers = await this.getAllServers();
+
+            let string = "";
+
+            let s = 0;
+
+            for(let i = 0; i < servers.length; i++){
+
+                s = servers[i];
+
+                if(bOnlyActive === undefined){
+                    string += this.createServerString(i + 1, s)+"\n";
+                }else{
+
+                    if(s.players > 0){
+                        string += this.createServerString(i + 1, s)+"\n";
+                    }
+                }
+            }
+
+            
+
+            const embed = new Discord.MessageEmbed();
+
+            let title = "Unreal Tournament Server List";
+
+            if(bOnlyActive !== undefined){
+
+                title = "Active Unreal Tournament Server List";
+
+                if(string == ""){
+                    string = "There are currently no active servers.";
+                }
+
+            }else{
+
+                if(string == ""){
+                    string = "There are currently no servers added.";
+                }
+            }
+
+            embed.setColor(config.embedColor)
+            .setTitle(title)
+            .addField(this.createServerString("ID", {
+                "alias": "Alias",
+                "players": "Play",
+                "max_players": "ers",
+                "map": "Map"
+
+            }), string ,false)
+            .addField("Shorter server query command", `Type **${config.commandPrefix}q id** for easier command usage for servers added to the database.` ,false)
+            .setTimestamp();
+            
+            message.channel.send(embed);
 
         }catch(err){
             console.trace(err);

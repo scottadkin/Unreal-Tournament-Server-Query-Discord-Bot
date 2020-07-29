@@ -8,5 +8,6 @@
     "serverInfoPingInterval": 10,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
-    "serverListTimeout": 30
+    "serverListTimeout": 30,
+    "autoQueryInterval": 60
 }

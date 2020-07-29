@@ -198,7 +198,14 @@ class ServerResponse{
         }
 
         if(this.bTimedOut){
-            this.discordMessage.channel.send(`:no_entry: **${this.ip}:${this.port}** has timedout!`);
+
+            let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
+
+            if(this.ip === undefined){
+                string = `:no_entry: That ip does not exist!`;
+            }
+
+            this.discordMessage.channel.send(string);
             this.bSentMessage = true;
             return;
         }

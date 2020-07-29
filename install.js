@@ -21,7 +21,11 @@ const queries = [
         gametype TEXT NOT NULL,
         map TEXT NOT NULL,
         created INTEGER NOT NULL,
-        modified INTEGER NOT NULL
+        modified INTEGER NOT NULL,
+        last_message INTEGER NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS auto_query(
+        id TEXT NOT NULL
     )`
 ];
 

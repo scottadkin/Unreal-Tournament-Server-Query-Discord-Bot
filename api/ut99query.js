@@ -13,7 +13,7 @@ class UT99Query{
 
         this.db = db;
         this.server = null;
-        console.log("New UT99Query instance.");
+        //console.log("New UT99Query instance.");
 
         this.responses = [];
 
@@ -61,42 +61,40 @@ class UT99Query{
         }, config.serverTimout * 1000);
 
 
-        this.autoServerPingStart();
+        this.initServerPingLoop();
     }
 
 
+    async pingAllServers(){
 
-    autoServerPingStart(){
+        try{
 
-        setInterval(async () =>{
+            const servers = await this.servers.getAllServers();
 
-            try{
+            for(let i = 0; i < servers.length; i++){
+        
+                setTimeout(() =>{
 
-                const servers = await this.servers.getAllServers();
+                    const s = servers[i];
 
-                let s = 0;
+                    this.getBasicServer(s.ip, s.port);
 
-                for(let i = 0; i < servers.length; i++){
-
-                    s = servers[i];
-
-                    setTimeout(() =>{
-
-                        console.log(`Ping ${s.ip}:${s.port}`);
-                        this.getBasicServer(s.ip, s.port);
-
-                    },500);
-                    
-
-                }
-
-                
-
-                
-
-            }catch(err){
-                console.trace(err);
+                },500);                
             }
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+
+    initServerPingLoop(){
+
+        this.pingAllServers();
+
+        setInterval(() =>{
+
+            this.pingAllServers();
 
         }, config.serverInfoPingInterval * 1000);
     }
@@ -134,7 +132,7 @@ class UT99Query{
 
     getMatchingResponse(ip, port){
 
-        console.log(`Looking for ${ip}:${port}`);
+        //console.log(`Looking for ${ip}:${port}`);
         let r = 0;
 
         for(let i = 0; i < this.responses.length; i++){
@@ -199,7 +197,7 @@ class UT99Query{
 
             dns.lookup(ip, (err, address, family) =>{
 
-                if(err) throw new Error(err);
+                if(err) console.trace(err);
 
                 this.responses.push(new ServerResponse(address, port, "basic", null, this.db));
 

@@ -1,5 +1,6 @@
 const config = require('./config.json');
 const db = require('./db');
+const dns = require('dns');
 
 class Servers{
 

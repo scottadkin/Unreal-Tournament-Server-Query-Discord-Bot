@@ -760,7 +760,7 @@ class Bot{
 
             const channels = await this.getAllAllowedChannels();
 
-            console.table(channels);
+            //console.table(channels);
 
             let string = "";
 
@@ -879,16 +879,21 @@ class Bot{
     createServerString(id, server){
 
         const idLength = 2;
-        const aliasLength = 30;
-        const mapLength = 29;
+        const aliasLength = 28;
+        const mapLength = 30;
         const playersLength = 7;
+
+        const now = Math.floor(Date.now() * 0.001);
+        const diff = now - server.modified;
+
+        
 
         const fixValue = (input, limit, bSpecial) =>{
 
             input = input.toString();
 
             if(input.length > limit){
-                input.slice(0, limit);
+                input = input.substring(0, limit);
             }
 
             while(input.length < limit){
@@ -907,7 +912,7 @@ class Bot{
 
         let serverId = fixValue(id, idLength);
         let alias = fixValue(server.alias, aliasLength);
-        let map = fixValue(server.map, mapLength);
+        
 
         let playerString = "";
 
@@ -916,6 +921,14 @@ class Bot{
         }else{
             playerString = server.players+"/"+server.max_players;
         }
+
+        if(diff >= config.serverListTimeout && server.modified !== undefined){
+            server.map = "Timed Out!";
+            playerString = "N/A";
+        }
+
+        let map = fixValue(server.map, mapLength);
+      
 
         let players = fixValue(playerString, playersLength, true);
 

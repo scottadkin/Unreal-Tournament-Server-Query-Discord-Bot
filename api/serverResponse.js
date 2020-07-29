@@ -84,15 +84,11 @@ class ServerResponse{
 
             p = this.players[i];
 
-            console.log(p.name + " "+ p.frags);
-
             if(p.country === undefined){
                 currentFlag = ":video_game:";
             }else{
                 currentFlag = `:flag_${p.country}:`;
             }
-
-           // :flag_${p.country}:
 
             if(!bSpectator){
 
@@ -126,8 +122,6 @@ class ServerResponse{
                     string += `${currentFlag} ${p.name}`;
                 }
             }
-            
-
         }
 
         if(string == ""){
@@ -423,7 +417,7 @@ class ServerResponse{
                 this.updatePlayer(result[1], "name", result[2]);
             
             }else{
-                console.table(this.players);
+                //console.table(this.players);
                 return;
             }
 
@@ -452,6 +446,7 @@ class ServerResponse{
             
         }
 
+        //
         console.table(this.players);
     }
 

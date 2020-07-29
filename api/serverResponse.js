@@ -3,6 +3,7 @@ const geoip = require('geoip-lite');
 const countryList = require('country-list');
 const config = require('./config.json');
 const Servers = require('./servers');
+const Channels = require('./channels');
 
 class ServerResponse{
 
@@ -37,6 +38,7 @@ class ServerResponse{
         ];
 
         this.servers = new Servers(db);
+        this.channels = new Channels(db);
 
     }
 
@@ -280,9 +282,33 @@ class ServerResponse{
         .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
         .setTimestamp();
 
-        this.discordMessage.channel.send(embed).then(() =>{
+        this.discordMessage.channel.send(embed).then(async (m) =>{
 
-            this.bSentMessage = true;
+            try{
+
+                console.log(`Message id is ${m.id}`);
+                console.log(`Message Channel id is ${m.channel.id}`);
+
+                const autoQueryChannelId = await this.channels.getAutoQueryChannel();
+
+                if(autoQueryChannelId !== null){
+
+                    console.log("Found autoQueryChannelId");
+
+                    if(autoQueryChannelId === m.channel.id){
+                        console.log("posted in auto query channel");
+                        
+                        this.servers.setLastMessageId(this.ip, this.port, m.id);
+                    }else{
+                        console.log("posted in a normal channel");
+                    }
+                }
+
+                this.bSentMessage = true;
+
+            }catch(err){
+                console.trace(err);
+            }
             
         });
     }
@@ -452,9 +478,6 @@ class ServerResponse{
             if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
             
         }
-
-        //
-        console.table(this.players);
     }
 
 }

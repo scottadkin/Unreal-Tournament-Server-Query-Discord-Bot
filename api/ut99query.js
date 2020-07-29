@@ -13,19 +13,15 @@ class UT99Query{
 
         this.db = db;
         this.server = null;
-        //console.log("New UT99Query instance.");
 
         this.responses = [];
 
         this.createClient();
 
         this.servers = new Servers(db);
-        //139.162.235.20:7777
 
-        //95.31.20.140:7977
-       //this.getFullServer('139.162.235.20', 7777);
-        //this.getFullServer('95.31.20.140', 7977);
-        //this.getFullServer('66.85.80.155',7797);
+        this.autoQueryLoop = null;
+
         
         this.init();
     }
@@ -85,6 +81,14 @@ class UT99Query{
         }catch(err){
             console.trace(err);
         }
+    }
+
+    startAutoQueryLoop(){
+
+        this.autoQueryLoop = setInterval(() =>{
+
+
+        }, config.autoQueryInterval * 1000);
     }
 
 

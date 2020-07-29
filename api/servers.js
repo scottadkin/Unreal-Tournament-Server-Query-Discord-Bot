@@ -424,6 +424,23 @@ class Servers{
         }
     }
 
+
+    setLastMessageId(ip, port, id){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
+
+            this.db.run(query, [id, ip, port], (err) =>{
+
+                if(err) reject(err);
+
+                console.log(`Set message_id = ${id} WHERE address is ${ip}:${port}`);
+                resolve();
+            });
+        });
+    }
+
 }
 
 

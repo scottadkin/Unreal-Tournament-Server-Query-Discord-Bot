@@ -157,7 +157,8 @@ class Bot{
             {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
             {"name": `${p}addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
             {"name": `${p}removeserver serverid`, "content": `Removes the specified server from the database.`},
-            {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server.`}
+            {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server.`},
+            {"name": `${p}stopauto`, "content": `Disables autoquery channel from updating.`}
 
         ];
 
@@ -213,7 +214,8 @@ class Bot{
             `${p}listchannels`,
             `${p}addserver`,
             `${p}removeserver`,
-            `${p}setauto`
+            `${p}setauto`,
+            `${p}stopauto`
         ];
 
 
@@ -330,12 +332,12 @@ class Bot{
         const result = reg.exec(message.content);
 
         if(result !== null){
-
-          
+      
             //check if an ip or domain name
             if(result[2] === undefined){
 
                 const domainName = result[6];
+
                 let port = 7777;
 
                 if(result[7] !== ''){

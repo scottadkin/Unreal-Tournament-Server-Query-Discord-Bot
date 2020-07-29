@@ -128,6 +128,7 @@ class Bot{
                 const serverQueryReg = /^.q .+$/i;
                 const listReg = /^.servers/i;
                 const activeReg = /^.active/i;
+                const ipReg = /^.ip\d+/i;
 
                 if(helpReg.test(message.content)){
 
@@ -148,6 +149,10 @@ class Bot{
                 }else if(activeReg.test(message.content)){
 
                     this.listServers(message, true);
+
+                }else if(ipReg.test(message.content)){
+
+                    this.servers.getIp(message);
                 }
 
 
@@ -182,6 +187,7 @@ class Bot{
             {"name": `${p}active`, "content": `Lists all servers added to the database that have at least one player.`},
             {"name": `${p}q ip:port`, "content": `Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
             {"name": `${p}q serverID`, "content": `Query a Unreal Tournament server by just using the server's id instead of it's ip and port. Use the ${config.commandPrefix}servers command to find a server's id.`},
+            {"name": `${p}ip serverId`, "content": `Displays the specified server's name and a clickable link.`},
             {"name": `${p}help`, "content": `Shows this command.`}
         ];
 

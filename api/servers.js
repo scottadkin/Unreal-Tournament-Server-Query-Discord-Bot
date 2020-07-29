@@ -247,6 +247,54 @@ class Servers{
         });
     }
 
+
+    async getIp(message){
+
+        try{
+
+            const reg = /^.ip(\d+)$/i;
+
+            const result = reg.exec(message.content);
+
+            if(result !== null){
+
+                const servers = await this.getAllServers();
+
+                let id = parseInt(result[1]);
+
+                if(id !== id){
+
+                    throw new Error("Id must be a valid interger");
+
+                }else{
+
+                    id = id - 1;
+
+                    if(id < 0 || id > servers.length - 1){
+
+                        message.channel.send(`${config.failIcon} server with ID **${id + 1}** does not exist.`);
+
+                    }else{
+
+                        const s = servers[id];
+
+                        let string = `**${s.name}**\n**<unreal://${s.ip}:${s.port}>**`;
+
+                        message.channel.send(string);
+                    }
+                }
+
+            }else{
+                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}ip command.`);
+            }
+
+
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
 }
 
 

@@ -3,6 +3,7 @@ const config = require('./config.json');
 class Channels{
 
     constructor(db){
+
         this.db = db;
     }
 
@@ -281,12 +282,15 @@ class Channels{
         });
     }
 
-    async enableAutoQuery(message){
+    async enableAutoQuery(message, servers){
 
         try{
 
-            await this.deleteAutoChannel(message);
+            await this.deleteAutoChannel();
             console.log("Deleted old autoquery channel from database.");
+
+            await servers.resetLastMessages();
+            console.log("Reset all servers last_message ids");
 
             await this.setAutoChannel(message);
 
@@ -295,6 +299,21 @@ class Channels{
         }catch(err){
             console.trace(err);
         }   
+    }
+
+    async disableAutoQuery(message, servers){
+
+        try{
+
+            await this.deleteAutoChannel();
+
+            await servers.resetLastMessages();
+
+            message.channel.send(`${config.passIcon} Autoquery has been disabled.`);
+
+        }catch(err){
+            console.trace(err);
+        }
     }
 }
 

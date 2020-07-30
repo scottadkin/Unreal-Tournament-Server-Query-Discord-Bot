@@ -2,12 +2,14 @@ const config = require('./config.json');
 const db = require('./db');
 const dns = require('dns');
 const Discord = require('discord.js');
+const Channels = require('./channels');
 
 class Servers{
 
     constructor(db){
 
         this.db = db;
+        this.channels = new Channels(db);
     }
 
     async addServer(message){
@@ -436,6 +438,22 @@ class Servers{
                 if(err) reject(err);
 
                 console.log(`Set message_id = ${id} WHERE address is ${ip}:${port}`);
+                resolve();
+            });
+        });
+    }
+
+
+    resetLastMessages(){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "UPDATE servers SET last_message=-1";
+
+            this.db.run(query, (err) =>{
+
+                if(err) reject(err);
+
                 resolve();
             });
         });

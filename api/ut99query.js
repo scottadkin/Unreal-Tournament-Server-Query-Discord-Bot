@@ -93,9 +93,7 @@ class UT99Query{
 
         return new Promise((resolve, reject) =>{
 
-            if(messageId !== -1){
-
-                console.log(`s[i].message_id = ${messageId} `);
+            if(messageId !== '-1'){
 
                 channel.messages.fetch(messageId).then((message) =>{
 
@@ -104,7 +102,12 @@ class UT99Query{
                     resolve();
 
                 }).catch((err) =>{
-                    reject(err);
+                    
+                    console.log(`Message has been deleted ${err}`);
+                    
+                    this.getFullServer(serverInfo.ip, serverInfo.port, channel);
+
+                    resolve();
                 });
        
             }else{
@@ -120,24 +123,54 @@ class UT99Query{
 
         this.autoQueryLoop = setInterval(async () =>{
 
-            console.log("autoquery loop");
-
             const queryChannelId = await this.channels.getAutoQueryChannel();
-
-            console.log(`queryChannelId = ${queryChannelId}`);
 
             if(queryChannelId !== null){
 
                 this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
 
-                    const servers = await this.servers.getAllServers();    
+                    if(config.bAutoQueryMessagesOnly){
 
-                    for(let i = 0; i < servers.length; i++){
+                        const servers = await this.servers.getAllServers();  
 
-                        await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
+                        const serverMessageIds = [];
                         
-                    }
+                        for(let i = 0; i < servers.length; i++){
 
+                            if(serverMessageIds.indexOf(servers[i].last_message) === -1){
+                                serverMessageIds.push(servers[i].last_message);
+                            }
+                        }
+
+                        let messages = await channel.messages.fetch({"limit": 20});
+
+                        messages = messages.array();
+
+                        for(let i = 0; i < messages.length; i++){
+
+                            if(!messages[i].author.bot || serverMessageIds.indexOf(messages[i].id) === -1){
+
+                                await messages[i].delete().then(() =>{
+
+                                    console.log("Old message deleted");
+
+                                }).catch((err) =>{
+                                    console.trace(err);
+                                });
+
+                            }
+                        }
+
+                        for(let i = 0; i < servers.length; i++){
+
+                            await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
+                            
+                        }
+    
+
+                    }  
+
+                    
                 }).catch((err) =>{
                     console.trace(err);
                 });
@@ -217,7 +250,7 @@ class UT99Query{
 
         try{
 
-            console.log(arguments);
+            //console.log(arguments);
             port = parseInt(port);
 
             if(port !== port){

@@ -213,13 +213,15 @@ class ServerResponse{
 
         if(this.bTimedOut){
 
-            let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
+            if(!this.bEdit){
+                let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
 
-            if(this.ip === undefined){
-                string = `:no_entry: That ip does not exist!`;
+                if(this.ip === undefined){
+                    string = `:no_entry: That ip does not exist!`;
+                }
+
+                this.discordMessage.send(string);
             }
-
-            this.discordMessage.send(string);
             this.bSentMessage = true;
             return;
         }
@@ -329,7 +331,7 @@ class ServerResponse{
 
                 message.edit(embed).then(() =>{
 
-                    console.log("Updated message");
+                   // console.log("Updated message");
 
                     this.bSentMessage = true;
 

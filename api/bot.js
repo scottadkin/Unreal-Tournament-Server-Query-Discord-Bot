@@ -158,7 +158,7 @@ class Bot{
             {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
             {"name": `${p}addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
             {"name": `${p}removeserver serverid`, "content": `Removes the specified server from the database.`},
-            {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server.`},
+            {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. :no_entry: Do not enable in an existing channel, non autoquery messages are deleted by default.`},
             {"name": `${p}stopauto`, "content": `Disables autoquery channel from updating.`}
 
         ];
@@ -283,13 +283,13 @@ class Bot{
 
         }else if(m.startsWith(commands[8])){
 
-            this.channels.enableAutoQuery(message);
+            this.channels.enableAutoQuery(message, this.servers);
 
             return true;
 
         }else if(m.startsWith(commands[9])){
 
-            this.channels.disableAutoQuery(message);
+            this.channels.disableAutoQuery(message, this.servers);
             return true;
 
         }

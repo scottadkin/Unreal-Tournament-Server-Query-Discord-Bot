@@ -10,5 +10,5 @@
     "passIcon": ":white_check_mark:",
     "serverListTimeout": 30,
     "autoQueryInterval": 5,
-    "bDeleteAutoQueryMessages": true
+    "bAutoQueryMessagesOnly": true
 }

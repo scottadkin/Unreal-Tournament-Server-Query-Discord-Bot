@@ -225,7 +225,7 @@ class UT99Query{
             console.trace(err);
         });
 
-        this.server.bind();
+        this.server.bind(config.udpPort);
     }
 
     getMatchingResponse(ip, port){

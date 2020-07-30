@@ -1,4 +1,5 @@
 {
+    "udpPort": "19999",
     "token": "",
     "defaultAdminRole": "Toilet Brush",
     "commandPrefix": ".",

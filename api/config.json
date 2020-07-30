@@ -6,7 +6,7 @@
     "databaseFile": "./db/data.db",
     "serverTimout": 2,
     "embedColor": "#ff0000",
-    "serverInfoPingInterval": 6610,
+    "serverInfoPingInterval": 10,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
     "serverListTimeout": 30,

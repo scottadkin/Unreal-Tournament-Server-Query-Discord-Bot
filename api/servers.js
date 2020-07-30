@@ -242,9 +242,13 @@ class Servers{
 
             const vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
 
+            
             this.db.run(query, vars, (err) =>{
 
-                if(err) reject(err);
+                if(err){
+                    console.log(vars);
+                    reject(err);
+                }
 
                 resolve();
             });
@@ -303,8 +307,8 @@ class Servers{
     createServerString(id, server){
 
         const idLength = 2;
-        const aliasLength = 28;
-        const mapLength = 30;
+        const aliasLength = 25;
+        const mapLength = 25;
         const playersLength = 7;
 
         const now = Math.floor(Date.now() * 0.001);
@@ -351,7 +355,7 @@ class Servers{
             playerString = "N/A";
         }
 
-        let map = fixValue(server.map, mapLength);
+        let map = fixValue(server.map, mapLength)+" ";
       
 
         let players = fixValue(playerString, playersLength, true);

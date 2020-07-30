@@ -13,7 +13,7 @@ class Bot{
     constructor(){
 
         this.client = null;
-        this.query = new UT99Query(db);
+        
 
 
         this.servers = new Servers(db);
@@ -29,6 +29,7 @@ class Bot{
 
         this.client.on('ready', () =>{
 
+            this.query = new UT99Query(db, this.client);
             console.log(`I'm In the discord server...`);
        
         });
@@ -285,6 +286,12 @@ class Bot{
             this.channels.enableAutoQuery(message);
 
             return true;
+
+        }else if(m.startsWith(commands[9])){
+
+            this.channels.disableAutoQuery(message);
+            return true;
+
         }
 
         return false;
@@ -312,7 +319,7 @@ class Bot{
 
                 }else{
 
-                    this.query.getFullServer(servers[id].ip, servers[id].port, message)
+                    this.query.getFullServer(servers[id].ip, servers[id].port, message.channel)
                 }
                 
             }else{
@@ -346,7 +353,7 @@ class Bot{
 
                 }
 
-                this.query.getFullServer(domainName, port, message);
+                this.query.getFullServer(domainName, port, message.channel);
 
                 return;
 
@@ -360,7 +367,7 @@ class Bot{
                     port = parseInt(result[4].replace(':',''));
                 }
 
-                this.query.getFullServer(ip, port, message);
+                this.query.getFullServer(ip, port, message.channel);
             }
         }
     }

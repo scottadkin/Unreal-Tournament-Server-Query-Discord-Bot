@@ -4,12 +4,15 @@ const dgram = require('dgram');
 const ServerResponse = require('./serverResponse');
 const dns = require('dns');
 const Servers = require('./servers');
+const Channels = require('./channels');
+const Discord = require('discord.js');
+const { promises } = require('fs');
 
 
 
 class UT99Query{
 
-    constructor(db){
+    constructor(db, discord){
 
         this.db = db;
         this.server = null;
@@ -19,6 +22,8 @@ class UT99Query{
         this.createClient();
 
         this.servers = new Servers(db);
+        this.channels = new Channels(db);
+        this.discord = discord;
 
         this.autoQueryLoop = null;
 
@@ -37,8 +42,7 @@ class UT99Query{
             for(let i = 0; i < this.responses.length; i++){
 
                 r = this.responses[i];
-
-                
+      
                 if(now - r.timeStamp > config.serverTimout && !r.bSentMessage){
 
                     r.bReceivedFinal = true;
@@ -57,6 +61,7 @@ class UT99Query{
         }, config.serverTimout * 1000);
 
 
+        this.startAutoQueryLoop();
         this.initServerPingLoop();
     }
 
@@ -83,10 +88,66 @@ class UT99Query{
         }
     }
 
+
+    updateAutoQueryMessage(channel, messageId, serverInfo){
+
+        return new Promise((resolve, reject) =>{
+
+            if(messageId !== -1){
+
+                console.log(`s[i].message_id = ${messageId} `);
+
+                channel.messages.fetch(messageId).then((message) =>{
+
+                    this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
+
+                    resolve();
+
+                }).catch((err) =>{
+                    reject(err);
+                });
+       
+            }else{
+
+                this.getFullServer(serverInfo.ip, serverInfo.port, channel);
+                console.log("Message doesn't exist");
+            }
+
+        });
+    }
+
     startAutoQueryLoop(){
 
-        this.autoQueryLoop = setInterval(() =>{
+        this.autoQueryLoop = setInterval(async () =>{
 
+            console.log("autoquery loop");
+
+            const queryChannelId = await this.channels.getAutoQueryChannel();
+
+            console.log(`queryChannelId = ${queryChannelId}`);
+
+            if(queryChannelId !== null){
+
+                this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
+
+                    const servers = await this.servers.getAllServers();    
+
+                    for(let i = 0; i < servers.length; i++){
+
+                        await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
+                        
+                    }
+
+                }).catch((err) =>{
+                    console.trace(err);
+                });
+
+
+
+            }else{
+
+                console.log(`AutoqueryChannel is not SET!`);
+            }
 
         }, config.autoQueryInterval * 1000);
     }
@@ -109,7 +170,7 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            console.log(`${message}`);
+            //console.log(`${message}`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
@@ -152,10 +213,11 @@ class UT99Query{
 
     }
 
-    getFullServer(ip, port, message){
+    getFullServer(ip, port, message, bEdit, messageId){
 
         try{
 
+            console.log(arguments);
             port = parseInt(port);
 
             if(port !== port){
@@ -170,7 +232,11 @@ class UT99Query{
 
                 //console.log('address: %j family: IPv%s', address, family);
 
-                this.responses.push(new ServerResponse(address, port, "full", message, this.db));
+                if(bEdit === undefined){
+                    this.responses.push(new ServerResponse(address, port, "full", message, this.db));
+                }else{
+                    this.responses.push(new ServerResponse(address, port, "full", message, this.db, true, messageId));
+                }
 
                 this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\', port, address, (err) =>{
 

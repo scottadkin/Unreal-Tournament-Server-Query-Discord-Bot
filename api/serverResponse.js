@@ -7,7 +7,7 @@ const Channels = require('./channels');
 
 class ServerResponse{
 
-    constructor(ip, port, type, discordMessage, db){
+    constructor(ip, port, type, discordMessage, db, bEdit, messageId){
 
         //console.log(geoip.lookup(ip));
         this.geo = geoip.lookup(ip);
@@ -39,6 +39,18 @@ class ServerResponse{
 
         this.servers = new Servers(db);
         this.channels = new Channels(db);
+
+        this.bEdit = false;
+        this.messageId = -1;
+
+        if(bEdit !== undefined){
+            this.bEdit = true;
+        }
+
+        if(messageId !== undefined){
+            this.messageId = messageId;
+        }
+
 
     }
 
@@ -207,7 +219,7 @@ class ServerResponse{
                 string = `:no_entry: That ip does not exist!`;
             }
 
-            this.discordMessage.channel.send(string);
+            this.discordMessage.send(string);
             this.bSentMessage = true;
             return;
         }
@@ -282,35 +294,54 @@ class ServerResponse{
         .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
         .setTimestamp();
 
-        this.discordMessage.channel.send(embed).then(async (m) =>{
 
-            try{
+        if(!this.bEdit){
 
-                console.log(`Message id is ${m.id}`);
-                console.log(`Message Channel id is ${m.channel.id}`);
+            console.log("NOT AN EDIT POST");
+            this.discordMessage.send(embed).then(async (m) =>{
 
-                const autoQueryChannelId = await this.channels.getAutoQueryChannel();
+                try{
 
-                if(autoQueryChannelId !== null){
+                    const autoQueryChannelId = await this.channels.getAutoQueryChannel();
 
-                    console.log("Found autoQueryChannelId");
+                    if(autoQueryChannelId !== null){
 
-                    if(autoQueryChannelId === m.channel.id){
-                        console.log("posted in auto query channel");
-                        
-                        this.servers.setLastMessageId(this.ip, this.port, m.id);
-                    }else{
-                        console.log("posted in a normal channel");
+                        if(autoQueryChannelId === m.channel.id){
+                            
+                            this.servers.setLastMessageId(this.ip, this.port, m.id);
+
+                        }else{
+                            console.log("posted in a normal channel");
+                        }
                     }
+
+                    this.bSentMessage = true;
+
+                }catch(err){
+                    console.trace(err);
                 }
+                
+            });
 
-                this.bSentMessage = true;
+        }else{
 
-            }catch(err){
+            this.discordMessage.messages.fetch(this.messageId).then((message) =>{
+
+                message.edit(embed).then(() =>{
+
+                    console.log("Updated message");
+
+                    this.bSentMessage = true;
+
+                }).catch((err) =>{
+                    console.trace(err);
+                });
+
+            }).catch((err) =>{
+
                 console.trace(err);
-            }
-            
-        });
+            });
+        }
     }
 
     parseServerInfoData(data){
@@ -422,7 +453,7 @@ class ServerResponse{
         }
 
         this.players.push(
-            {"id": id, "name": value.replace(/`/ig,'') }
+            {"id": id, "name": value.toString().replace(/`/ig,'') }
         );
     }
 

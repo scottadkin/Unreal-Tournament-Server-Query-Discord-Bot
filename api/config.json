@@ -5,9 +5,10 @@
     "databaseFile": "./db/data.db",
     "serverTimout": 2,
     "embedColor": "#ff0000",
-    "serverInfoPingInterval": 10,
+    "serverInfoPingInterval": 6610,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
     "serverListTimeout": 30,
-    "autoQueryInterval": 60
+    "autoQueryInterval": 5,
+    "bDeleteAutoQueryMessages": true
 }

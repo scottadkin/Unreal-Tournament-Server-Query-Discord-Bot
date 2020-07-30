@@ -22,7 +22,7 @@ const queries = [
         map TEXT NOT NULL,
         created INTEGER NOT NULL,
         modified INTEGER NOT NULL,
-        last_message INTEGER NOT NULL
+        last_message TEXT NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS auto_query(
         id TEXT NOT NULL

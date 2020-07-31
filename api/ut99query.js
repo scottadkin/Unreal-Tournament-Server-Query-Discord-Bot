@@ -203,7 +203,7 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            //console.log(`${message}`);
+            console.log(`${message}`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
@@ -317,6 +317,39 @@ class UT99Query{
         }catch(err){
             console.trace(err);
         }
+    }
+
+    getExtended(ip, port, message){
+
+
+        dns.lookup(ip, (err, address, family) =>{
+
+            if(err) console.trace(err);
+
+            this.responses.push(new ServerResponse(address, port, "extended", message, this.db));
+
+            console.log(`
+            
+            
+            
+            
+            
+            
+            
+           f 
+            
+            
+            
+            
+            `);
+
+            this.server.send('\\info\\xserverquery\\\\rules\\xserverquery\\', port + 1, address, (err) =>{
+
+                if(err){
+                    console.log(err);
+                }
+            });
+        });
     }
 }
 

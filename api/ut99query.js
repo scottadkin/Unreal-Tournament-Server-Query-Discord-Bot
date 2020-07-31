@@ -19,6 +19,12 @@ class UT99Query{
 
         this.responses = [];
 
+        this.bAuto = false;
+
+        if(bAuto !== undefined){
+            this.bAuto = true;
+        }
+
         this.createClient();
 
         this.servers = new Servers(db);
@@ -27,11 +33,7 @@ class UT99Query{
 
         this.autoQueryLoop = null;
 
-        this.bAuto = false;
-
-        if(bAuto !== undefined){
-            this.bAuto = true;
-        }
+        
 
         
         this.init();
@@ -241,6 +243,7 @@ class UT99Query{
             console.trace(err);
         });
 
+        console.log(`this.bAuto = ${this.bAuto}`);
         if(!this.bAuto){
             this.server.bind(config.udpPort);
         }else{

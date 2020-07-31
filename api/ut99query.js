@@ -12,7 +12,7 @@ const { promises } = require('fs');
 
 class UT99Query{
 
-    constructor(db, discord){
+    constructor(db, discord, bAuto){
 
         this.db = db;
         this.server = null;
@@ -27,6 +27,12 @@ class UT99Query{
 
         this.autoQueryLoop = null;
 
+        this.bAuto = false;
+
+        if(bAuto !== undefined){
+            this.bAuto = true;
+        }
+
         
         this.init();
     }
@@ -34,6 +40,8 @@ class UT99Query{
     init(){
 
         setInterval(() =>{
+
+            //onsole.table(this.responses);
 
             const now = Math.floor(Date.now() * 0.001);
 
@@ -61,8 +69,11 @@ class UT99Query{
         }, config.serverTimout * 1000);
 
 
-        this.startAutoQueryLoop();
-        this.initServerPingLoop();
+        if(this.bAuto){
+            this.startAutoQueryLoop();
+        
+            this.initServerPingLoop();
+        }
     }
 
 
@@ -203,13 +214,18 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            console.log(`${message}`);
+           // console.log(`*******************************************************`);
+           // console.log(`${message}`);
+           // console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
             if(matchingResponse !== null){
 
-                matchingResponse.parsePacket(message);
+                if(!matchingResponse.parsePacket(message)){
+
+                    this.getMatchingResponse(rinfo.address, rinfo.port - 1, matchingResponse.timeStamp);
+                }
 
             }else{
                 console.log("There is no matching data for this server");
@@ -225,10 +241,14 @@ class UT99Query{
             console.trace(err);
         });
 
-        this.server.bind(config.udpPort);
+        if(!this.bAuto){
+            this.server.bind(config.udpPort);
+        }else{
+            this.server.bind(config.udpPortAuto);
+        }
     }
 
-    getMatchingResponse(ip, port){
+    getMatchingResponse(ip, port, ignoreTimeStamp){
 
         //console.log(`Looking for ${ip}:${port}`);
         let r = 0;
@@ -238,7 +258,15 @@ class UT99Query{
             r = this.responses[i];
 
             if(r.ip == ip && r.port == port && !r.bSentMessage){
-                return r;
+
+                if(ignoreTimeStamp === undefined){
+                    return r;
+                }else{
+
+                    if(r.timeStamp !== ignoreTimeStamp){
+                        return r;
+                    }
+                }
             }
         }
 

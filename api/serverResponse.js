@@ -101,7 +101,13 @@ class ServerResponse{
             if(p.country === undefined){
                 currentFlag = ":video_game:";
             }else{
+
                 currentFlag = `:flag_${p.country}:`;
+
+                if(p.country.toLowerCase() == "none"){
+                    currentFlag = ":video_game:";
+                }
+
             }
 
             if(!bSpectator){

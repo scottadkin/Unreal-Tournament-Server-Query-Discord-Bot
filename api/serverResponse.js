@@ -227,7 +227,10 @@ class ServerResponse{
                 }
 
                 this.discordMessage.send(string);
+                return;
             }
+            
+
             this.bSentMessage = true;
             return;
         }

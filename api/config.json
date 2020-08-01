@@ -5,12 +5,11 @@
     "defaultAdminRole": "Toilet Brush",
     "commandPrefix": ".",
     "databaseFile": "./db/data.db",
-    "serverTimout": 2,
+    "serverTimeout": 2,
     "embedColor": "#ff0000",
-    "serverInfoPingInterval": 9910,
+    "serverInfoPingInterval": 15,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
-    "serverListTimeout": 30,
-    "autoQueryInterval": 5,
+    "autoQueryInterval": 10,
     "bAutoQueryMessagesOnly": true
 }

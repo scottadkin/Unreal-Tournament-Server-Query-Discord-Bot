@@ -350,7 +350,7 @@ class Servers{
             playerString = server.players+"/"+server.max_players;
         }
 
-        if(diff >= config.serverListTimeout && server.modified !== undefined){
+        if(diff >= config.serverInfoPingInterval * 2 && server.modified !== undefined){
             server.map = "Timed Out!";
             playerString = "N/A";
         }

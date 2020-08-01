@@ -53,7 +53,7 @@ class UT99Query{
 
                 r = this.responses[i];
       
-                if(now - r.timeStamp > config.serverTimout && !r.bSentMessage){
+                if(now - r.timeStamp > config.serverTimeout && !r.bSentMessage){
 
                     r.bReceivedFinal = true;
                     r.bTimedOut = true;
@@ -68,7 +68,7 @@ class UT99Query{
                 }
             });
 
-        }, config.serverTimout * 1000);
+        }, (config.serverTimeout * 2) * 1000);
 
 
         if(this.bAuto){
@@ -170,7 +170,6 @@ class UT99Query{
                                 }).catch((err) =>{
                                     console.trace(err);
                                 });
-
                             }
                         }
 
@@ -179,10 +178,7 @@ class UT99Query{
                             await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
                             
                         }
-    
-
                     }  
-
                     
                 }).catch((err) =>{
                     console.trace(err);
@@ -216,9 +212,9 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-           // console.log(`*******************************************************`);
-           // console.log(`${message}`);
-           // console.log(`-------------------------------------------------------`);
+            console.log(`*******************************************************`);
+            console.log(`${message}`);
+            console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 

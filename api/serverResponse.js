@@ -226,6 +226,7 @@ class ServerResponse{
                     string = `:no_entry: That ip does not exist!`;
                 }
 
+                this.bSentMessage = true;
                 this.discordMessage.send(string);
                 return;
             }

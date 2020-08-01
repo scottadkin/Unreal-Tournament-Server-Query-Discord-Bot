@@ -175,7 +175,10 @@ class UT99Query{
 
                         for(let i = 0; i < servers.length; i++){
 
-                            await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
+                            setTimeout(async () =>{
+                                await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
+                            }, 500);
+                            
                             
                         }
                     }  

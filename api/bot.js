@@ -400,13 +400,14 @@ class Bot{
             const result = reg.exec(message.content);
 
             if(result !== null){
-                
 
                 const server = await this.servers.getServerById(result[1]);
 
                 if(server !== null){
 
                     message.channel.send(`ok`);
+
+                    this.query.getPlayers(server.ip, server.port);
 
                 }else{
                     message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1]) - 1} does not exist.`);

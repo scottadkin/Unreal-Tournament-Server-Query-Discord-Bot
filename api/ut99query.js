@@ -362,6 +362,23 @@ class UT99Query{
         }
     }
 
+    getPlayers(ip, port, message){
+
+        dns.lookup(ip, (err, address, family) =>{
+
+            if(err) console.trace(err);
+
+            this.responses.push(new ServerResponse(address, port, "players", message, this.db));
+
+            this.server.send('\\players\\xserverquery\\', port + 1, address, (err) =>{
+
+                if(err){
+                    console.log(err);
+                }
+            });
+        });
+    }
+
     getExtended(ip, port, message){
 
 

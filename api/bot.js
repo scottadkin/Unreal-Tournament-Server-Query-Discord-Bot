@@ -97,6 +97,7 @@ class Bot{
                 const activeReg = /^.active/i;
                 const ipReg = /^.ip\d+/i;
                 const extendedReg = /^.extended \d+/i;
+                const playersReg = /^.players \d+/i;
 
                 if(helpReg.test(message.content)){
 
@@ -125,6 +126,11 @@ class Bot{
                 }else if(extendedReg.test(message.content)){
 
                     this.queryServerExtended(message);
+
+                }else if(playersReg.test(message.content)){
+
+                    this.queryPlayers(message);
+
                 }
 
 
@@ -162,7 +168,7 @@ class Bot{
             {"name": `${p}q ip:port`, "content": `Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
             {"name": `${p}q serverID`, "content": `Query a Unreal Tournament server by just using the server's id instead of it's ip and port. Use the ${config.commandPrefix}servers command to find a server's id.`},
             {"name": `${p}ip serverId`, "content": `Displays the specified server's name with a clickable link.`},
-            {"name": `${p}extended serverId`, "content": `Displays extended information about server.`},
+            {"name": `${p}players serverId`, "content": `Displays extended information about players on the server.`},
             {"name": `${p}help`, "content": `Shows this command.`}
         ];
 
@@ -300,20 +306,15 @@ class Bot{
             const result = reg.exec(message.content);
 
             if(result !== null){
+       
+                const server = await this.servers.getServerById(result[1]);
 
-                let id = parseInt(result[1]);
+                if(server !== null){
 
-                const servers = await this.servers.getAllServers();
-
-                id = id - 1;
-
-                if(id < 0 || id >= servers.length){
-
-                    message.channel.send(`${config.failIcon} There is no server with the id of ${id + 1}.`);
+                    this.query.getFullServer(server.ip, server.port, message.channel);
 
                 }else{
-
-                    this.query.getFullServer(servers[id].ip, servers[id].port, message.channel)
+                    message.channel.send(`${config.failIcon} There is no server with the id of ${parseInt(result[1]) - 1}.`);
                 }
                 
             }else{
@@ -366,6 +367,7 @@ class Bot{
         }
     }
 
+
     async queryServerExtended(message){
 
         try{
@@ -376,21 +378,48 @@ class Bot{
 
             if(result !== null){
 
-                const id = parseInt(result[1]) - 1;
-
-                const servers = await this.servers.getAllServers();
-
-                if(id < 0 || id > servers.length - 1){
-                    message.channel.send(`${config.failIcon} A server with id ${id} does not exist.`);
+                if(await this.servers.bValidServerId(result[1])){
+                    //woof
                 }else{
-                    this.query.getExtended(servers[id].ip, servers[id].port, message.channel);
+                    //meow
                 }
-
             }
 
         }catch(err){
             console.trace(err);
         }
+    }
+
+
+    async queryPlayers(message){
+
+        try{
+
+            const reg = /^.players (\d+)$/i;
+
+            const result = reg.exec(message.content);
+
+            if(result !== null){
+                
+
+                const server = await this.servers.getServerById(result[1]);
+
+                if(server !== null){
+
+                    message.channel.send(`ok`);
+
+                }else{
+                    message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1]) - 1} does not exist.`);
+                }
+
+            }else{
+                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players.`);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+
     }
     
 }

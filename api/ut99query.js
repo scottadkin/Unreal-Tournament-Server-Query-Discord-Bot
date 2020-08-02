@@ -163,6 +163,9 @@ class UT99Query{
 
                         for(let i = 0; i < messages.length; i++){
 
+
+                            //console.log(i);
+                            //console.log(`autoQueryInfoPostId = ${autoQueryInfoPostId}`);
                             if(autoQueryInfoPostId !== null){
 
                                 if(messages[i].id == autoQueryInfoPostId){
@@ -225,9 +228,9 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            //console.log(`*******************************************************`);
-           // console.log(`${message}`);
-           // console.log(`-------------------------------------------------------`);
+            console.log(`*******************************************************`);
+            console.log(`${message}`);
+            console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 

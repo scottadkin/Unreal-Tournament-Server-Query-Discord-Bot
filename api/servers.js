@@ -463,6 +463,56 @@ class Servers{
         });
     }
 
+    async bValidServerId(id){
+
+        try{
+
+            id = parseInt(id);
+
+            if(id !== id) throw new Error("Id must be a valid integer.");
+
+            id--;
+
+            if(id < 0) throw new Error("Id must be a positive integer.");
+
+            const servers = await this.getAllServers();
+
+            if(id < servers.length - 1){
+
+                return true;
+            }
+
+            return false;
+
+        }catch(err){
+            console.trace(err);
+        }
+
+    }
+
+    async getServerById(id){
+
+        try{
+
+            if(await this.bValidServerId(id)){
+
+                const servers = await this.getAllServers();
+
+                id = parseInt(id);
+
+                id--;
+
+                return servers[id];
+                
+            }else{
+                return null;
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
 }
 
 

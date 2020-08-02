@@ -26,7 +26,11 @@ const queries = [
     )`,
     `CREATE TABLE IF NOT EXISTS auto_query(
         id TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS auto_query_info(
+        id TEXT NOT NULL
     )`
+
 ];
 
 

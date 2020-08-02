@@ -6,7 +6,6 @@ const dns = require('dns');
 const Servers = require('./servers');
 const Channels = require('./channels');
 const Discord = require('discord.js');
-const { promises } = require('fs');
 
 
 
@@ -155,11 +154,22 @@ class UT99Query{
                             }
                         }
 
+
+                        const autoQueryInfoPostId = await this.channels.getAutoQueryMessageId();
+
                         let messages = await channel.messages.fetch({"limit": 20});
 
                         messages = messages.array();
 
                         for(let i = 0; i < messages.length; i++){
+
+                            if(autoQueryInfoPostId !== null){
+
+                                if(messages[i].id == autoQueryInfoPostId){
+                                    console.log("FOUND AUTO QUERY MESSAGE ID");
+                                    continue;
+                                }
+                            }
 
                             if(!messages[i].author.bot || serverMessageIds.indexOf(messages[i].id) === -1){
 
@@ -215,9 +225,9 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            console.log(`*******************************************************`);
-            console.log(`${message}`);
-            console.log(`-------------------------------------------------------`);
+            //console.log(`*******************************************************`);
+           // console.log(`${message}`);
+           // console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 

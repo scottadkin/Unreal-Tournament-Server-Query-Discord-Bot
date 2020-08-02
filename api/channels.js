@@ -293,8 +293,21 @@ class Channels{
             console.log("Reset all servers last_message ids");
 
             await this.setAutoChannel(message);
+            let string = `:bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell:\n
+:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
+The server status posts will be updated every **${config.autoQueryInterval} seconds.**`;
 
-            message.channel.send(`${config.passIcon} Autoquery channel now set to **#${message.channel.name}** at intervals of **${config.autoQueryInterval} seconds**.`);
+            if(config.bAutoQueryMessagesOnly){
+                string += `\n:warning: **Posts that are not posted by the bot will be deleted.** :warning:`;
+            }
+
+            string += `\n\n:bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell:`;
+
+            message.channel.send(string).then((message) =>{
+
+                this.setAutoQueryMessageInfoId(message.id);
+
+            })
 
         }catch(err){
             console.trace(err);
@@ -315,6 +328,73 @@ class Channels{
             console.trace(err);
         }
     }
+
+    deleteOldAutoMessageInfoId(){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "DELETE FROM auto_query_info";
+
+            this.db.run(query, (err) =>{
+
+                if(err) reject(err);
+
+                resolve();
+            });
+        });
+    }
+
+    insertAutoMessageInfoId(id){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "INSERT INTO auto_query_info VALUES(?)";
+
+            this.db.run(query, [id], (err) =>{
+
+                if(err) reject(err);
+
+                resolve();
+
+            });
+        });
+    }
+
+    async setAutoQueryMessageInfoId(id){
+
+        try{
+
+            await this.deleteOldAutoMessageInfoId();
+
+            await this.insertAutoMessageInfoId(id);
+
+            console.log(`New auto query message set. (${id})`);
+
+        }catch(err){
+            console.trace(err);
+        }   
+    }
+
+    getAutoQueryMessageId(){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = "SELECT * FROM auto_query_info LIMIT 1";
+
+            this.db.get(query, (err, row) =>{
+
+                if(err) reject(err);
+
+                if(row !== undefined){
+
+                    resolve(row.id);
+                }
+
+                resolve(null);
+            });
+        });
+    }
+
 }
 
 

@@ -314,7 +314,7 @@ class Bot{
                     this.query.getFullServer(server.ip, server.port, message.channel);
 
                 }else{
-                    message.channel.send(`${config.failIcon} There is no server with the id of ${parseInt(result[1]) - 1}.`);
+                    message.channel.send(`${config.failIcon} There is no server with the id of ${parseInt(result[1])}.`);
                 }
                 
             }else{
@@ -405,9 +405,9 @@ class Bot{
 
                 if(server !== null){
 
-                    message.channel.send(`ok`);
+                   // message.channel.send(`ok`);
 
-                    this.query.getPlayers(server.ip, server.port);
+                    this.query.getPlayers(server.ip, server.port, message.channel);
 
                 }else{
                     message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1]) - 1} does not exist.`);

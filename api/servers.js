@@ -477,7 +477,7 @@ class Servers{
 
             const servers = await this.getAllServers();
 
-            if(id < servers.length - 1){
+            if(id < servers.length){
 
                 return true;
             }

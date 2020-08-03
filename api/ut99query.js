@@ -368,7 +368,7 @@ class UT99Query{
 
             if(err) console.trace(err);
 
-            this.responses.push(new ServerResponse(address, port, "players", message, this.db));
+            this.responses.push(new ServerResponse(address, port + 1, "players", message, this.db));
 
             this.server.send('\\players\\xserverquery\\', port + 1, address, (err) =>{
 

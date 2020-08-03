@@ -74,8 +74,13 @@ class ServerResponse{
                     this.sendFullServerResponse();
 
                 }else if(this.type == "basic"){
+
                     await this.servers.updateInfo(this);
                     this.bSentMessage = true;
+
+                }else if(this.type == "players"){
+
+                    this.sendPlayersResponse();
                 }
             }
 
@@ -84,6 +89,56 @@ class ServerResponse{
         }
 
         //console.log(this);
+    }
+
+
+    getFlag(country){
+
+        if(country === undefined){
+            return ":video_game:";
+        }else{
+
+            let currentFlag = "";
+
+            currentFlag = `:flag_${country}:`;
+
+            if(country.toLowerCase() == "none"){
+                return ":video_game:";
+            }
+
+            return currentFlag;
+        }
+    }
+
+
+    getSex(mesh){
+
+        const femaleReg = /female/i;
+
+        if(femaleReg.test(mesh)){
+            return "Female";
+        }
+
+        return "Male";
+    }
+
+
+    getMaxPlayerNameLength(){
+
+        let longest = 0;
+
+        let p = 0;
+
+        for(let i = 0; i < this.players.length; i++){
+
+            p = this.players[i];
+
+            if(p.name.length > longest){
+                longest = p.name.length;
+            }
+        }
+
+        return longest;
     }
 
     createPlayersString(team, bSpectator){
@@ -98,17 +153,7 @@ class ServerResponse{
 
             p = this.players[i];
 
-            if(p.country === undefined){
-                currentFlag = ":video_game:";
-            }else{
-
-                currentFlag = `:flag_${p.country}:`;
-
-                if(p.country.toLowerCase() == "none"){
-                    currentFlag = ":video_game:";
-                }
-
-            }
+            currentFlag = this.getFlag(p.country);
 
             if(!bSpectator){
 
@@ -211,30 +256,8 @@ class ServerResponse{
         
     }
 
-    sendFullServerResponse(){
 
-        if(this.type != "full"){
-            return;
-        }
-
-        if(this.bTimedOut){
-
-            if(!this.bEdit){
-                let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
-
-                if(this.ip === undefined){
-                    string = `:no_entry: That ip does not exist!`;
-                }
-
-                this.bSentMessage = true;
-                this.discordMessage.send(string);
-                return;
-            }
-            
-
-            this.bSentMessage = true;
-            return;
-        }
+    sortPlayersByScore(){
 
         this.players.sort((a, b) =>{
 
@@ -260,7 +283,36 @@ class ServerResponse{
             return 0;
         });
 
-       // console.table(this.players);
+    }
+
+    sendFullServerResponse(){
+
+        if(this.type != "full"){
+            return;
+        }
+
+        if(this.bTimedOut){
+
+            if(!this.bEdit){
+                let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
+
+                if(this.ip === undefined){
+                    string = `:no_entry: That ip does not exist!`;
+                }
+
+                this.bSentMessage = true;
+                this.discordMessage.send(string);
+                return;
+            }
+            
+
+            this.bSentMessage = true;
+            return;
+        }
+
+        this.sortPlayersByScore();
+
+        console.table(this.players);
 
         this.bReceivedFinal = true;
 
@@ -477,6 +529,11 @@ class ServerResponse{
         const meshReg = /\\mesh_(\d+?)\\(.*?)\\/ig;
         const faceReg = /\\face_(\d+?)\\(.*?)\\/ig;
         const countryReg = /\\countryc_(\d+?)\\(.+?)\\/ig;
+        const pingReg = /\\ping_(\d+?)\\(.+?)\\/ig;
+        const timeReg = /\\time_(\d+?)\\(.+?)\\/ig;
+        const deathsReg = /\\deaths_(\d+?)\\(.+?)\\/ig;
+        const healthReg = /\\health_(\d+?)\\(.+?)\\/ig;
+        const spreeReg = /\\spree_(\d+?)\\(.+?)\\/ig;
 
         let result = "";
         let oldResult = "";
@@ -519,8 +576,187 @@ class ServerResponse{
             result = fragsReg.exec(data);
 
             if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
+
+            result = pingReg.exec(data);
+
+            if(result !== null) this.updatePlayer(result[1], "ping", parseInt(result[2]));
+
+            result = timeReg.exec(data);
+
+            if(result !== null) this.updatePlayer(result[1], "time", parseInt(result[2]));
+
+            result = deathsReg.exec(data);
+
+            if(result !== null) this.updatePlayer(result[1], "deaths", parseInt(result[2]));
+
+            result = healthReg.exec(data);
+
+            if(result !== null) this.updatePlayer(result[1], "health", parseInt(result[2]));
+
+            result = spreeReg.exec(data);
+
+            if(result !== null) this.updatePlayer(result[1], "spree", parseInt(result[2]));
             
         }
+    }
+
+    appendSpaces(value, targetLength){
+
+        value = value.toString();
+
+        //console.log(`Input = ${value}`);
+
+        if(value.length > targetLength){
+
+            return value.substring(0, targetLength)
+
+        }else{
+
+            while(value.length < targetLength){
+
+                value += " ";
+            }
+        }
+
+        return value;
+    }
+
+    prependSpaces(value, targetLength){
+
+        if(value === undefined){
+            value = 0;
+        }
+        value = value.toString();
+
+        //console.log(`Input = ${value}`);
+
+        if(value.length > targetLength){
+
+            return value.substring(0, targetLength)
+
+        }else{
+
+            while(value.length < targetLength){
+
+                value = ` ${value}`;
+            }
+        }
+
+        return value;
+    }
+
+
+    getLongestDeaths(bAlt){
+
+        let best = 0;
+
+        let length = 0;
+
+        let c = 0;
+
+        for(let i = 0; i < this.players.length; i++){
+
+            if(bAlt === undefined){
+                c = this.players[i].deaths;
+            }else{
+                c = this.players[i].frags;
+            }
+
+            if(c !== undefined){
+
+                length = c.toString().length
+
+                if(length > best){
+                    best = length;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    sendPlayersResponse(){
+
+        //this.discordMessage.send
+
+        let string = `**Extended Players Info**\n`;
+
+        let p = 0;
+
+        console.table(this.players);
+
+        const playerNameLength = this.getMaxPlayerNameLength() + 1;
+
+        let longestDeaths = this.getLongestDeaths() + 1;
+        let longestFrags = this.getLongestDeaths(true) + 1;
+
+        if(longestDeaths < 6){
+            longestDeaths = 6;
+        }
+
+        if(longestFrags < 6){
+            longestFrags = 6;
+        }
+
+        this.sortPlayersByScore();
+        
+        let test = 0;
+
+        
+
+        const flagTitle = this.appendSpaces("", 2);
+        const nameTitle = this.appendSpaces("Name", playerNameLength);
+        const sexTitle = this.appendSpaces("Sex", 7);
+        const deathsTitle = this.prependSpaces("Deaths", longestDeaths);
+        const fragsTitle = this.prependSpaces("Frags", longestFrags);
+        const timeTitle = this.prependSpaces("Time", 6);
+        const pingTitle = this.prependSpaces("Ping", 5);
+        const spreeTitle = this.prependSpaces("Spree", 5);
+        const healthTitle = this.prependSpaces("Health", 7);
+
+        string += `:rainbow_flag: \`${nameTitle}${sexTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
+
+        let teamIcon = 0;
+        let name = "";
+        let flag = "";
+        let sex = "";
+        let deaths = "";
+        let frags = "";
+        let time = "";
+        let ping = "";
+        let spree = 0;
+        let health = 0;
+
+        for(let i = 0; i < this.players.length; i++){
+
+            p = this.players[i];
+
+            name = this.appendSpaces(p.name, playerNameLength);
+            flag = this.getFlag(p.country);
+            sex = this.appendSpaces(this.getSex(p.mesh), 7);
+            deaths = this.prependSpaces(p.deaths, longestDeaths);
+            frags = this.prependSpaces(p.frags, longestFrags);
+            time = this.prependSpaces(p.time, 6);
+            ping = this.prependSpaces(p.ping, 5);
+            spree = this.prependSpaces(p.spree, 5);
+            health = this.prependSpaces(p.health, 7);
+
+            if(p.team == '0'){
+                teamIcon = ":red_square:";
+            }else if(p.team == '1'){
+                teamIcon = ":blue_square:"
+            }else if(p.team == '2'){
+                teamIcon = ":green_square:";
+            }else if(p.team == '3'){
+                teamIcon = ":yellow_square:";
+            }else{
+                teamIcon = ":white_large_square:";
+            }
+            //console.log(`name = ${test} (${p.name}) targetLength = ${playerNameLength}`);
+            string += `${this.getFlag(p.country)} \`${name}${sex}${ping}${time}${health} ${spree} ${deaths}${frags}\`\n`;
+        }
+
+        this.discordMessage.send(string);
     }
 
 }

@@ -370,7 +370,7 @@ class UT99Query{
 
             this.responses.push(new ServerResponse(address, port + 1, "players", message, this.db));
 
-            this.server.send('\\players\\xserverquery\\', port + 1, address, (err) =>{
+            this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\', port + 1, address, (err) =>{
 
                 if(err){
                     console.log(err);

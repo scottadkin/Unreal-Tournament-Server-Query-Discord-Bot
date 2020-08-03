@@ -97,7 +97,8 @@ class Bot{
                 const activeReg = /^.active/i;
                 const ipReg = /^.ip\d+/i;
                 const extendedReg = /^.extended \d+/i;
-                const playersReg = /^.players \d+/i;
+                const playersReg = /^.players \d+$/i;
+                const altPlayersReg = /^.players .+/i;
 
                 if(helpReg.test(message.content)){
 
@@ -131,6 +132,9 @@ class Bot{
 
                     this.queryPlayers(message);
 
+                }else if(altPlayersReg.test(message.content)){
+
+                    this.queryPlayersAlt(message);
                 }
 
 
@@ -169,6 +173,7 @@ class Bot{
             {"name": `${p}q serverID`, "content": `Query a Unreal Tournament server by just using the server's id instead of it's ip and port. Use the ${config.commandPrefix}servers command to find a server's id.`},
             {"name": `${p}ip serverId`, "content": `Displays the specified server's name with a clickable link.`},
             {"name": `${p}players serverId`, "content": `Displays extended information about players on the server.`},
+            {"name": `${p}players ip:port`, "content": `Displays extended information about players on the server, domain address also work, if no port specified 7777 is used.`},
             {"name": `${p}help`, "content": `Shows this command.`}
         ];
 
@@ -186,6 +191,10 @@ class Bot{
 
             string += `**${c.name}** ${c.content}\n`;
         }
+
+        message.channel.send(string);
+
+        string = "";
     
         string += `\n${icon+icon} **Admin Commands** ${icon+icon}\n`;
 
@@ -405,8 +414,6 @@ class Bot{
 
                 if(server !== null){
 
-                   // message.channel.send(`ok`);
-
                     this.query.getPlayers(server.ip, server.port, message.channel);
 
                 }else{
@@ -420,7 +427,66 @@ class Bot{
         }catch(err){
             console.trace(err);
         }
+    }
 
+    async queryPlayersAlt(message){
+
+        try{
+
+            const reg = /^.players ((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(:\d+|)|(.+?)(:\d+|))$/i;
+
+            const result = reg.exec(message.content);
+
+            if(result !== null){
+
+                console.log(result);
+
+                let ip = "";
+                let port = 7777;
+
+                if(result[2] === undefined){
+
+                    if(result[8] !== ''){
+
+                        result[8] = result[8].replace(':','');
+
+                        port = parseInt(result[8]);
+                    }
+
+                    ip = dns.lookup(result[7], (err, address, family) =>{
+
+                        if(err){
+                            message.channel.send(`${config.failIcon} There was an error looking up IP address.`);
+                            console.trace(err);
+                        }
+
+                        this.query.getPlayers(address, port, message.channel);
+
+                    });
+
+                }else{
+
+                    ip = `${result[2]}.${result[3]}.${result[4]}.${result[5]}`;
+
+                    if(result[6] !== ''){
+
+                        result[6] = result[6].replace(':','');
+
+                        port = parseInt(result[6]);
+                    }
+
+                    this.query.getPlayers(ip, port, message.channel);
+                }
+
+                
+
+            }else{
+                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players command.`);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
     }
     
 }

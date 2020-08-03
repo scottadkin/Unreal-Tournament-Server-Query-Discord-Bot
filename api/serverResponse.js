@@ -752,10 +752,7 @@ class ServerResponse{
         if(!this.bAnyPlayerHave("health")){
             healthTitle = "";
             bIgnoreHealth = true;
-        }
-
-
-        
+        }    
 
         string += `:rainbow_flag: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
 
@@ -854,7 +851,13 @@ class ServerResponse{
             string += `${this.getFlag(p.country)} \`${name}${sex}${team}${ping}${time}${health} ${spree} ${deaths}${frags}\`\n`;
         }
 
+        if(this.players.length == 0){
+            string += `:zzz: **There is currently no players in the servers.**`
+        }
+
         this.discordMessage.send(string);
+
+        this.bSentMessage = true;
     }
 
 }

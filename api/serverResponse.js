@@ -30,6 +30,17 @@ class ServerResponse{
         this.players = [];
         this.totalPlayers = 0;
 
+        this.mutators = [];
+
+        this.adminName = "N/A";
+        this.adminEmail = "N/A";
+        this.friendlyFire = "0%";
+        this.changeLevels = "N/A";
+        this.balancedTeams = "N/A";
+        this.playersBalanceTeams = "N/A";
+        this.maxTeams = "N/A";
+
+
         this.teams = [
             {"score": 0, "size": 0},
             {"score": 0, "size": 0},
@@ -60,10 +71,14 @@ class ServerResponse{
 
         try{
 
+            data = `${data}`;
+
             this.parseServerInfoData(data);
             this.parseMapData(data);
             this.parseTeamData(data);
+            this.parseMutators(data);
             this.parsePlayerData(data);
+            
 
             const finalReg = /\\final\\$/i;
 
@@ -81,6 +96,10 @@ class ServerResponse{
                 }else if(this.type == "players"){
 
                     this.sendPlayersResponse();
+
+                }else if(this.type == "extended"){
+
+                    this.sendExtendedResponse();
                 }
             }
 
@@ -426,6 +445,16 @@ class ServerResponse{
             /\\timelimit\\(.+?)\\/i,
             /\\remainingtime\\(.+?)\\/i,
             /\\protection\\(.+?)\\/i,
+            /\\listenserver\\(.+?)\\/i,
+            /\\changelevels\\(.+?)\\/i,
+            /\\balanceteams\\(.+?)\\/i,
+            /\\playersbalanceteams\\(.+?)\\/i,
+            /\\friendlyfire\\(.+?)\\/i,
+            /\\tournament\\(.+?)\\/i,
+            /\\gamestyle\\(.+?)\\/i,
+            /\\password\\(.+?)\\/i,
+            /\\adminname\\(.+?)\\/i,
+            /\\adminemail\\(.+?)\\/i,
         ];
 
         const keys = [
@@ -442,11 +471,31 @@ class ServerResponse{
             "mutators",
             "timeLimit",
             "remainingTime",
-            "protection"
+            "protection",
+            "dedicated",
+            "changeLevels",
+            "balancedTeams",
+            "playersBalanceTeams",
+            "friendlyFire",
+            "tournament",
+            "gamestyle",
+            "password",
+            "adminName",
+            "adminEmail",
 
         ];
 
         let result = "";
+
+
+        const tOrF = [
+            "dedicated",
+            "changeLevels",
+            "balancedTeams",
+            "playersBalanceTeams",
+            "tournament",
+            "password",
+        ];
 
         for(let i = 0; i < regs.length; i++){
 
@@ -454,7 +503,24 @@ class ServerResponse{
 
                 result = regs[i].exec(data);
 
-                this[keys[i]] = result[1];
+                if(tOrF.indexOf(keys[i]) == -1){
+
+                    this[keys[i]] = result[1];
+
+                }else{
+
+                    result[1] = result[1].toLowerCase();
+
+                    //if(keys[i] == "dedicated"){
+
+                        if(result[1] == "false"){
+                            this[keys[i]] = false;
+                        }else if(result[1] == "true"){
+                            this[keys[i]] = true;
+                        }
+                        
+                    //}
+                }
 
             }
         }
@@ -858,6 +924,69 @@ class ServerResponse{
         this.discordMessage.send(string);
 
         this.bSentMessage = true;
+    }
+
+    parseMutators(message){
+
+        const reg = /\\mutators\\(.+?)\\/i;
+
+        if(reg.test(message)){
+            
+            const result = reg.exec(message);
+
+            this.mutators = result[1].split(', ');
+
+        }     
+    }
+
+    sendExtendedResponse(){
+
+
+        let string = `**${this.name}**\n`;
+
+        const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
+
+        string += `**Address:** ${this.ip}:${this.port}\n`;
+        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion}\n`;
+        string += `**Admin:** ${this.adminName} **Email:** ${this.adminEmail}\n`;
+        string += `**Server Type:** ${dedicated}\n`;
+        string += `**Password Protected:** ${this.password}\n`;
+        string += `**Change Levels:** ${this.changeLevels}\n`;
+        string += `**Balance Teams:** ${this.balancedTeams} **Players Balance Teams:** ${this.playersBalanceTeams}\n`;
+        string += `**Max Teams:** ${this.maxTeams}\n`;
+        string += `**FriendlyFire:** ${this.friendlyFire}\n`;
+        string += `**Tournament Mode:** ${this.tournament}\n`;
+        string += `**Gamestyle:** ${this.gamestyle}\n`;
+        string += `**Gametype:** ${this.gametype}\n`;
+        string += `**Map:** ${this.mapName}\n`;
+        
+
+        let m = 0;
+
+        console.table(this.mutators);
+
+        string += `**Mutators: **`;
+
+        for(let i = 0; i < this.mutators.length; i++){
+
+            m = this.mutators[i];
+
+            string += `${m}`;
+
+            if(i < this.mutators.length - 1){
+                string += ', ';
+            }else{
+                string += '.';
+            }
+
+        }
+
+        string += `\n**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
+
+
+        this.discordMessage.send(string);
+
+        this.bSendMessage = true;
     }
 
 }

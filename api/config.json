@@ -7,9 +7,9 @@
     "databaseFile": "./db/data.db",
     "serverTimeout": 2,
     "embedColor": "#ff0000",
-    "serverInfoPingInterval": 9915,
+    "serverInfoPingInterval": 15,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
-    "autoQueryInterval": 9910,
+    "autoQueryInterval": 15,
     "bAutoQueryMessagesOnly": true
 }

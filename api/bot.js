@@ -160,7 +160,7 @@ class Bot{
             {"name": `${p}removerole role`, "content": `Stops users with specified role being able to use admin bot commands.`},
             {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
             {"name": `${p}addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
-            {"name": `${p}removeserver serverid`, "content": `Removes the specified server from the database.`},
+            {"name": `${p}removeserver serverID`, "content": `Removes the specified server from the database.`},
             {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. :no_entry: Do not enable in an existing channel, non autoquery messages are deleted by default.`},
             {"name": `${p}stopauto`, "content": `Disables autoquery channel from updating.`}
 
@@ -171,9 +171,10 @@ class Bot{
             {"name": `${p}active`, "content": `Lists all servers added to the database that have at least one player.`},
             {"name": `${p}q ip:port`, "content": `Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
             {"name": `${p}q serverID`, "content": `Query a Unreal Tournament server by just using the server's id instead of it's ip and port. Use the ${config.commandPrefix}servers command to find a server's id.`},
-            {"name": `${p}ip serverId`, "content": `Displays the specified server's name with a clickable link.`},
-            {"name": `${p}players serverId`, "content": `Displays extended information about players on the server.`},
+            {"name": `${p}ip serverID`, "content": `Displays the specified server's name with a clickable link.`},
+            {"name": `${p}players serverID`, "content": `Displays extended information about players on the server.`},
             {"name": `${p}players ip:port`, "content": `Displays extended information about players on the server, domain address also work, if no port specified 7777 is used.`},
+            {"name": `${p}extended serverID`, "content": `Displays extended information about the server.`},
             {"name": `${p}help`, "content": `Shows this command.`}
         ];
 
@@ -387,10 +388,19 @@ class Bot{
 
             if(result !== null){
 
-                if(await this.servers.bValidServerId(result[1])){
+                const server = await this.servers.getServerById(result[1]);
+
+                if(server != null){
+
+                    let id = parseInt(result[1]);
+
+                    id--;
+
+                    this.query.getExtended(server.ip, server.port, message.channel);
                     //woof
                 }else{
                     //meow
+                    message.channel.send(`${config.failIcon} There is no server with that id.`);
                 }
             }
 
@@ -439,8 +449,6 @@ class Bot{
 
             if(result !== null){
 
-                console.log(result);
-
                 let ip = "";
                 let port = 7777;
 
@@ -453,16 +461,7 @@ class Bot{
                         port = parseInt(result[8]);
                     }
 
-                    ip = dns.lookup(result[7], (err, address, family) =>{
-
-                        if(err){
-                            message.channel.send(`${config.failIcon} There was an error looking up IP address.`);
-                            console.trace(err);
-                        }
-
-                        this.query.getPlayers(address, port, message.channel);
-
-                    });
+                    this.query.getPlayers(result[7], port, message.channel);
 
                 }else{
 
@@ -476,9 +475,7 @@ class Bot{
                     }
 
                     this.query.getPlayers(ip, port, message.channel);
-                }
-
-                
+                }             
 
             }else{
                 message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players command.`);

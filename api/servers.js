@@ -1,15 +1,17 @@
 const config = require('./config.json');
-const db = require('./db');
+const Database = require('./db');
 const dns = require('dns');
 const Discord = require('discord.js');
 const Channels = require('./channels');
 
 class Servers{
 
-    constructor(db){
+    constructor(){
 
-        this.db = db;
-        this.channels = new Channels(db);
+        this.db = new Database();
+        this.db = this.db.sqlite;
+        
+        this.channels = new Channels();
     }
 
     async addServer(message){

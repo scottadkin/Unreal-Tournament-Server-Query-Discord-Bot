@@ -10,6 +10,6 @@
     "serverInfoPingInterval": 15,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
-    "autoQueryInterval": 15,
+    "autoQueryInterval": 30,
     "bAutoQueryMessagesOnly": true
 }

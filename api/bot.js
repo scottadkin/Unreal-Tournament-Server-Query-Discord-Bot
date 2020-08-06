@@ -2,8 +2,8 @@ const Promise = require('promise');
 const Discord = require('discord.js');
 const config = require('./config.json');
 const UT99Query = require('./ut99query.js');
-const db = require('./db');
-const dns = require('dns');
+const Database = require('./db');
+//const dns = require('dns');
 const Servers = require('./servers');
 const Channels = require('./channels');
 const Roles = require('./roles');
@@ -14,11 +14,12 @@ class Bot{
 
         this.client = null;
         
+        this.db = new Database();
+        this.db = this.db.sqlite;
 
-
-        this.servers = new Servers(db);
-        this.channels = new Channels(db);
-        this.roles = new Roles(db);
+        this.servers = new Servers();
+        this.channels = new Channels();
+        this.roles = new Roles();
 
         this.createClient();
     }
@@ -29,8 +30,8 @@ class Bot{
 
         this.client.on('ready', () =>{
 
-            this.query = new UT99Query(db, this.client);
-            this.queryAuto = new UT99Query(db, this.client, true);
+            this.query = new UT99Query(this.client);
+            this.queryAuto = new UT99Query(this.client, true);
             console.log(`I'm In the discord server...`);
        
         });
@@ -62,7 +63,7 @@ class Bot{
 
                 if(await this.roles.bUserAdmin(message)){
 
-                    console.log("user is an admin");
+                    //console.log("user is an admin");
 
                     if(this.adminCommands(message)){
                         return;

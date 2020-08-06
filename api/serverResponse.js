@@ -1,16 +1,17 @@
 const Discord = require('discord.js');
-const geoip = require('geoip-lite');
-const countryList = require('country-list');
+//const geoip = require('geoip-lite');
+//const countryList = require('country-list');
 const config = require('./config.json');
 const Servers = require('./servers');
 const Channels = require('./channels');
 
+
 class ServerResponse{
 
-    constructor(ip, port, type, discordMessage, db, bEdit, messageId){
+    constructor(ip, port, type, discordMessage, bEdit, messageId){
 
         //console.log(geoip.lookup(ip));
-        this.geo = geoip.lookup(ip);
+        //this.geo = geoip.lookup(ip);
         //console.log(this.geo);
         this.ip = ip;
         this.port = port - 1;
@@ -48,8 +49,8 @@ class ServerResponse{
             {"score": 0, "size": 0}
         ];
 
-        this.servers = new Servers(db);
-        this.channels = new Channels(db);
+        this.servers = new Servers();
+        this.channels = new Channels();
 
         this.bEdit = false;
         this.messageId = -1;
@@ -67,7 +68,6 @@ class ServerResponse{
 
     async parsePacket(data){
 
-        //console.log(`${data}`);
 
         try{
 
@@ -87,27 +87,32 @@ class ServerResponse{
                 if(this.type == "full"){
 
                     this.sendFullServerResponse();
+                    return true;
 
                 }else if(this.type == "basic"){
 
                     await this.servers.updateInfo(this);
                     this.bSentMessage = true;
+                    return true;
 
                 }else if(this.type == "players"){
 
                     this.sendPlayersResponse();
+                    return true;
 
                 }else if(this.type == "extended"){
 
                     this.sendExtendedResponse();
+                    return true;
                 }
             }
+
+            return false;
 
         }catch(err){
             console.trace(err);
         }
 
-        //console.log(this);
     }
 
 
@@ -331,17 +336,12 @@ class ServerResponse{
 
         this.sortPlayersByScore();
 
-        console.table(this.players);
+        //console.table(this.players);
 
         this.bReceivedFinal = true;
 
-        let city = "";
 
-        if(this.geo.city !== ''){
-            city = this.geo.city+", "
-        }
-
-        let description = `**:flag_${this.geo.country.toLowerCase()}: ${city}${countryList.getName(this.geo.country)}**
+        let description = `
 :wrestling: Players **${this.totalPlayers}/${this.maxPlayers}
 :pushpin: ${this.gametype}
 :map: ${this.mapName}**
@@ -370,7 +370,7 @@ class ServerResponse{
 
         
         const embed = new Discord.MessageEmbed()
-        .setTitle(`:flag_${this.geo.country.toLowerCase()}: ${this.name}`)
+        .setTitle(`${this.name}`)
         .setColor(config.embedColor)
         .setDescription(`${description}`)
         .addFields(fields)
@@ -380,7 +380,7 @@ class ServerResponse{
 
         if(!this.bEdit){
 
-            console.log("NOT AN EDIT POST");
+           // console.log("NOT AN EDIT POST");
             this.discordMessage.send(embed).then(async (m) =>{
 
                 try{
@@ -394,7 +394,7 @@ class ServerResponse{
                             this.servers.setLastMessageId(this.ip, this.port, m.id);
 
                         }else{
-                            console.log("posted in a normal channel");
+                            //console.log("posted in a normal channel");
                         }
                     }
 
@@ -594,12 +594,12 @@ class ServerResponse{
         const teamReg = /\\team_(\d+?)\\(\d+?)\\/ig;
         const meshReg = /\\mesh_(\d+?)\\(.*?)\\/ig;
         const faceReg = /\\face_(\d+?)\\(.*?)\\/ig;
-        const countryReg = /\\countryc_(\d+?)\\(.+?)\\/ig;
-        const pingReg = /\\ping_(\d+?)\\(.+?)\\/ig;
-        const timeReg = /\\time_(\d+?)\\(.+?)\\/ig;
-        const deathsReg = /\\deaths_(\d+?)\\(.+?)\\/ig;
-        const healthReg = /\\health_(\d+?)\\(.+?)\\/ig;
-        const spreeReg = /\\spree_(\d+?)\\(.+?)\\/ig;
+        const countryReg = /\\countryc_(\d+?)\\(.*?)\\/ig;
+        const pingReg = /\\ping_(\d+?)\\(.*?)\\/ig;
+        const timeReg = /\\time_(\d+?)\\(.*?)\\/ig;
+        const deathsReg = /\\deaths_(\d+?)\\(.*?)\\/ig;
+        const healthReg = /\\health_(\d+?)\\(.*?)\\/ig;
+        const spreeReg = /\\spree_(\d+?)\\(.*?)\\/ig;
 
         let result = "";
         let oldResult = "";
@@ -761,7 +761,7 @@ class ServerResponse{
 
         let p = 0;
 
-        console.table(this.players);
+        //console.table(this.players);
 
         let playerNameLength = this.getMaxPlayerNameLength() + 1;
 
@@ -963,7 +963,7 @@ class ServerResponse{
 
         let m = 0;
 
-        console.table(this.mutators);
+        //console.table(this.mutators);
 
         string += `**Mutators: **`;
 

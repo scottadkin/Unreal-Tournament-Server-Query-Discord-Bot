@@ -6,14 +6,16 @@ const dns = require('dns');
 const Servers = require('./servers');
 const Channels = require('./channels');
 const Discord = require('discord.js');
+const Database = require('./db');
 
 
 
 class UT99Query{
 
-    constructor(db, discord, bAuto){
+    constructor(discord, bAuto){
 
-        this.db = db;
+        this.db = new Database();
+        this.db = this.db.sqlite;
         this.server = null;
 
         this.responses = [];
@@ -26,8 +28,8 @@ class UT99Query{
 
         this.createClient();
 
-        this.servers = new Servers(db);
-        this.channels = new Channels(db);
+        this.servers = new Servers();
+        this.channels = new Channels();
         this.discord = discord;
 
         this.autoQueryLoop = null;
@@ -169,7 +171,7 @@ class UT99Query{
                             if(autoQueryInfoPostId !== null){
 
                                 if(messages[i].id == autoQueryInfoPostId){
-                                    console.log("FOUND AUTO QUERY MESSAGE ID");
+                                    //console.log("FOUND AUTO QUERY MESSAGE ID");
                                     continue;
                                 }
                             }
@@ -228,9 +230,11 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-           // console.log(`*******************************************************`);
-           // console.log(`${message}`);
-           // console.log(`-------------------------------------------------------`);
+            //console.log(`*******************************************************`);
+            //console.log(`${message}`);
+            //console.log(`-------------------------------------------------------`);
+
+            //const teamScoreReg = /^\\score_\d+\\(.+?)\\$/i;
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
@@ -302,16 +306,16 @@ class UT99Query{
 
             port = port + 1;
 
-            dns.lookup(ip, (err, address, family) =>{
+            dns.lookup(ip, (err, address) =>{
 
                 if(err) console.trace(err);
 
                 //console.log('address: %j family: IPv%s', address, family);
 
                 if(bEdit === undefined){
-                    this.responses.push(new ServerResponse(address, port, "full", message, this.db));
+                    this.responses.push(new ServerResponse(address, port, "full", message));
                 }else{
-                    this.responses.push(new ServerResponse(address, port, "full", message, this.db, true, messageId));
+                    this.responses.push(new ServerResponse(address, port, "full", message, true, messageId));
                 }
 
                 this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\', port, address, (err) =>{
@@ -345,7 +349,7 @@ class UT99Query{
 
                 if(err) console.trace(err);
 
-                this.responses.push(new ServerResponse(address, port, "basic", null, this.db));
+                this.responses.push(new ServerResponse(address, port, "basic", null));
 
                 this.server.send('\\info\\xserverquery\\', port, address, (err) =>{
 
@@ -362,11 +366,11 @@ class UT99Query{
 
     getPlayers(ip, port, message){
 
-        dns.lookup(ip, (err, address, family) =>{
+        dns.lookup(ip, (err, address) =>{
 
             if(err) console.trace(err);
 
-            this.responses.push(new ServerResponse(address, port + 1, "players", message, this.db));
+            this.responses.push(new ServerResponse(address, port + 1, "players", message));
 
             this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\', port + 1, address, (err) =>{
 
@@ -383,7 +387,7 @@ class UT99Query{
 
             if(err) console.trace(err);
 
-            this.responses.push(new ServerResponse(address, port + 1, "extended", message, this.db));
+            this.responses.push(new ServerResponse(address, port + 1, "extended", message));
 
             this.server.send('\\info\\xserverquery\\\\rules\\xserverquery\\', port + 1, address, (err) =>{
 

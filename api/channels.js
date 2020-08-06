@@ -1,10 +1,12 @@
 const config = require('./config.json');
+const Database = require('./db');
 
 class Channels{
 
-    constructor(db){
+    constructor(){
 
-        this.db = db;
+        this.db = new Database();
+        this.db = this.db.sqlite;
     }
 
     bBotCanCommentInChannel(message){

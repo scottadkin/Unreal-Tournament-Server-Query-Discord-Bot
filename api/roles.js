@@ -1,10 +1,12 @@
 const config = require('./config.json');
+const Database = require('./db');
 
 class Roles{
 
-    constructor(db){
+    constructor(){
 
-        this.db = db;
+        this.db = new Database();
+        this.db = this.db.sqlite;
     }
 
     async bUserAdmin(message){
@@ -39,7 +41,7 @@ class Roles{
 
             }));
   
-            console.log(`passed ${passed}`);
+            //console.log(`passed ${passed}`);
             return passed;
 
         }catch(err){

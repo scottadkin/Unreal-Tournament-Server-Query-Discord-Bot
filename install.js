@@ -1,4 +1,6 @@
-const db = require('./api/db');
+const Database = require('./api/db');
+let db = new Database();
+db = db.sqlite;
 
 const queries = [
     `CREATE TABLE IF NOT EXISTS roles(

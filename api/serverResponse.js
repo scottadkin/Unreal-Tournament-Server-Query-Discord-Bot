@@ -786,7 +786,7 @@ class ServerResponse{
 
         
         let nameTitle = this.appendSpaces("Name", playerNameLength);
-        let sexTitle = this.appendSpaces("Sex", 7);
+        let sexTitle = this.appendSpaces("Model", 7);
         let teamTitle = this.prependSpaces("Team", 9);
         let deathsTitle = this.prependSpaces("Deaths", longestDeaths);
         let fragsTitle = this.prependSpaces("Frags", longestFrags);
@@ -947,18 +947,13 @@ class ServerResponse{
         const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
 
         string += `**Address:** ${this.ip}:${this.port}\n`;
-        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion}\n`;
-        string += `**Admin:** ${this.adminName} **Email:** ${this.adminEmail}\n`;
-        string += `**Server Type:** ${dedicated}\n`;
-        string += `**Password Protected:** ${this.password}\n`;
-        string += `**Change Levels:** ${this.changeLevels}\n`;
-        string += `**Balance Teams:** ${this.balancedTeams} **Players Balance Teams:** ${this.playersBalanceTeams}\n`;
-        string += `**Max Teams:** ${this.maxTeams}\n`;
-        string += `**FriendlyFire:** ${this.friendlyFire}\n`;
-        string += `**Tournament Mode:** ${this.tournament}\n`;
-        string += `**Gamestyle:** ${this.gamestyle}\n`;
-        string += `**Gametype:** ${this.gametype}\n`;
-        string += `**Map:** ${this.mapName}\n`;
+        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName} **Email:** ${this.adminEmail}\n`;
+        string += `**Server Type:** ${dedicated} **Password Protected:** ${this.password} **Change Levels:** ${this.changeLevels}\n`;
+        string += `**Balance Teams:** ${this.balancedTeams} **Players Balance Teams:** ${this.playersBalanceTeams} **Max Teams:** ${this.maxTeams}\n`;
+        string += `**FriendlyFire:** ${this.friendlyFire} **Tournament Mode:** ${this.tournament} **Gamestyle:** ${this.gamestyle}\n`;
+        string += `**Gametype:** ${this.gametype} `;
+        string += `**Map:** ${this.mapName} `;
+        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
         
 
         let m = 0;
@@ -980,8 +975,6 @@ class ServerResponse{
             }
 
         }
-
-        string += `\n**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
 
 
         this.discordMessage.send(string);

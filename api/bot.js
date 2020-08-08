@@ -97,7 +97,8 @@ class Bot{
                 const listReg = /^.servers/i;
                 const activeReg = /^.active/i;
                 const ipReg = /^.ip\d+/i;
-                const extendedReg = /^.extended \d+/i;
+                const extendedReg = /^.extended \d+$/i;
+                const altExtendedReg = /^.extended .+$/i;
                 const playersReg = /^.players \d+$/i;
                 const altPlayersReg = /^.players .+/i;
 
@@ -128,6 +129,10 @@ class Bot{
                 }else if(extendedReg.test(message.content)){
 
                     this.queryServerExtended(message);
+
+                }else if(altExtendedReg.test(message.content)){
+
+                    this.queryServerExtendedAlt(message);
 
                 }else if(playersReg.test(message.content)){
 
@@ -403,6 +408,46 @@ class Bot{
                     //meow
                     message.channel.send(`${config.failIcon} There is no server with that id.`);
                 }
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+    async queryServerExtendedAlt(message){
+
+        try{
+
+            const reg = /^.extended (((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+|))|(.+?(:\d+|)))$/i;
+
+            const result = reg.exec(message.content);
+
+            if(result !== null){
+
+                let ip = "";
+                let port = 7777;
+
+                if(result[3] !== ''){
+
+                    ip = result[3];
+
+                    if(result[4] !== ''){
+
+                        port = result[4].replace(':','');
+                        port = parseInt(port);
+
+                        if(port !== port){
+                            message.channel.send(`${config.failIcon} Port must be a valid integer`);
+                            return;
+                        }
+                    }
+
+                    this.query.getExtended(ip, port, message.channel);
+                }
+
+            }else{
+                message.channel.send(`${config.failIcon} Incorrect syntax for queryServerExtended.`);
             }
 
         }catch(err){

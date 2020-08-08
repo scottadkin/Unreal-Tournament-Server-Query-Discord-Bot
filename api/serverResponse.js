@@ -939,12 +939,36 @@ class ServerResponse{
         }     
     }
 
+
+    getTrueFalseIcon(value){
+
+        value = value.toString().toUpperCase();
+
+        if(value == 'TRUE'){
+            return ':white_check_mark:';
+        }else if(value == 'FALSE'){
+            return ':x:';
+        }
+
+        return value;
+
+    }
+
     sendExtendedResponse(){
 
 
         let string = `**${this.name}**\n`;
 
         const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
+
+        this.password = this.getTrueFalseIcon(this.password);
+        this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
+        this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
+        
+
+        this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
+
+        this.tournament = this.getTrueFalseIcon(this.tournament);
 
         string += `**Address:** ${this.ip}:${this.port}\n`;
         string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName} **Email:** ${this.adminEmail}\n`;
@@ -979,7 +1003,7 @@ class ServerResponse{
 
         this.discordMessage.send(string);
 
-        this.bSendMessage = true;
+        this.bSentMessage = true;
     }
 
 }

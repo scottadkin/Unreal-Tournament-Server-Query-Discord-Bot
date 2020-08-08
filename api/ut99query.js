@@ -34,17 +34,12 @@ class UT99Query{
 
         this.autoQueryLoop = null;
 
-        
-
-        
         this.init();
     }
 
     init(){
 
         setInterval(() =>{
-
-            //onsole.table(this.responses);
 
             const now = Math.floor(Date.now() * 0.001);
 
@@ -234,8 +229,6 @@ class UT99Query{
             //console.log(`${message}`);
             //console.log(`-------------------------------------------------------`);
 
-            //const teamScoreReg = /^\\score_\d+\\(.+?)\\$/i;
-
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
             if(matchingResponse !== null){
@@ -311,6 +304,7 @@ class UT99Query{
                 if(err) console.trace(err);
 
                 //console.log('address: %j family: IPv%s', address, family);
+
 
                 if(bEdit === undefined){
                     this.responses.push(new ServerResponse(address, port, "full", message));

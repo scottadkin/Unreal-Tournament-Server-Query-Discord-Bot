@@ -257,13 +257,13 @@ class Bot{
 
         }else if(m.startsWith(commands[1])){
 
-            this.role.removeRole(message);
+            this.roles.removeRole(message);
             
             return true;
 
         }else if(m.startsWith(commands[2])){
 
-            this.role.listRoles(message);
+            this.roles.listRoles(message);
 
             return true;
             

@@ -16,6 +16,7 @@ const queries = [
         ip TEXT NOT NULL,
         real_ip TEXT NOT NULL,
         port INTEGER NOT NULL,
+        country TEXT NOT NULL,
         name TEXT NOT NULL,
         alias TEXT NOT NULL,
         players INTEGER NOT NULL,
@@ -24,7 +25,8 @@ const queries = [
         map TEXT NOT NULL,
         created INTEGER NOT NULL,
         modified INTEGER NOT NULL,
-        last_message TEXT NOT NULL
+        last_message TEXT NOT NULL,
+        override_country INTEGER NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS auto_query(
         id TEXT NOT NULL
@@ -47,4 +49,6 @@ db.serialize(() =>{
         });
     }
 });
+
+console.log("Database install completed.");
 

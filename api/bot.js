@@ -141,6 +141,7 @@ class Bot{
                 }else if(altPlayersReg.test(message.content)){
 
                     this.queryPlayersAlt(message);
+
                 }
 
 
@@ -168,7 +169,8 @@ class Bot{
             {"name": `${p}addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
             {"name": `${p}removeserver serverID`, "content": `Removes the specified server from the database.`},
             {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. :no_entry: Do not enable in an existing channel, non autoquery messages are deleted by default.`},
-            {"name": `${p}stopauto`, "content": `Disables autoquery channel from updating.`}
+            {"name": `${p}stopauto`, "content": `Disables autoquery channel from updating.`},
+            {"name": `${p}editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country)**`}
 
         ];
 
@@ -232,7 +234,8 @@ class Bot{
             `${p}addserver`,
             `${p}removeserver`,
             `${p}setauto`,
-            `${p}stopauto`
+            `${p}stopauto`,
+            `${p}editserver`
         ];
 
 
@@ -308,6 +311,11 @@ class Bot{
             this.channels.disableAutoQuery(message, this.servers);
             return true;
 
+        }else if(m.startsWith(commands[10])){
+
+            this.editServer(message);
+
+            return true;
         }
 
         return false;
@@ -530,6 +538,38 @@ class Bot{
         }catch(err){
             console.trace(err);
         }
+    }
+
+    async editServer(message){
+
+        //this.servers.editServer(message.content);
+
+        try{
+
+            const editReg = /^.editserver (\d+) (.+?) (.+)$/i;
+            
+            const result = editReg.exec(message.content);
+
+            if(result != null){
+
+                const serverId = parseInt(result[1]);
+
+                const server = await this.servers.getServerById(serverId);        
+
+                if(server != null){
+                    message.channel.send("Woof I'm a horse.");
+                }else{
+                    message.channel.send(`${config.failIcon} A server with id ${serverId} does not exist.`);
+                }
+
+            }else{
+                message.channel.send(`${config.failIcon} Incorrect syntax for edit server.`);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+
     }
     
 }

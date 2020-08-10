@@ -309,6 +309,20 @@ class ServerResponse{
 
     }
 
+    getServerCountry(){
+
+        let country = "";
+
+        if(this.country != undefined){
+
+            if(this.country != ''){
+                country = `:flag_${this.country.toLowerCase()}: `;
+            }
+        }
+
+        return country;
+    }
+
     sendFullServerResponse(){
 
         if(this.type != "full"){
@@ -366,11 +380,13 @@ class ServerResponse{
         }
        // console.table(this.players);
 
+        const country = this.getServerCountry();
+
         const fields = this.createPlayerFields();
 
         
         const embed = new Discord.MessageEmbed()
-        .setTitle(`${this.name}`)
+        .setTitle(`${country}${this.name}`)
         .setColor(config.embedColor)
         .setDescription(`${description}`)
         .addFields(fields)
@@ -455,6 +471,7 @@ class ServerResponse{
             /\\password\\(.+?)\\/i,
             /\\adminname\\(.+?)\\/i,
             /\\adminemail\\(.+?)\\/i,
+            /\\countrys\\(.+?)\\/i,
         ];
 
         const keys = [
@@ -482,6 +499,7 @@ class ServerResponse{
             "password",
             "adminName",
             "adminEmail",
+            "country"
 
         ];
 
@@ -757,7 +775,7 @@ class ServerResponse{
 
         //this.discordMessage.send
 
-        let string = `**${this.name}**\n`;
+        let string = `${this.getServerCountry()}**${this.name}**\n`;
 
         let p = 0;
 
@@ -918,7 +936,7 @@ class ServerResponse{
         }
 
         if(this.players.length == 0){
-            string += `:zzz: **There is currently no players in the servers.**`
+            string += `:zzz: **There are currently no players in the servers.**`
         }
 
         this.discordMessage.send(string);
@@ -957,7 +975,7 @@ class ServerResponse{
     sendExtendedResponse(){
 
 
-        let string = `**${this.name}**\n`;
+        let string = `${this.getServerCountry()}**${this.name}**\n`;
 
         const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
 
@@ -985,6 +1003,10 @@ class ServerResponse{
         //console.table(this.mutators);
 
         string += `**Mutators: **`;
+
+        if(this.mutators.length == 0){
+            string += `None publicly listed.`;
+        }
 
         for(let i = 0; i < this.mutators.length; i++){
 

@@ -225,9 +225,9 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            //console.log(`*******************************************************`);
-            //console.log(`${message}`);
-            //console.log(`-------------------------------------------------------`);
+            console.log(`*******************************************************`);
+            console.log(`${message}`);
+            console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
@@ -259,6 +259,8 @@ class UT99Query{
             this.server.bind(config.udpPortAuto);
         }
     }
+
+    //ADD COUNTRY REG FOR SERVERSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
 
     getMatchingResponse(ip, port, ignoreTimeStamp){
 

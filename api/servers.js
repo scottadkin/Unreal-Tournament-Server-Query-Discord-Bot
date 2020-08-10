@@ -122,7 +122,7 @@ class Servers{
 
             const now = Math.floor(Date.now() * 0.001);
 
-            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,?,0,0,'N/A','N/A',?,?,-1)";
+            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,'None',?,0,0,'N/A','N/A',?,?,-1,0)";
 
             const vars = [
                 ip, 
@@ -239,10 +239,19 @@ class Servers{
             const now = Math.floor(Date.now() * 0.001);
 
             const query = `UPDATE servers 
-            SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
+            SET name=?, country=?, players=?, max_players=?, gametype=?, map=?, modified=?
             WHERE real_ip=? AND port=?`;
 
-            const vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
+            let country = "";
+
+            if(data.country != undefined){
+
+                if(data.country != '' && data.country != "none"){
+                    country = data.country;
+                }
+            }
+
+            const vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
 
             
             this.db.run(query, vars, (err) =>{
@@ -422,7 +431,7 @@ class Servers{
                 "map": "Map"
 
             }), string ,false)
-            .addField("Shorter server query command", `Type **${config.commandPrefix}q id** for easier command usage for servers added to the database.` ,false)
+            .addField("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false)
             .setTimestamp();
             
             message.channel.send(embed);
@@ -513,6 +522,10 @@ class Servers{
         }catch(err){
             console.trace(err);
         }
+    }
+
+    editServer(){
+        
     }
 
 }

@@ -105,7 +105,7 @@ class Servers{
                 if(row !== undefined){
 
                     if(row.total_servers > 0){
-                        console.log(`Total servers = ${row.total_servers}`);
+                        //console.log(`Total servers = ${row.total_servers}`);
                         resolve(true);
                     }
                 }
@@ -232,38 +232,74 @@ class Servers{
     }
 
 
-    updateInfo(data){
+    updateQuery(data, bAlt){
 
         return new Promise((resolve, reject) =>{
 
             const now = Math.floor(Date.now() * 0.001);
 
-            const query = `UPDATE servers 
+            let query = `UPDATE servers 
             SET name=?, country=?, players=?, max_players=?, gametype=?, map=?, modified=?
             WHERE real_ip=? AND port=?`;
 
-            let country = "";
 
-            if(data.country != undefined){
+            let vars = [];
+            
 
-                if(data.country != '' && data.country != "none"){
-                    country = data.country;
+            if(bAlt !== undefined){
+
+                query = `UPDATE servers 
+                SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
+                WHERE real_ip=? AND port=?`;
+
+                vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
+                
+            }else{
+
+                let country = "";
+
+                if(data.country != undefined){
+
+                    if(data.country != '' && data.country != "none"){
+                        country = data.country;
+                    }
                 }
+            
+                vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
             }
 
-            const vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
-
-            
+                 
             this.db.run(query, vars, (err) =>{
 
                 if(err){
-                    console.log(vars);
+                   // console.log(vars);
                     reject(err);
                 }
 
                 resolve();
             });
         });
+
+    }
+
+    async updateInfo(data){
+
+        try{
+
+            const bCountryOverride = await this.bCountryOverride(data.ip, data.port);
+
+            //console.log(bCountryOverride);
+
+            if(!bCountryOverride){
+                await this.updateQuery(data);
+            }else{
+                await this.updateQuery(data, true);
+            }
+
+        }catch(err){
+            console.trace(err);
+        }
+        
     }
 
 
@@ -277,30 +313,31 @@ class Servers{
 
             if(result !== null){
 
-                const servers = await this.getAllServers();
+                const server = await this.getServerById(result[1]);
 
-                let id = parseInt(result[1]);
 
-                if(id !== id){
+                if(server === null){
 
-                    throw new Error("Id must be a valid interger");
+                   // throw new Error("");
+                    message.channel.send(`${config.failIcon} A server with that id does not exist.`);
+                    return;
 
                 }else{
 
-                    id = id - 1;
+                    let flag = server.country;
 
-                    if(id < 0 || id > servers.length - 1){
-
-                        message.channel.send(`${config.failIcon} server with ID **${id + 1}** does not exist.`);
-
+                    if(flag == '' || flag == 'none'){
+                        flag = ':video_game:';
                     }else{
-
-                        const s = servers[id];
-
-                        let string = `**${s.name}**\n**<unreal://${s.ip}:${s.port}>**`;
-
-                        message.channel.send(string);
+                        flag = `:flag_${flag.toLowerCase()}:`;
                     }
+
+                    flag = `${flag} `;
+
+                    let string = `${flag}**${server.name}**\n**<unreal://${server.ip}:${server.port}>**`;
+
+                    message.channel.send(string);
+                    
                 }
 
             }else{
@@ -524,8 +561,57 @@ class Servers{
         }
     }
 
-    editServer(){
+    editServerValue(ip, port, key, value){
         
+        return new Promise((resolve, reject) =>{
+
+            const query = `UPDATE servers SET ${key}=? WHERE ip=? AND port=?`;
+
+            if(key === 'country' && value === 'uk'){
+                value = 'gb';
+            }
+
+            this.db.run(query, [value, ip, port], (err) =>{
+
+                if(err) reject(err);
+
+                if(key === 'country'){
+
+                    const countryQuery = `UPDATE servers SET override_country=1 WHERE ip=? AND port=?`;
+
+                    this.db.run(countryQuery, [ip, port], (err) =>{
+
+                        if(err) reject(err);
+
+                        resolve();
+                    });
+
+                }else{
+                    resolve();
+                }
+            });
+        });
+    }
+
+    bCountryOverride(ip, port){
+
+        return new Promise((resolve, reject) =>{
+
+            const query = `SELECT override_country FROM servers WHERE ip=? AND port=?`;
+
+            this.db.get(query, [ip, port], (err, result) =>{
+
+                if(err) reject(err);
+
+                if(result !== undefined){
+                    if(result.override_country > 0) resolve(true);
+                    
+                }
+                
+                resolve(false);
+                
+            });
+        });
     }
 
 }

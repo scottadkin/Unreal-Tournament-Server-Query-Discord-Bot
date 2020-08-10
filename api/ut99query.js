@@ -201,7 +201,7 @@ class UT99Query{
 
             }else{
 
-                console.log(`AutoqueryChannel is not SET!`);
+                //console.log(`AutoqueryChannel is not SET!`);
             }
 
         }, config.autoQueryInterval * 1000);
@@ -225,9 +225,9 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            console.log(`*******************************************************`);
-            console.log(`${message}`);
-            console.log(`-------------------------------------------------------`);
+           // console.log(`*******************************************************`);
+           // console.log(`${message}`);
+           // console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 

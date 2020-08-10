@@ -13,6 +13,12 @@ class Bot{
     constructor(){
 
         this.client = null;
+
+        this.validEdits = [
+            "alias",
+            "ip",
+            "country"
+        ];
         
         this.db = new Database();
         this.db = this.db.sqlite;
@@ -557,7 +563,29 @@ class Bot{
                 const server = await this.servers.getServerById(serverId);        
 
                 if(server != null){
-                    message.channel.send("Woof I'm a horse.");
+
+                    const editType = result[2].toLowerCase();
+
+                    if(editType == 'country'){
+
+                        if(result[3].length !== 2){
+                            message.channel.send(`${config.failIcon} server country code must be 2 characters long.`);
+                            return;
+                        }
+                    }
+
+                    console.log(result);
+
+                    if(this.validEdits.indexOf(editType) !== -1){
+
+                        await this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
+
+                        message.channel.send(`${config.passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
+                        
+                    }else{
+                        message.channel.send(`${config.failIcon} **${result[2]}** is not a valid edit type for servers.`);
+                    }
+
                 }else{
                     message.channel.send(`${config.failIcon} A server with id ${serverId} does not exist.`);
                 }

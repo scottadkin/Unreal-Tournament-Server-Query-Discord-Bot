@@ -11,5 +11,6 @@
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
     "autoQueryInterval": 30,
-    "bAutoQueryMessagesOnly": true
+    "bAutoQueryMessagesOnly": true,
+    "bDisplayNotEnabledMessage": true
 }

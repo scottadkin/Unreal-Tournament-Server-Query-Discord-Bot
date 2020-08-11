@@ -17,7 +17,8 @@ class Bot{
         this.validEdits = [
             "alias",
             "ip",
-            "country"
+            "country",
+            "port"
         ];
         
         this.db = new Database();
@@ -65,7 +66,9 @@ class Bot{
 
         try{
 
-            if(message.content.startsWith(config.commandPrefix)){
+            if(message.content.startsWith(config.commandPrefix) && message.content.length > 1){
+
+                if(message.content[0] == config.commandPrefix && message.content[1] == config.commandPrefix) return;
 
                 if(await this.roles.bUserAdmin(message)){
 
@@ -152,7 +155,9 @@ class Bot{
 
 
             }else{
-                message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
+                if(config.bDisplayNotEnabledMessage){
+                    message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
+                }
             }
 
         }catch(err){
@@ -176,7 +181,7 @@ class Bot{
             {"name": `${p}removeserver serverID`, "content": `Removes the specified server from the database.`},
             {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. :no_entry: Do not enable in an existing channel, non autoquery messages are deleted by default.`},
             {"name": `${p}stopauto`, "content": `Disables autoquery channel from updating.`},
-            {"name": `${p}editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country)**`}
+            {"name": `${p}editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country,port)**`}
 
         ];
 
@@ -569,9 +574,26 @@ class Bot{
                     if(editType == 'country'){
 
                         if(result[3].length !== 2){
-                            message.channel.send(`${config.failIcon} server country code must be 2 characters long.`);
+                            message.channel.send(`${config.failIcon} Server country code must be 2 characters long.`);
                             return;
                         }
+
+                    }else if(editType == 'ip'){
+                        
+                        if(result[3].includes(':')){
+                            message.channel.send(`${config.failIcon} Server ip can not include the port.`);
+                            return;
+                        }
+
+                    }else if(editType == 'port'){
+
+                        result[3] = result[3].replace(/\D/ig, '');
+                        
+                        if(result[3] < 1 || result[3] > 65535){
+                            message.channel.send(`${config.failIcon} Server port must be a interger between 1 and 65535`);
+                            return;
+                        }
+                        
                     }
 
                     console.log(result);

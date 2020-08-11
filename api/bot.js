@@ -422,9 +422,9 @@ class Bot{
                     id--;
 
                     this.query.getExtended(server.ip, server.port, message.channel);
-                    //woof
+                 
                 }else{
-                    //meow
+                
                     message.channel.send(`${config.failIcon} There is no server with that id.`);
                 }
             }
@@ -492,7 +492,7 @@ class Bot{
                     this.query.getPlayers(server.ip, server.port, message.channel);
 
                 }else{
-                    message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1]) - 1} does not exist.`);
+                    message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1])} does not exist.`);
                 }
 
             }else{

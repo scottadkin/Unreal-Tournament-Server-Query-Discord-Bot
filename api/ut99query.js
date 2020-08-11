@@ -245,14 +245,14 @@ class UT99Query{
         });
 
         this.server.on('listening', () =>{
-            console.log("Meow Im a horse");
+            console.log("Query port listening");
         });
 
         this.server.on('error', (err) =>{
             console.trace(err);
         });
 
-        console.log(`this.bAuto = ${this.bAuto}`);
+       // console.log(`this.bAuto = ${this.bAuto}`);
         if(!this.bAuto){
             this.server.bind(config.udpPort);
         }else{

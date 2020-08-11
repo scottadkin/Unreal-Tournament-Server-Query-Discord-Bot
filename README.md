@@ -7,7 +7,7 @@
 
 # Commands
 
- User Commands 
+## User Commands 
 - **.servers** Lists all servers added to the database.
 - **.active** Lists all servers added to the database that have at least one player.
 - **.q ip:port** Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.
@@ -17,7 +17,8 @@
 - **.players ip:port** Displays extended information about players on the server, domain address also work, if no port specified 7777 is used.
 - **.extended serverID** Displays extended information about the server.
 - **.help** Shows this command.
- Admin Commands 
+
+## Admin Commands 
 - **.allowchannel** Enables the bot to be used in the current channel.
 - **.blockchannel** Disables the bot in the current channel.
 - **.listchannels** Displays a list of channels the bot can be used in.
@@ -26,7 +27,7 @@
 - **.listroles** Displays a list of roles that can use the bots admin commands.
 - **.addserver alias ip:port** Adds the specified server details into the database.
 - **.removeserver serverID** Removes the specified server from the database.
-- **.setauto Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. **Do not enable in an existing channel, non autoquery messages are deleted by default.**
+- **.setauto** Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. **Do not enable in an existing channel, non autoquery messages are deleted by default.**
 - **.stopauto** Disables autoquery channel from updating.
 - **.editserver id type value** Edit selected server's value type. Types:(alias,ip,country,port)
 

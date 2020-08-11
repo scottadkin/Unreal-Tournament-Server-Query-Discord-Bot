@@ -50,7 +50,7 @@ A discord bot that communicates with Unreal Tournament servers and displays thei
 {
     "udpPort": "19999", //port for standard queries
     "udpPortAuto": "19998", //port for auto queries
-    "token": "NzIwOTU0OTkyOTA2OTkzNzI2.Xuzm5Q.0IYiOCUNUX6hUAubp4YUltQuje0", //discord bot token
+    "token": "", //discord bot token
     "defaultAdminRole": "Toilet Brush", //super admin role
     "commandPrefix": ".", //what character you want the bot to respond to
     "databaseFile": "./db/data.db",

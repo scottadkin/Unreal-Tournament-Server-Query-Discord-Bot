@@ -7,7 +7,7 @@
 
 
 # Config
-```javascript
+```json
 {
     "udpPort": "19999", //port for standard queries
     "udpPortAuto": "19998", //port for auto queries

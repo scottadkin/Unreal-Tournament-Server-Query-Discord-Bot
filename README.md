@@ -5,8 +5,22 @@
 # Requirments
 - Node.js Version 12 or later
 
-# Commands
+# Installing
+- Place the contents of the archive into a folder.
+- Open the command prompt in the same directory.
+- Run the command **npm install** to install all dependencies.
+- Run the command **node install** to install the database.
+- Now open the file **/api/config.json**.
+- Now set the Discord token **token** to connect the bot to the server.[How to add a Discord bot](https://discordpy.readthedocs.io/en/latest/discord.html)
+- Now set **defaultAdminRole** to a role name that is in your Discord server, do not add a common role name as it gives those users access to admin commands.
+- Install process is now completed.
 
+# Running the bot
+- In the installed directory open the command prompt.
+- Run the command **node app** to start the bot.
+- You should now see the bot in your server. If you do not see it, makes sure your Discord Bot Token is correct.
+
+# Commands
 ## User Commands 
 - **.servers** Lists all servers added to the database.
 - **.active** Lists all servers added to the database that have at least one player.
@@ -52,7 +66,6 @@
 ```
 
 # Screenshots
-![alt text](https://i.imgur.com/AQPDJjA.png "test")
 
 ![alt text](https://i.imgur.com/3f5XkaV.png "test")
 

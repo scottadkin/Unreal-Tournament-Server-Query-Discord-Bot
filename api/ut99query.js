@@ -5,7 +5,6 @@ const ServerResponse = require('./serverResponse');
 const dns = require('dns');
 const Servers = require('./servers');
 const Channels = require('./channels');
-const Discord = require('discord.js');
 const Database = require('./db');
 
 
@@ -35,11 +34,14 @@ class UT99Query{
         this.autoQueryLoop = null;
 
         this.init();
+
     }
 
     init(){
 
         setInterval(() =>{
+
+            //console.log(`Total Responses = ${this.responses.length} (${this.bAuto})`);
 
             const now = Math.floor(Date.now() * 0.001);
 
@@ -53,7 +55,18 @@ class UT99Query{
 
                     r.bReceivedFinal = true;
                     r.bTimedOut = true;
-                    r.sendFullServerResponse();
+
+                    //console.log(`Timed out.`);
+                    //console.log(r);
+
+                    if(r.type !== "basic"){
+                        r.sendFullServerResponse();
+                    }else{
+
+                        r.bSentMessage = true;
+                    }
+
+                    continue;
                 }
             }
 
@@ -68,6 +81,7 @@ class UT99Query{
 
 
         if(this.bAuto){
+
             this.startAutoQueryLoop();
         
             this.initServerPingLoop();
@@ -75,21 +89,59 @@ class UT99Query{
     }
 
 
+    deleteAllBasic(){
+
+        const potatoes = [];
+
+        let r = 0;
+
+        for(let i = 0; i < this.responses.length; i++){
+
+            r = this.responses[i];
+
+            if(r.type !== "basic"){
+
+                potatoes.push(r);
+            }
+        }
+
+        this.responses = potatoes;
+    }
+
+
     async pingAllServers(){
+
+       // return;
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
+        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
 
         try{
 
+            this.deleteAllBasic();
+
             const servers = await this.servers.getAllServers();
+            
+            //console.table(servers);
+
+            //this.getBasicServer('139.162.235.20', 7777);
 
             for(let i = 0; i < servers.length; i++){
         
-                setTimeout(() =>{
+                //setTimeout(() =>{
 
-                    const s = servers[i];
+                await this.getBasicServer(servers[i].ip, servers[i].port);
 
-                    this.getBasicServer(s.ip, s.port);
-
-                },500);                
+               // },500);                
             }
 
         }catch(err){
@@ -104,7 +156,7 @@ class UT99Query{
 
             if(messageId !== '-1'){
 
-                channel.messages.fetch(messageId).then((message) =>{
+                channel.messages.fetch(messageId).then(() =>{
 
                     this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
 
@@ -138,9 +190,9 @@ class UT99Query{
 
                 this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
 
+                    const servers = await this.servers.getAllServers();  
+                    
                     if(config.bAutoQueryMessagesOnly){
-
-                        const servers = await this.servers.getAllServers();  
 
                         const serverMessageIds = [];
                         
@@ -182,16 +234,14 @@ class UT99Query{
                                 });
                             }
                         }
-
-                        for(let i = 0; i < servers.length; i++){
-
-                            setTimeout(async () =>{
-                                await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
-                            }, 500);
-                            
-                            
-                        }
                     }  
+
+                    for(let i = 0; i < servers.length; i++){
+
+                        setTimeout(async () =>{
+                            await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
+                        }, 500);     
+                    }
                     
                 }).catch((err) =>{
                     console.trace(err);
@@ -210,11 +260,13 @@ class UT99Query{
 
     initServerPingLoop(){
 
-        this.pingAllServers();
+        //this.pingAllServers();
 
-        setInterval(() =>{
+        this.pingLoop = setInterval(async () =>{
 
-            this.pingAllServers();
+            //console.log("PING INTERVAL")
+            
+            await this.pingAllServers();
 
         }, config.serverInfoPingInterval * 1000);
     }
@@ -225,18 +277,30 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
+            //message = message.toString();
            // console.log(`*******************************************************`);
            // console.log(`${message}`);
            // console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
+            //BUFFER IS CAUSING THE MEMORY LEAK
+
+            //MOVE PARSING STUFF INSIDE THIS CLASS NOT SERVER RESPOSE
+
             if(matchingResponse !== null){
 
-                if(!matchingResponse.parsePacket(message)){
+          
 
-                    this.getMatchingResponse(rinfo.address, rinfo.port - 1, matchingResponse.timeStamp);
-                }
+                //matchingResponse.parsePacket(message);
+
+
+                this.parsePacket(message, matchingResponse);
+
+                //if(!matchingResponse.parsePacket(message)){
+
+                   // this.getMatchingResponse(rinfo.address, rinfo.port - 1, matchingResponse.timeStamp);
+                //}
 
             }else{
                 console.log("There is no matching data for this server");
@@ -257,6 +321,283 @@ class UT99Query{
             this.server.bind(config.udpPort);
         }else{
             this.server.bind(config.udpPortAuto);
+        }
+    }
+
+    async parsePacket(data, response){
+
+        try{
+
+            this.parseServerInfoData(data, response);
+
+            this.parseMapData(data, response);
+
+            if(response.type !== "basic"){
+
+                this.parseTeamData(data, response);
+                this.parseMutators(data, response);
+                this.parsePlayerData(data, response);
+            }
+
+            const finalReg = /\\final\\$/i;
+
+            if(finalReg.test(data)){
+
+                if(response.type == "full"){
+
+                    response.sendFullServerResponse();
+                    return true;
+
+                }else if(response.type == "basic"){
+
+                    response.bSentMessage = true;
+                   
+                    //data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port
+                    const potato = {
+                        "name": response.name,
+                        "currentPlayers": response.currentPlayers,
+                        "maxPlayers": response.maxPlayers,
+                        "gametype": response.gametype,
+                        "mapName": response.mapName,
+                        "ip": response.ip,
+                        "port": response.port
+                    };
+                    await this.servers.updateInfo(potato);
+                    
+                    return true;
+
+                }else if(response.type == "players"){
+
+                    response.sendPlayersResponse();
+                    return true;
+
+                }else if(response.type == "extended"){
+
+                    response.sendExtendedResponse();
+                    return true;
+                }
+            }
+
+            return false;
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+    parseServerInfoData(data, response){
+
+
+        const regs = [
+            /\\hostname\\(.+?)\\/i,
+            /\\gametype\\(.+?)\\/i,
+            /\\numplayers\\(\d+?)\\/i,
+            /\\maxplayers\\(\d+?)\\/i,
+            /\\maxteams\\(\d+?)\\/i,
+            /\\gamever\\(\d+?)\\/i,
+            /\\minnetver\\(\d+?)\\/i,
+            /\\timelimit\\(\d+?)\\/i,
+            /\\goalteamscore\\(\d+?)\\/i,
+            /\\fraglimit\\(\d+?)\\/i,
+            /\\mutators\\(.+?)\\/i,
+            /\\timelimit\\(.+?)\\/i,
+            /\\remainingtime\\(.+?)\\/i,
+            /\\protection\\(.+?)\\/i,
+            /\\listenserver\\(.+?)\\/i,
+            /\\changelevels\\(.+?)\\/i,
+            /\\balanceteams\\(.+?)\\/i,
+            /\\playersbalanceteams\\(.+?)\\/i,
+            /\\friendlyfire\\(.+?)\\/i,
+            /\\tournament\\(.+?)\\/i,
+            /\\gamestyle\\(.+?)\\/i,
+            /\\password\\(.+?)\\/i,
+            /\\adminname\\(.+?)\\/i,
+            /\\adminemail\\(.+?)\\/i,
+            /\\countrys\\(.+?)\\/i,
+        ];
+
+        const keys = [
+            "name",
+            "gametype",
+            "currentPlayers",
+            "maxPlayers",
+            "maxTeams",
+            "serverVersion",
+            "minClientVersion",
+            "timeLimit",
+            "goalscore",
+            "goalscore",
+            "mutators",
+            "timeLimit",
+            "remainingTime",
+            "protection",
+            "dedicated",
+            "changeLevels",
+            "balancedTeams",
+            "playersBalanceTeams",
+            "friendlyFire",
+            "tournament",
+            "gamestyle",
+            "password",
+            "adminName",
+            "adminEmail",
+            "country"
+
+        ];
+
+        let result = "";
+
+
+        const tOrF = [
+            "dedicated",
+            "changeLevels",
+            "balancedTeams",
+            "playersBalanceTeams",
+            "tournament",
+            "password",
+        ];
+
+        for(let i = 0; i < regs.length; i++){
+
+            if(regs[i].test(data)){
+
+                result = regs[i].exec(data);
+
+                if(tOrF.indexOf(keys[i]) == -1){
+
+                    response[keys[i]] = result[1];
+
+                }else{
+
+                    result[1] = result[1].toLowerCase();
+
+                    if(result[1] == "false"){
+                        response[keys[i]] = false;
+                    }else if(result[1] == "true"){
+                        response[keys[i]] = true;
+                    }             
+                }
+            }
+        }
+    }
+
+    parseMapData(data, response){
+        
+        const mapTitleReg = /\\maptitle\\(.+?)\\/i;
+        const mapNameReg = /\\mapname\\(.+?)\\/i;
+        
+        let result = mapTitleReg.exec(data);
+        if(result !== null) response.mapTitle = result[1];
+
+        result = mapNameReg.exec(data);
+        if(result !== null) response.mapName = result[1];
+        
+    }
+
+    parseTeamData(data, response){
+
+        const teamScoreReg = /\\score_(\d)\\(.+?)\\/ig;
+        const teamSizeReg = /\\size_(\d)\\(\d+?)\\/ig;
+
+        let result = "";
+        
+        while(result !== null){
+
+            result = teamScoreReg.exec(data);  
+            if(result !== null) response.teams[parseInt(result[1])].score = parseInt(result[2]);
+
+            result = teamSizeReg.exec(data);
+            if(result !== null) response.teams[parseInt(result[1])].size = parseInt(result[2]);
+        }
+    }
+
+    parseMutators(message, response){
+
+        const reg = /\\mutators\\(.+?)\\/i;
+
+        if(reg.test(message)){
+            
+            const result = reg.exec(message);
+
+            response.mutators = result[1].split(', ');
+
+        }     
+    }
+
+    parsePlayerData(data, response){
+
+        const nameReg = /\\player_(\d+?)\\(.+?)\\/ig;
+        const fragsReg = /\\frags_(\d+?)\\(.+?)\\/ig;
+        const teamReg = /\\team_(\d+?)\\(\d+?)\\/ig;
+        const meshReg = /\\mesh_(\d+?)\\(.*?)\\/ig;
+        const faceReg = /\\face_(\d+?)\\(.*?)\\/ig;
+        const countryReg = /\\countryc_(\d+?)\\(.*?)\\/ig;
+        const pingReg = /\\ping_(\d+?)\\(.*?)\\/ig;
+        const timeReg = /\\time_(\d+?)\\(.*?)\\/ig;
+        const deathsReg = /\\deaths_(\d+?)\\(.*?)\\/ig;
+        const healthReg = /\\health_(\d+?)\\(.*?)\\/ig;
+        const spreeReg = /\\spree_(\d+?)\\(.*?)\\/ig;
+
+        let result = "";
+        let currentMesh = "";
+
+        while(true){
+
+            currentMesh = "";
+
+            result = nameReg.exec(data);
+
+            if(result !== null){
+                response.updatePlayer(result[1], "name", result[2]);
+            
+            }else{
+                //console.table(this.players);
+                return;
+            }
+
+            result = teamReg.exec(data);
+            if(result !== null) response.updatePlayer(result[1], "team", result[2]);
+
+            result = meshReg.exec(data);
+
+           // console.log(result);
+            if(result !== null){
+                currentMesh = result[2].toLowerCase();
+                response.updatePlayer(result[1], "mesh", result[2]);
+            }
+
+            result = faceReg.exec(data);
+            if(result !== null) response.updatePlayer(result[1], "face", result[2]);
+
+
+            result = countryReg.exec(data);
+            if(result !== null) response.updatePlayer(result[1], "country", result[2]);
+
+
+            result = fragsReg.exec(data);
+
+            if(result !== null) response.updatePlayer(result[1], "frags", parseInt(result[2]));
+
+            result = pingReg.exec(data);
+
+            if(result !== null) response.updatePlayer(result[1], "ping", parseInt(result[2]));
+
+            result = timeReg.exec(data);
+
+            if(result !== null) response.updatePlayer(result[1], "time", parseInt(result[2]));
+
+            result = deathsReg.exec(data);
+
+            if(result !== null) response.updatePlayer(result[1], "deaths", parseInt(result[2]));
+
+            result = healthReg.exec(data);
+
+            if(result !== null) response.updatePlayer(result[1], "health", parseInt(result[2]));
+
+            result = spreeReg.exec(data);
+
+            if(result !== null) response.updatePlayer(result[1], "spree", parseInt(result[2]));
+            
         }
     }
 
@@ -331,33 +672,41 @@ class UT99Query{
 
     getBasicServer(ip, port){
 
-        try{
+        return new Promise((resolve, reject) =>{
 
             port = parseInt(port);
 
             if(port !== port){
-                throw new Error("port must be a valid integer.");
+                //console.trace("port must be a valid integer.");
+                reject("port must be a valid integer.");
+                //throw new Error("port must be a valid integer.");
             }
 
             port = port + 1;
 
-            dns.lookup(ip, (err, address, family) =>{
+            dns.lookup(ip, (err, address) =>{
 
-                if(err) console.trace(err);
+                if(err) reject(err);
 
-                this.responses.push(new ServerResponse(address, port, "basic", null));
+                //MEMORY LEAK
+                this.responses.push(new ServerResponse(address, port, "basic"));
+
+                //constructor(ip, port, type, discordMessage, bEdit, messageId)
 
                 this.server.send('\\info\\xserverquery\\', port, address, (err) =>{
 
                     if(err){
-                        console.log(err);
+                        reject(err);
                     }
+
+                    resolve();
                 });
             });
-            
-        }catch(err){
-            console.trace(err);
-        }
+
+        });
+       
+        
+
     }
 
     getPlayers(ip, port, message){

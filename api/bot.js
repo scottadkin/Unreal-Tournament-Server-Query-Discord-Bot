@@ -1,4 +1,3 @@
-const Promise = require('promise');
 const Discord = require('discord.js');
 const config = require('./config.json');
 const UT99Query = require('./ut99query.js');
@@ -65,6 +64,12 @@ class Bot{
     async checkCommand(message){
 
         try{
+
+            if(message.content == "test"){
+
+                this.query.pingAllServers();
+                return;
+            }
 
             if(message.content.startsWith(config.commandPrefix) && message.content.length > 1){
 

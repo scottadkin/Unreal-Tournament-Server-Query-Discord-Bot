@@ -4,15 +4,13 @@ const Discord = require('discord.js');
 const config = require('./config.json');
 const Servers = require('./servers');
 const Channels = require('./channels');
+//const Buffer = require('buffer');
 
 
 class ServerResponse{
 
     constructor(ip, port, type, discordMessage, bEdit, messageId){
 
-        //console.log(geoip.lookup(ip));
-        //this.geo = geoip.lookup(ip);
-        //console.log(this.geo);
         this.ip = ip;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
@@ -20,11 +18,32 @@ class ServerResponse{
         this.bReceivedFinal = false;
         this.bTimedOut = false;
         this.bSentMessage = false;
-        this.discordMessage = discordMessage;
+        this.discordMessage = 0;  
+
+        if(discordMessage !== undefined){
+
+            this.discordMessage = discordMessage;
+            this.channels = new Channels();
+
+            this.bEdit = false;
+            this.messageId = -1;
+
+            if(bEdit !== undefined){
+                this.bEdit = true;
+            }
+
+            if(messageId !== undefined){
+                this.messageId = messageId;
+            }
+        }
+
+        this.servers = new Servers();
+
 
         this.name = "Another UT Server";
         this.gametype = "Deathmatch";
-        this.map = "DM-MapName";
+       // this.map = "DM-MapName";
+        this.mapName = "DM-MapName";
         this.currentPlayers = 0;
         this.maxPlayers = 0;
         this.spectators = 0;
@@ -48,70 +67,6 @@ class ServerResponse{
             {"score": 0, "size": 0},
             {"score": 0, "size": 0}
         ];
-
-        this.servers = new Servers();
-        this.channels = new Channels();
-
-        this.bEdit = false;
-        this.messageId = -1;
-
-        if(bEdit !== undefined){
-            this.bEdit = true;
-        }
-
-        if(messageId !== undefined){
-            this.messageId = messageId;
-        }
-
-
-    }
-
-    async parsePacket(data){
-
-
-        try{
-
-            data = `${data}`;
-
-            this.parseServerInfoData(data);
-            this.parseMapData(data);
-            this.parseTeamData(data);
-            this.parseMutators(data);
-            this.parsePlayerData(data);
-            
-
-            const finalReg = /\\final\\$/i;
-
-            if(finalReg.test(data)){
-
-                if(this.type == "full"){
-
-                    this.sendFullServerResponse();
-                    return true;
-
-                }else if(this.type == "basic"){
-
-                    await this.servers.updateInfo(this);
-                    this.bSentMessage = true;
-                    return true;
-
-                }else if(this.type == "players"){
-
-                    this.sendPlayersResponse();
-                    return true;
-
-                }else if(this.type == "extended"){
-
-                    this.sendExtendedResponse();
-                    return true;
-                }
-            }
-
-            return false;
-
-        }catch(err){
-            console.trace(err);
-        }
 
     }
 
@@ -258,8 +213,6 @@ class ServerResponse{
         );
 
 
-        //console.table(fields);
-
         return fields;
     }
 
@@ -315,7 +268,7 @@ class ServerResponse{
 
         if(this.country != undefined){
 
-            if(this.country != ''){
+            if(this.country != '' && this.country.toLowerCase() !== 'none'){
                 country = `:flag_${this.country.toLowerCase()}: `;
             }
         }
@@ -396,7 +349,6 @@ class ServerResponse{
 
         if(!this.bEdit){
 
-           // console.log("NOT AN EDIT POST");
             this.discordMessage.send(embed).then(async (m) =>{
 
                 try{
@@ -409,8 +361,6 @@ class ServerResponse{
                             
                             this.servers.setLastMessageId(this.ip, this.port, m.id);
 
-                        }else{
-                            //console.log("posted in a normal channel");
                         }
                     }
 
@@ -418,8 +368,7 @@ class ServerResponse{
 
                 }catch(err){
                     console.trace(err);
-                }
-                
+                }    
             });
 
         }else{
@@ -427,8 +376,6 @@ class ServerResponse{
             this.discordMessage.messages.fetch(this.messageId).then((message) =>{
 
                 message.edit(embed).then(() =>{
-
-                   // console.log("Updated message");
 
                     this.bSentMessage = true;
 
@@ -440,140 +387,6 @@ class ServerResponse{
 
                 console.trace(err);
             });
-        }
-    }
-
-    parseServerInfoData(data){
-
-
-        const regs = [
-            /\\hostname\\(.+?)\\/i,
-            /\\gametype\\(.+?)\\/i,
-            /\\numplayers\\(\d+?)\\/i,
-            /\\maxplayers\\(\d+?)\\/i,
-            /\\maxteams\\(\d+?)\\/i,
-            /\\gamever\\(\d+?)\\/i,
-            /\\minnetver\\(\d+?)\\/i,
-            /\\timelimit\\(\d+?)\\/i,
-            /\\goalteamscore\\(\d+?)\\/i,
-            /\\fraglimit\\(\d+?)\\/i,
-            /\\mutators\\(.+?)\\/i,
-            /\\timelimit\\(.+?)\\/i,
-            /\\remainingtime\\(.+?)\\/i,
-            /\\protection\\(.+?)\\/i,
-            /\\listenserver\\(.+?)\\/i,
-            /\\changelevels\\(.+?)\\/i,
-            /\\balanceteams\\(.+?)\\/i,
-            /\\playersbalanceteams\\(.+?)\\/i,
-            /\\friendlyfire\\(.+?)\\/i,
-            /\\tournament\\(.+?)\\/i,
-            /\\gamestyle\\(.+?)\\/i,
-            /\\password\\(.+?)\\/i,
-            /\\adminname\\(.+?)\\/i,
-            /\\adminemail\\(.+?)\\/i,
-            /\\countrys\\(.+?)\\/i,
-        ];
-
-        const keys = [
-            "name",
-            "gametype",
-            "currentPlayers",
-            "maxPlayers",
-            "maxTeams",
-            "serverVersion",
-            "minClientVersion",
-            "timeLimit",
-            "goalscore",
-            "goalscore",
-            "mutators",
-            "timeLimit",
-            "remainingTime",
-            "protection",
-            "dedicated",
-            "changeLevels",
-            "balancedTeams",
-            "playersBalanceTeams",
-            "friendlyFire",
-            "tournament",
-            "gamestyle",
-            "password",
-            "adminName",
-            "adminEmail",
-            "country"
-
-        ];
-
-        let result = "";
-
-
-        const tOrF = [
-            "dedicated",
-            "changeLevels",
-            "balancedTeams",
-            "playersBalanceTeams",
-            "tournament",
-            "password",
-        ];
-
-        for(let i = 0; i < regs.length; i++){
-
-            if(regs[i].test(data)){
-
-                result = regs[i].exec(data);
-
-                if(tOrF.indexOf(keys[i]) == -1){
-
-                    this[keys[i]] = result[1];
-
-                }else{
-
-                    result[1] = result[1].toLowerCase();
-
-                    //if(keys[i] == "dedicated"){
-
-                        if(result[1] == "false"){
-                            this[keys[i]] = false;
-                        }else if(result[1] == "true"){
-                            this[keys[i]] = true;
-                        }
-                        
-                    //}
-                }
-
-            }
-        }
-    }
-
-
-    parseMapData(data){
-        
-        const mapTitleReg = /\\maptitle\\(.+?)\\/i;
-        const mapNameReg = /\\mapname\\(.+?)\\/i;
-        
-        let result = mapTitleReg.exec(data);
-        if(result !== null) this.mapTitle = result[1];
-
-        result = mapNameReg.exec(data);
-        if(result !== null) this.mapName = result[1];
-        
-
-    }
-
-
-    parseTeamData(data){
-
-        const teamScoreReg = /\\score_(\d)\\(.+?)\\/ig;
-        const teamSizeReg = /\\size_(\d)\\(\d+?)\\/ig;
-
-        let result = "";
-        
-        while(result !== null){
-
-            result = teamScoreReg.exec(data);  
-            if(result !== null) this.teams[parseInt(result[1])].score = parseInt(result[2]);
-
-            result = teamSizeReg.exec(data);
-            if(result !== null) this.teams[parseInt(result[1])].size = parseInt(result[2]);
         }
     }
 
@@ -605,85 +418,6 @@ class ServerResponse{
         );
     }
 
-    parsePlayerData(data){
-
-        const nameReg = /\\player_(\d+?)\\(.+?)\\/ig;
-        const fragsReg = /\\frags_(\d+?)\\(.+?)\\/ig;
-        const teamReg = /\\team_(\d+?)\\(\d+?)\\/ig;
-        const meshReg = /\\mesh_(\d+?)\\(.*?)\\/ig;
-        const faceReg = /\\face_(\d+?)\\(.*?)\\/ig;
-        const countryReg = /\\countryc_(\d+?)\\(.*?)\\/ig;
-        const pingReg = /\\ping_(\d+?)\\(.*?)\\/ig;
-        const timeReg = /\\time_(\d+?)\\(.*?)\\/ig;
-        const deathsReg = /\\deaths_(\d+?)\\(.*?)\\/ig;
-        const healthReg = /\\health_(\d+?)\\(.*?)\\/ig;
-        const spreeReg = /\\spree_(\d+?)\\(.*?)\\/ig;
-
-        let result = "";
-        let oldResult = "";
-
-        let currentMesh = "";
-
-        while(true){
-
-            currentMesh = "";
-
-            result = nameReg.exec(data);
-
-            if(result !== null){
-                this.updatePlayer(result[1], "name", result[2]);
-            
-            }else{
-                //console.table(this.players);
-                return;
-            }
-
-            result = teamReg.exec(data);
-            if(result !== null) this.updatePlayer(result[1], "team", result[2]);
-
-            result = meshReg.exec(data);
-
-           // console.log(result);
-            if(result !== null){
-                currentMesh = result[2].toLowerCase();
-                this.updatePlayer(result[1], "mesh", result[2]);
-            }
-
-            result = faceReg.exec(data);
-            if(result !== null) this.updatePlayer(result[1], "face", result[2]);
-
-
-            result = countryReg.exec(data);
-            if(result !== null) this.updatePlayer(result[1], "country", result[2]);
-
-
-            result = fragsReg.exec(data);
-
-            if(result !== null) this.updatePlayer(result[1], "frags", parseInt(result[2]));
-
-            result = pingReg.exec(data);
-
-            if(result !== null) this.updatePlayer(result[1], "ping", parseInt(result[2]));
-
-            result = timeReg.exec(data);
-
-            if(result !== null) this.updatePlayer(result[1], "time", parseInt(result[2]));
-
-            result = deathsReg.exec(data);
-
-            if(result !== null) this.updatePlayer(result[1], "deaths", parseInt(result[2]));
-
-            result = healthReg.exec(data);
-
-            if(result !== null) this.updatePlayer(result[1], "health", parseInt(result[2]));
-
-            result = spreeReg.exec(data);
-
-            if(result !== null) this.updatePlayer(result[1], "spree", parseInt(result[2]));
-            
-        }
-    }
-
     appendSpaces(value, targetLength){
 
         value = value.toString();
@@ -710,9 +444,8 @@ class ServerResponse{
         if(value === undefined){
             value = 0;
         }
-        value = value.toString();
 
-        //console.log(`Input = ${value}`);
+        value = value.toString();
 
         if(value.length > targetLength){
 
@@ -773,13 +506,9 @@ class ServerResponse{
 
     sendPlayersResponse(){
 
-        //this.discordMessage.send
-
         let string = `${this.getServerCountry()}**${this.name}**\n`;
 
         let p = 0;
-
-        //console.table(this.players);
 
         let playerNameLength = this.getMaxPlayerNameLength() + 1;
 
@@ -799,9 +528,6 @@ class ServerResponse{
         }
 
         this.sortPlayersByScore();
-        
-        let test = 0;
-
         
         let nameTitle = this.appendSpaces("Name", playerNameLength);
         let sexTitle = this.appendSpaces("Model", 7);
@@ -840,7 +566,6 @@ class ServerResponse{
 
         string += `:rainbow_flag: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
 
-        let teamIcon = 0;
         let name = "";
         let flag = "";
         let sex = "";
@@ -943,20 +668,6 @@ class ServerResponse{
 
         this.bSentMessage = true;
     }
-
-    parseMutators(message){
-
-        const reg = /\\mutators\\(.+?)\\/i;
-
-        if(reg.test(message)){
-            
-            const result = reg.exec(message);
-
-            this.mutators = result[1].split(', ');
-
-        }     
-    }
-
 
     getTrueFalseIcon(value){
 

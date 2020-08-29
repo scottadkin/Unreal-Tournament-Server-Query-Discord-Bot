@@ -276,117 +276,133 @@ class ServerResponse{
         return country;
     }
 
-    sendFullServerResponse(){
+    async sendFullServerResponse(){
 
-        if(this.type != "full"){
-            return;
-        }
-
-        if(this.bTimedOut){
-
-            if(!this.bEdit){
-                let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
-
-                if(this.ip === undefined){
-                    string = `:no_entry: That ip does not exist!`;
-                }
-
-                this.bSentMessage = true;
-                this.discordMessage.send(string);
+        try{
+            if(this.type != "full"){
                 return;
             }
-            
 
-            this.bSentMessage = true;
-            return;
-        }
+            if(this.bTimedOut){
 
-        this.sortPlayersByScore();
-
-        //console.table(this.players);
-
-        this.bReceivedFinal = true;
+                if(!this.bEdit){
 
 
-        let description = `
+                    const autoChannelId = await this.channels.getAutoQueryChannel();
+
+                    if(autoChannelId !== null){
+                        //stop bot posting timeouts in autochannel
+                        if(this.discordMessage.id === autoChannelId){
+                            this.bSentMessage = true;
+                            return;
+                        }
+                    }
+
+                    let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
+
+                    if(this.ip === undefined){
+                        string = `:no_entry: That ip does not exist!`;
+                    }
+
+                    this.bSentMessage = true;
+                    this.discordMessage.send(string);
+                    return;
+                }
+                
+
+                this.bSentMessage = true;
+                return;
+            }
+
+            this.sortPlayersByScore();
+
+            //console.table(this.players);
+
+            this.bReceivedFinal = true;
+
+
+            let description = `
 :wrestling: Players **${this.totalPlayers}/${this.maxPlayers}
 :pushpin: ${this.gametype}
 :map: ${this.mapName}**
 :goal: Target Score **${this.goalscore}**
-`;
+    `;
 
-        /*description = :stopwatch: Time Limit ${this.timeLimit} Minutes
-        :stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes*/
+            /*description = :stopwatch: Time Limit ${this.timeLimit} Minutes
+            :stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes*/
 
-        if(this.timeLimit !== undefined){
-            description += `:stopwatch: Time Limit **${this.timeLimit} Minutes**
-            `;
-        }
+            if(this.timeLimit !== undefined){
+                description += `:stopwatch: Time Limit **${this.timeLimit} Minutes**
+                `;
+            }
 
-        if(this.remainingTime !== undefined){
-            description += `:stopwatch: Time Remaining **${this.getMMSS(this.remainingTime)} Minutes**
-            `;
-        }
+            if(this.remainingTime !== undefined){
+                description += `:stopwatch: Time Remaining **${this.getMMSS(this.remainingTime)} Minutes**
+                `;
+            }
 
-        if(this.protection !== undefined){
-            description += `:shield: ${this.protection}`;
-        }
-       // console.table(this.players);
+            if(this.protection !== undefined){
+                description += `:shield: ${this.protection}`;
+            }
+        // console.table(this.players);
 
-        const country = this.getServerCountry();
+            const country = this.getServerCountry();
 
-        const fields = this.createPlayerFields();
+            const fields = this.createPlayerFields();
 
-        
-        const embed = new Discord.MessageEmbed()
-        .setTitle(`${country}${this.name}`)
-        .setColor(config.embedColor)
-        .setDescription(`${description}`)
-        .addFields(fields)
-        .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
-        .setTimestamp();
+            
+            const embed = new Discord.MessageEmbed()
+            .setTitle(`${country}${this.name}`)
+            .setColor(config.embedColor)
+            .setDescription(`${description}`)
+            .addFields(fields)
+            .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
+            .setTimestamp();
 
 
-        if(!this.bEdit){
+            if(!this.bEdit){
 
-            this.discordMessage.send(embed).then(async (m) =>{
+                this.discordMessage.send(embed).then(async (m) =>{
 
-                try{
+                    try{
 
-                    const autoQueryChannelId = await this.channels.getAutoQueryChannel();
+                        const autoQueryChannelId = await this.channels.getAutoQueryChannel();
 
-                    if(autoQueryChannelId !== null){
+                        if(autoQueryChannelId !== null){
 
-                        if(autoQueryChannelId === m.channel.id){
-                            
-                            this.servers.setLastMessageId(this.ip, this.port, m.id);
+                            if(autoQueryChannelId === m.channel.id){
+                                
+                                this.servers.setLastMessageId(this.ip, this.port, m.id);
 
+                            }
                         }
-                    }
 
-                    this.bSentMessage = true;
+                        this.bSentMessage = true;
 
-                }catch(err){
-                    console.trace(err);
-                }    
-            });
-
-        }else{
-
-            this.discordMessage.messages.fetch(this.messageId).then((message) =>{
-
-                message.edit(embed).then(() =>{
-
-                    this.bSentMessage = true;
-
-                }).catch((err) =>{
-                    console.trace(err);
+                    }catch(err){
+                        console.trace(err);
+                    }    
                 });
 
-            }).catch((err) =>{
+            }else{
 
-                console.trace(err);
-            });
+                this.discordMessage.messages.fetch(this.messageId).then((message) =>{
+
+                    message.edit(embed).then(() =>{
+
+                        this.bSentMessage = true;
+
+                    }).catch((err) =>{
+                        console.trace(err);
+                    });
+
+                }).catch((err) =>{
+
+                    console.trace(err);
+                });
+            }
+        }catch(err){
+            console.trace(err);
         }
     }
 

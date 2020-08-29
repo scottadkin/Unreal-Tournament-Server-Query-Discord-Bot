@@ -227,10 +227,12 @@ class UT99Query{
 
                                 await messages[i].delete().then(() =>{
 
-                                    console.log("Old message deleted");
+                                   // console.log("Old message deleted");
 
                                 }).catch((err) =>{
-                                    console.trace(err);
+                                    //console.trace(err);
+                                    //console.log(err);
+                                    console.log('Error deleting old message.');
                                 });
                             }
                         }

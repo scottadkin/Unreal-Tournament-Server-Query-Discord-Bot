@@ -18,7 +18,10 @@ class ServerResponse{
         this.bReceivedFinal = false;
         this.bTimedOut = false;
         this.bSentMessage = false;
-        this.discordMessage = 0;  
+        this.discordMessage = 0;
+        this.bUnreal = false; //Unreal instead of UT
+        this.bHaveUnrealBasic = false;
+        this.bHaveUnrealMutators = false;
 
         if(discordMessage !== undefined){
 
@@ -128,6 +131,8 @@ class ServerResponse{
 
         let currentFlag = "";
 
+        //console.table(this.players);
+
         for(let i = 0; i < this.players.length; i++){
 
             p = this.players[i];
@@ -135,19 +140,21 @@ class ServerResponse{
             currentFlag = this.getFlag(p.country);
 
             if(!bSpectator){
+                
+                if(p.mesh.toLowerCase() != "spectator"){
+                    if(team == -99){
 
-                if(team == -99){
-
-                    if(p.frags !== undefined){
-                        string += `${currentFlag} ${p.name} **${p.frags}**\n`;
-                    }
-
-                }else{
-
-                    if(parseInt(p.team) == team){
-
-                        if(p.mesh.toLowerCase() != "spectator"){
+                        if(p.frags !== undefined){
                             string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+                        }
+
+                    }else{
+
+                        if(parseInt(p.team) == team){
+
+                            //if(p.mesh.toLowerCase() != "spectator"){
+                                string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+                           // }
                         }
                     }
                 }
@@ -324,9 +331,11 @@ class ServerResponse{
             let description = `
 :wrestling: Players **${this.totalPlayers}/${this.maxPlayers}
 :pushpin: ${this.gametype}
-:map: ${this.mapName}**
-:goal: Target Score **${this.goalscore}**
-    `;
+:map: ${this.mapName}**\n`;
+            
+            if(!this.bUnreal){
+                description += `:goal: Target Score **${this.goalscore}**\n`;
+            }
 
             /*description = :stopwatch: Time Limit ${this.timeLimit} Minutes
             :stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes*/
@@ -687,6 +696,8 @@ class ServerResponse{
 
     getTrueFalseIcon(value){
 
+        if(value === undefined) return;
+
         value = value.toString().toUpperCase();
 
         if(value == 'TRUE'){
@@ -701,6 +712,10 @@ class ServerResponse{
 
     sendExtendedResponse(){
 
+        if(this.bUnreal){
+            this.sendUnrealExtendedResponse();
+            return;
+        }
 
         let string = `${this.getServerCountry()}**${this.name}**\n`;
 
@@ -755,6 +770,89 @@ class ServerResponse{
         this.bSentMessage = true;
     }
 
+
+    sendUnrealExtendedResponse(){
+
+        let string = `${this.getServerCountry()}**${this.name}**\n`;
+
+        const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
+
+        this.password = this.getTrueFalseIcon(this.password);
+        this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
+        this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
+        
+
+        this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
+
+        this.tournament = this.getTrueFalseIcon(this.tournament);
+
+        string += `**Address:** ${this.ip}:${this.port}\n`;
+        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName}\n`;
+        string += `**Gametype:** ${this.gametype} `;
+        string += `**Map:** ${this.mapName} `;
+        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
+        
+
+        let m = 0;
+
+        //console.table(this.mutators);
+
+        string += `**Mutators: **`;
+
+        if(this.mutators.length == 0){
+            string += `None publicly listed.`;
+        }
+
+        for(let i = 0; i < this.mutators.length; i++){
+
+            m = this.mutators[i];
+
+            string += `${m}`;
+
+            if(i < this.mutators.length - 1){
+                string += ', ';
+            }else{
+                string += '.';
+            }
+
+        }
+
+
+        this.discordMessage.send(string);
+
+        this.bSentMessage = true;
+    }
+
+
+    //used to check unreal player count
+    getCurrentPlayers(){
+
+        let total = 0;
+
+        let p = 0;
+
+        for(let i = 0; i < this.players.length; i++){
+
+            p = this.players[i];
+
+            if(p.mesh.toLowerCase() !== 'spectator'){
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    bFetchedAllPlayers(){
+
+        const totalPlayers = this.getCurrentPlayers();
+
+        if(parseInt(this.currentPlayers) <= totalPlayers){
+            return true;
+        }
+
+        return false;
+    }
 }
 
 module.exports = ServerResponse;

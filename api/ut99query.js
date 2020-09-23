@@ -56,9 +56,6 @@ class UT99Query{
                     r.bReceivedFinal = true;
                     r.bTimedOut = true;
 
-                    //console.log(`Timed out.`);
-                    //console.log(r);
-
                     if(r.type !== "basic"){
                         r.sendFullServerResponse();
                     }else{
@@ -111,37 +108,16 @@ class UT99Query{
 
     async pingAllServers(){
 
-       // return;
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-        //MEMORY LEAK HERHEHREHRHEHREHRHEHREHRHEHREHER
-
         try{
 
             this.deleteAllBasic();
 
             const servers = await this.servers.getAllServers();
             
-            //console.table(servers);
-
-            //this.getBasicServer('139.162.235.20', 7777);
-
             for(let i = 0; i < servers.length; i++){
-        
-                //setTimeout(() =>{
 
                 await this.getBasicServer(servers[i].ip, servers[i].port);
-
-               // },500);                
+              
             }
 
         }catch(err){
@@ -231,7 +207,6 @@ class UT99Query{
 
                                 }).catch((err) =>{
                                     //console.trace(err);
-                                    //console.log(err);
                                     console.log('Error deleting old message.');
                                 });
                             }
@@ -280,29 +255,18 @@ class UT99Query{
         this.server.on('message', (message, rinfo) =>{
 
             //message = message.toString();
-           // console.log(`*******************************************************`);
-           // console.log(`${message}`);
-           // console.log(`-------------------------------------------------------`);
+            //console.log(`*******************************************************`);
+            //console.log(`${message}`);
+            //console.log(`-------------------------------------------------------`);
 
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
             //BUFFER IS CAUSING THE MEMORY LEAK
 
             //MOVE PARSING STUFF INSIDE THIS CLASS NOT SERVER RESPOSE
-
             if(matchingResponse !== null){
 
-          
-
-                //matchingResponse.parsePacket(message);
-
-
                 this.parsePacket(message, matchingResponse);
-
-                //if(!matchingResponse.parsePacket(message)){
-
-                   // this.getMatchingResponse(rinfo.address, rinfo.port - 1, matchingResponse.timeStamp);
-                //}
 
             }else{
                 console.log("There is no matching data for this server");
@@ -330,6 +294,19 @@ class UT99Query{
 
         try{
 
+            const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
+
+            if(unrealCheckReg.test(data)){
+
+                const typeResult = unrealCheckReg.exec(data);
+
+                if(typeResult[1].toLowerCase() === 'mapfilename'){
+                    response.bHaveUnrealMutators = true;
+                }
+                
+                response.bUnreal = true;
+            }
+
             this.parseServerInfoData(data, response);
 
             this.parseMapData(data, response);
@@ -342,6 +319,51 @@ class UT99Query{
             }
 
             const finalReg = /\\final\\$/i;
+
+            //unreal queries don;t end with /final/ so we have to do different checks
+            if(response.bUnreal){
+
+                if(response.type === 'basic'){
+
+                   // response.bHaveUnrealBasic = true;
+                    response.bSentMessage = true;
+
+                    const potato = {
+                        "name": response.name,
+                        "currentPlayers": response.currentPlayers,
+                        "maxPlayers": response.maxPlayers,
+                        "gametype": response.gametype,
+                        "mapName": response.mapName,
+                        "ip": response.ip,
+                        "port": response.port
+                    };
+
+                    await this.servers.updateInfo(potato);
+                    
+                    return;
+
+                }else if(response.type === 'players'){
+
+                   // console.log(response);
+
+                    if(response.bFetchedAllPlayers()){
+                        response.sendPlayersResponse();
+                    }
+
+                    return;
+
+                }else if(response.type === 'extended' && response.bHaveUnrealMutators){
+                    
+                    response.sendExtendedResponse();
+
+                    return;
+
+                }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
+                    response.sendFullServerResponse();
+                    return;
+                }
+
+            }
 
             if(finalReg.test(data)){
 
@@ -364,6 +386,7 @@ class UT99Query{
                         "ip": response.ip,
                         "port": response.port
                     };
+
                     await this.servers.updateInfo(potato);
                     
                     return true;
@@ -396,8 +419,9 @@ class UT99Query{
             /\\numplayers\\(\d+?)\\/i,
             /\\maxplayers\\(\d+?)\\/i,
             /\\maxteams\\(\d+?)\\/i,
-            /\\gamever\\(\d+?)\\/i,
-            /\\minnetver\\(\d+?)\\/i,
+            /\\gamever\\(.+?)\\/i,
+            /\\minnetver\\(.+?)\\/i,
+            /\\mingamever\\(.+?)\\/i,
             /\\timelimit\\(\d+?)\\/i,
             /\\goalteamscore\\(\d+?)\\/i,
             /\\fraglimit\\(\d+?)\\/i,
@@ -426,6 +450,7 @@ class UT99Query{
             "maxTeams",
             "serverVersion",
             "minClientVersion",
+            "minClientVersion",
             "timeLimit",
             "goalscore",
             "goalscore",
@@ -443,8 +468,9 @@ class UT99Query{
             "password",
             "adminName",
             "adminEmail",
-            "country"
+            "country",
 
+            "shortname"
         ];
 
         let result = "";
@@ -515,15 +541,35 @@ class UT99Query{
 
     parseMutators(message, response){
 
-        const reg = /\\mutators\\(.+?)\\/i;
 
-        if(reg.test(message)){
-            
-            const result = reg.exec(message);
+        if(!response.bUnreal){
 
-            response.mutators = result[1].split(', ');
+            const reg = /\\mutators\\(.+?)\\/i;
 
-        }     
+            if(reg.test(message)){
+                
+                const result = reg.exec(message);
+
+                response.mutators = result[1].split(', ');
+            }     
+
+        }else{
+
+            const uReg = /\\mutator\\(.+?)\\/ig;
+
+            let result = '';
+
+            while(result !== null){
+
+                result = uReg.exec(message);
+
+                if(result !== null){
+
+                    response.mutators.push(result[1]);
+                }
+            }
+
+        }
     }
 
     parsePlayerData(data, response){

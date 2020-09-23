@@ -1,6 +1,7 @@
 # Unreal Tournament Server Query Discord Bot
-A discord bot that communicates with Unreal Tournament servers and displays their responses into a text channel.
+A discord bot that communicates with Unreal Tournament, and Unreal servers and displays their responses into a text channel.
 
+# Unreal support added on the 23rd September 2020
 
 # Requirments
 - Node.js Version 12 or later
@@ -45,6 +46,7 @@ A discord bot that communicates with Unreal Tournament servers and displays thei
 - **.stopauto** Disables autoquery channel from updating.
 - **.editserver id type value** Edit selected server's value type. Types:(alias,ip,country,port)
 
+
 # Config
 ```javascript
 {
@@ -72,3 +74,4 @@ A discord bot that communicates with Unreal Tournament servers and displays thei
 ![alt text](https://i.imgur.com/vQ5jNMw.png "test")
 
 ![alt text](https://i.imgur.com/od3eEHf.png "test")
+

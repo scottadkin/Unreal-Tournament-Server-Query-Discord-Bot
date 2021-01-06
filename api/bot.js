@@ -136,11 +136,11 @@ class Bot{
 
                 }else if(listReg.test(message.content)){
 
-                    this.servers.listServers(message);
+                    this.servers.listServers(Discord, message);
 
                 }else if(activeReg.test(message.content)){
 
-                    this.servers.listServers(message, true);
+                    this.servers.listServers(Discord, message, true);
 
                 }else if(ipReg.test(message.content)){
 
@@ -324,7 +324,7 @@ class Bot{
 
         }else if(m.startsWith(commands[8])){
 
-            this.channels.enableAutoQuery(message, this.servers);
+            this.channels.enableAutoQuery(message, this.servers, Discord);
 
             return true;
 

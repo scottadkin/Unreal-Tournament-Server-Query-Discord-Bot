@@ -1,9 +1,9 @@
-const Discord = require('discord.js');
+//const Discord = require('discord.js');
 //const geoip = require('geoip-lite');
 //const countryList = require('country-list');
 //const config = require('./config.json');
-const Servers = require('./servers');
-const Channels = require('./channels');
+//const Servers = require('./servers');
+//const Channels = require('./channels');
 //const Buffer = require('buffer');
 
 
@@ -26,7 +26,7 @@ class ServerResponse{
         if(discordMessage !== undefined){
 
             this.discordMessage = discordMessage;
-            this.channels = new Channels();
+            //this.channels = new Channels();
 
             this.bEdit = false;
             this.messageId = -1;
@@ -40,7 +40,7 @@ class ServerResponse{
             }
         }
 
-        this.servers = new Servers();
+        //this.servers = new Servers();
 
 
         this.name = "Another UT Server";
@@ -283,7 +283,7 @@ class ServerResponse{
         return country;
     }
 
-    async sendFullServerResponse(embedColor){
+    async sendFullServerResponse(channels, servers,embedColor, Discord){
 
         try{
             if(this.type != "full"){
@@ -295,7 +295,7 @@ class ServerResponse{
                 if(!this.bEdit){
 
 
-                    const autoChannelId = await this.channels.getAutoQueryChannel();
+                    const autoChannelId = await channels.getAutoQueryChannel();
 
                     if(autoChannelId !== null){
                         //stop bot posting timeouts in autochannel
@@ -381,7 +381,7 @@ class ServerResponse{
 
                             if(autoQueryChannelId === m.channel.id){
                                 
-                                this.servers.setLastMessageId(this.ip, this.port, m.id);
+                                servers.setLastMessageId(this.ip, this.port, m.id);
 
                             }
                         }

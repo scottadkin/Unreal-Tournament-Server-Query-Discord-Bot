@@ -1,7 +1,7 @@
 const config = require('./config.json');
 const Database = require('./db');
 const dns = require('dns');
-const Discord = require('discord.js');
+//const Discord = require('discord.js');
 const Channels = require('./channels');
 
 class Servers{
@@ -414,7 +414,7 @@ class Servers{
     }
 
 
-    async listServers(message, bOnlyActive){
+    async listServers(Discord, message, bOnlyActive){
 
         try{
 

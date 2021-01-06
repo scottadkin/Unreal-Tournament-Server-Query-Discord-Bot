@@ -6,6 +6,7 @@ const dns = require('dns');
 const Servers = require('./servers');
 const Channels = require('./channels');
 const Database = require('./db');
+const Discord = require('discord.js');
 
 
 
@@ -57,7 +58,7 @@ class UT99Query{
                     r.bTimedOut = true;
 
                     if(r.type !== "basic"){
-                        r.sendFullServerResponse(config.embedColor);
+                        r.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
                     }else{
 
                         r.bSentMessage = true;
@@ -372,7 +373,7 @@ class UT99Query{
                     return;
 
                 }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
-                    response.sendFullServerResponse(config.embedColor);
+                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
                     return;
                 }
 
@@ -382,7 +383,7 @@ class UT99Query{
 
                 if(response.type == "full"){
 
-                    response.sendFullServerResponse(config.embedColor);
+                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
                     return true;
 
                 }else if(response.type == "basic"){

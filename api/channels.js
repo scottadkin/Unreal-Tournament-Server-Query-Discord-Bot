@@ -1,6 +1,6 @@
 const config = require('./config.json');
 const Database = require('./db');
-const Discord = require('discord.js');
+
 class Channels{
 
     constructor(){
@@ -284,7 +284,7 @@ class Channels{
         });
     }
 
-    async enableAutoQuery(message, servers){
+    async enableAutoQuery(message, servers, Discord){
 
         try{
 

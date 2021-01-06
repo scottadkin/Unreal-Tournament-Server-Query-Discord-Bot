@@ -116,7 +116,7 @@ class Servers{
 
     insertServer(ip, realIp, alias, port){
 
-        console.log(`${ip}, ${realIp}, ${alias}, ${port}`);
+        //console.log(`${ip}, ${realIp}, ${alias}, ${port}`);
 
         return new Promise((resolve, reject) =>{
 
@@ -419,28 +419,43 @@ class Servers{
         try{
 
             const servers = await this.getAllServers();
+            
+            const maxPerBlock = config.maxServersPerBlock;
 
             let string = "";
 
             let s = 0;
 
+           // let currentBlock = '';
+            let currentBlockSize = 0;
+            const serverBlocks = [];
+
             for(let i = 0; i < servers.length; i++){
 
                 s = servers[i];
 
+                if(currentBlockSize >= maxPerBlock){
+                    serverBlocks.push(string);
+                    currentBlockSize = 0;
+                    string = '';
+                }
+
                 if(bOnlyActive === undefined){
+                    currentBlockSize++;
                     string += this.createServerString(i + 1, s)+"\n";
                 }else{
 
                     if(s.players > 0){
+                        currentBlockSize++;
                         string += this.createServerString(i + 1, s)+"\n";
                     }
                 }
+                
             }
 
             
 
-            const embed = new Discord.MessageEmbed();
+            let embed = new Discord.MessageEmbed();
 
             let title = "Unreal Tournament Server List";
 
@@ -448,30 +463,56 @@ class Servers{
 
                 title = "Active Unreal Tournament Server List";
 
-                if(string == ""){
+                if(string == "" && serverBlocks.length === 0){
                     string = "There are currently no active servers.";
                 }
 
             }else{
 
-                if(string == ""){
+                if(string == "" && serverBlocks.length === 0){
                     string = "There are currently no servers added.";
                 }
             }
 
+            if(string !== ''){
+                serverBlocks.push(string);
+            }
+
+           // console.log(serverBlocks);
+
             embed.setColor(config.embedColor)
             .setTitle(title)
-            .addField(this.createServerString("ID", {
-                "alias": "Alias",
-                "players": "Play",
-                "max_players": "ers",
-                "map": "Map"
 
-            }), string ,false)
-            .addField("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false)
-            .setTimestamp();
+            if(servers.length > 0){
+                embed.addField(this.createServerString("ID", {
+                    "alias": "Alias",
+                    "players": "Play",
+                    "max_players": "ers",
+                    "map": "Map"
+
+                }), serverBlocks[0] ,false);
+            }else{
+                embed.addField(serverBlocks[0], '\u200B',false);
+            }
+
+            if(serverBlocks.length == 1){
+                embed.addField("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);
+            }
             
-            message.channel.send(embed);
+            await message.channel.send(embed);
+
+            for(let i = 1; i < serverBlocks.length; i++){
+
+                embed = new Discord.MessageEmbed()
+                .setColor(config.embedColor)
+                .setDescription(serverBlocks[i]);
+
+                if(i === serverBlocks.length - 1){
+                    embed.addField("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);
+                }
+
+                await message.channel.send(embed);
+            }
 
         }catch(err){
             console.trace(err);
@@ -489,7 +530,7 @@ class Servers{
 
                 if(err) reject(err);
 
-                console.log(`Set message_id = ${id} WHERE address is ${ip}:${port}`);
+               // console.log(`Set message_id = ${id} WHERE address is ${ip}:${port}`);
                 resolve();
             });
         });

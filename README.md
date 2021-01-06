@@ -1,6 +1,12 @@
 # Unreal Tournament Server Query Discord Bot
 A discord bot that communicates with Unreal Tournament, and Unreal servers and displays their responses into a text channel.
 
+
+# Update 6th January 2021
+- Fixed .servers and .active not displaying anything if server list is large and exceeds 1024 characters, now the bot splits the messages into blocks to get around the limit.
+- Enabled Discord cache management to reduce RAM usage.
+- Server ping info starts straight away instead of waiting for first tick.
+
 # Unreal support added on the 23rd September 2020
 
 # Requirments

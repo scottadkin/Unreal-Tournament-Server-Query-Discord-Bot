@@ -140,7 +140,7 @@ class UT99Query{
 
                 }).catch((err) =>{
                     
-                    console.log(`Message has been deleted ${err}`);
+                   // console.log(`Message has been deleted ${err}`);
                     
                     this.getFullServer(serverInfo.ip, serverInfo.port, channel);
 
@@ -150,7 +150,7 @@ class UT99Query{
             }else{
 
                 this.getFullServer(serverInfo.ip, serverInfo.port, channel);
-                console.log("Message doesn't exist");
+               // console.log("Message doesn't exist");
             }
 
         });
@@ -235,17 +235,30 @@ class UT99Query{
     }
 
 
-    initServerPingLoop(){
+    async initServerPingLoop(){
 
         //this.pingAllServers();
+        try{
+
+            await this.pingAllServers();
+
+        }catch(err){
+            console.trace(err);
+        }
 
         this.pingLoop = setInterval(async () =>{
 
             //console.log("PING INTERVAL")
             
-            await this.pingAllServers();
+            try{
+                await this.pingAllServers();
+            }catch(err){
+                console.trace(err);
+            }
 
         }, config.serverInfoPingInterval * 1000);
+
+
     }
 
     createClient(){

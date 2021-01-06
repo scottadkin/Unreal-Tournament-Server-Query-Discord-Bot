@@ -32,7 +32,13 @@ class Bot{
 
     createClient(){
 
-        this.client = new Discord.Client();
+        this.client = new Discord.Client({
+            messageCacheMaxSize: 10,
+            messageCacheLifetime: 30,
+            messageSweepInterval: 30,
+            messageEditHistoryMaxSize: 0
+
+        });
 
         this.client.on('ready', () =>{
 
@@ -601,7 +607,7 @@ class Bot{
                         
                     }
 
-                    console.log(result);
+                    //console.log(result);
 
                     if(this.validEdits.indexOf(editType) !== -1){
 

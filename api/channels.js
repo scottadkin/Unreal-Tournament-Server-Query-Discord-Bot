@@ -1,6 +1,6 @@
 const config = require('./config.json');
 const Database = require('./db');
-
+const Discord = require('discord.js');
 class Channels{
 
     constructor(){
@@ -295,21 +295,40 @@ class Channels{
             console.log("Reset all servers last_message ids");
 
             await this.setAutoChannel(message);
-            let string = `:bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell:\n
-:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
+            let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
 The server status posts will be updated every **${config.autoQueryInterval} seconds.**`;
 
-            if(config.bAutoQueryMessagesOnly){
+            /*if(config.bAutoQueryMessagesOnly){
                 string += `\n:warning: **Posts that are not posted by the bot will be deleted.** :warning:`;
-            }
+            }*/
 
-            string += `\n\n:bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell::bell:`;
-
-            message.channel.send(string).then((message) =>{
+            await message.channel.send(string).then((message) =>{
 
                 this.setAutoQueryMessageInfoId(message.id);
 
             })
+
+            const currentServers = await servers.getAllServers();
+
+            let currentMessage = 0;
+
+            let embed = 0;
+
+            for(let i = 0; i < currentServers.length; i++){
+
+                embed = new Discord.MessageEmbed()
+                .setColor(config.embedColor)
+                .setDescription(`Waiting for data for server **${currentServers[i].name}** id (${i+1})`);
+
+                await message.channel.send(embed).then((message) =>{
+          
+                    currentMessage = message;
+                });
+
+                await servers.setLastMessageId(currentServers[i].real_ip, currentServers[i].port, currentMessage.id);
+               // console.log(currentMessage.id);
+            }
+
 
         }catch(err){
             console.trace(err);

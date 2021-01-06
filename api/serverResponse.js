@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 //const geoip = require('geoip-lite');
 //const countryList = require('country-list');
-const config = require('./config.json');
+//const config = require('./config.json');
 const Servers = require('./servers');
 const Channels = require('./channels');
 //const Buffer = require('buffer');
@@ -283,7 +283,7 @@ class ServerResponse{
         return country;
     }
 
-    async sendFullServerResponse(){
+    async sendFullServerResponse(embedColor){
 
         try{
             if(this.type != "full"){
@@ -362,7 +362,7 @@ class ServerResponse{
             
             const embed = new Discord.MessageEmbed()
             .setTitle(`${country}${this.name}`)
-            .setColor(config.embedColor)
+            .setColor(embedColor)
             .setDescription(`${description}`)
             .addFields(fields)
             .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)

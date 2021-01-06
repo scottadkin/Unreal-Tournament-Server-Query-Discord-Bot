@@ -6,6 +6,7 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - Fixed .servers and .active not displaying anything if server list is large and exceeds 1024 characters, now the bot splits the messages into blocks to get around the limit.
 - Enabled Discord cache management to reduce RAM usage.
 - Server ping info starts straight away instead of waiting for first tick.
+- Bot no longer deletes non bot messages in the auto query channel.
 
 # Unreal support added on the 23rd September 2020
 

@@ -57,7 +57,7 @@ class UT99Query{
                     r.bTimedOut = true;
 
                     if(r.type !== "basic"){
-                        r.sendFullServerResponse();
+                        r.sendFullServerResponse(config.embedColor);
                     }else{
 
                         r.bSentMessage = true;
@@ -168,7 +168,7 @@ class UT99Query{
 
                     const servers = await this.servers.getAllServers();  
                     
-                    if(config.bAutoQueryMessagesOnly){
+                    /*if(config.bAutoQueryMessagesOnly){
 
                         const serverMessageIds = [];
                         
@@ -211,13 +211,13 @@ class UT99Query{
                                 });
                             }
                         }
-                    }  
+                    }  */
 
                     for(let i = 0; i < servers.length; i++){
 
-                        setTimeout(async () =>{
+                        //setTimeout(async () =>{
                             await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
-                        }, 500);     
+                       // }, 500);     
                     }
                     
                 }).catch((err) =>{
@@ -282,7 +282,7 @@ class UT99Query{
                 this.parsePacket(message, matchingResponse);
 
             }else{
-                console.log("There is no matching data for this server");
+                //console.log("There is no matching data for this server");
             }
 
         });
@@ -372,7 +372,7 @@ class UT99Query{
                     return;
 
                 }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
-                    response.sendFullServerResponse();
+                    response.sendFullServerResponse(config.embedColor);
                     return;
                 }
 
@@ -382,7 +382,7 @@ class UT99Query{
 
                 if(response.type == "full"){
 
-                    response.sendFullServerResponse();
+                    response.sendFullServerResponse(config.embedColor);
                     return true;
 
                 }else if(response.type == "basic"){

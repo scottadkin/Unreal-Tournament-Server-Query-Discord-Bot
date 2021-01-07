@@ -7,10 +7,11 @@
     "databaseFile": "./db/data.db",
     "serverTimeout": 2,
     "embedColor": "#ff0000",
-    "serverInfoPingInterval": 15,
+    "serverInfoPingInterval": 20,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",
     "autoQueryInterval": 30,
     "bAutoQueryMessagesOnly": true,
-    "bDisplayNotEnabledMessage": true
+    "bDisplayNotEnabledMessage": true,
+    "maxServersPerBlock": 10
 }

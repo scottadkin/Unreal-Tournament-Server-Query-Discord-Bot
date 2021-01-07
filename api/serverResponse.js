@@ -375,7 +375,7 @@ class ServerResponse{
 
                     try{
 
-                        const autoQueryChannelId = await this.channels.getAutoQueryChannel();
+                        const autoQueryChannelId = await channels.getAutoQueryChannel();
 
                         if(autoQueryChannelId !== null){
 

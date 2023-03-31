@@ -1,4 +1,4 @@
-const config = require('./config.json');
+const config = require('../config/config.json');
 const Database = require('./db');
 
 class Channels{
@@ -33,13 +33,13 @@ class Channels{
 
     bChannelExist(message, channelId){
 
-        const channels = message.guild.channels.cache.array();
+        const channels = message.guild.channels.cache;
 
         let c = 0;
 
-        for(let i = 0; i < channels.length; i++){
+        for(let i = 0; i < channels.size; i++){
 
-            c = channels[i];
+            c = channels.at(i);
 
             if(c.id == channelId){
                 return true;
@@ -95,7 +95,7 @@ class Channels{
 
         try{
 
-            if(!this.bChannelExist(message, message.channel.id)){
+            if(!this.bChannelExist(message, message.channelId)){
 
                 message.channel.send(`${config.failIcon} There is no channel called **${message.channel.name}** in this server.`);
 
@@ -316,11 +316,11 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
 
             for(let i = 0; i < currentServers.length; i++){
 
-                embed = new Discord.MessageEmbed()
-                .setColor(config.embedColor)
-                .setDescription(`Waiting for data for server **${currentServers[i].name}** id (${i+1})`);
+                embed = new Discord.EmbedBuilder()
+                    .setColor(config.embedColor)
+                    .setDescription(`Waiting for data for server **${currentServers[i].name}** id (${i+1})`);
 
-                await message.channel.send(embed).then((message) =>{
+                await message.channel.send({ embeds: [embed] }).then((message) =>{
           
                     currentMessage = message;
                 });

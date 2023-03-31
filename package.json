@@ -18,10 +18,10 @@
   "author": "Scott Adkin",
   "license": "ISC",
   "dependencies": {
-    "country-list": "^2.2.0",
-    "discord.js": "^12.5.1",
-    "geoip-lite": "^1.4.2",
-    "promise": "^8.1.0",
-    "sqlite3": "^5.0.0"
+    "country-list": "^2.3.0",
+    "discord.js": "^14.8.0",
+    "geoip-lite": "^1.4.7",
+    "promise": "^8.3.0",
+    "sqlite3": "^5.1.6"
   }
 }

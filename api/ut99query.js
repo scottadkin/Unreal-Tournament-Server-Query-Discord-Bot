@@ -1,4 +1,4 @@
-const config = require('./config.json');
+const config = require('../config/config.json');
 const Promise = require('promise');
 const dgram = require('dgram');
 const ServerResponse = require('./serverResponse');
@@ -7,8 +7,6 @@ const Servers = require('./servers');
 const Channels = require('./channels');
 const Database = require('./db');
 const Discord = require('discord.js');
-
-
 
 class UT99Query{
 
@@ -289,7 +287,8 @@ class UT99Query{
         });
 
         this.server.on('listening', () =>{
-            console.log("Query port listening");
+            const address = this.server.address();
+            console.log(`${this.bAuto ? "[Auto] ": ""}QueryPort listening on ${address.port}`);
         });
 
         this.server.on('error', (err) =>{

@@ -141,11 +141,11 @@ class ServerResponse{
 
             if(!bSpectator){
                 
-                if(p.mesh.toLowerCase() != "spectator"){
+                if(p.mesh?.toLowerCase() != "spectator"){
                     if(team == -99){
 
                         if(p.frags !== undefined){
-                            string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+                            string += `${currentFlag} ${this.sanitizeName(p.name)} **${p.frags}**\n`;
                         }
 
                     }else{
@@ -153,7 +153,7 @@ class ServerResponse{
                         if(parseInt(p.team) == team){
 
                             //if(p.mesh.toLowerCase() != "spectator"){
-                                string += `${currentFlag} ${p.name} **${p.frags}**\n`;
+                                string += `${currentFlag} ${this.sanitizeName(p.name)} **${p.frags}**\n`;
                            // }
                         }
                     }
@@ -161,16 +161,16 @@ class ServerResponse{
 
             }else if(bSpectator){
                     
-                if(p.mesh.toLowerCase() == "spectator" || p.frags === undefined){
+                if(p.mesh?.toLowerCase() == "spectator" || p.frags === undefined){
 
                     if(string != ""){
                         string += ", ";
                     }
 
                     if(currentFlag == ":video_game:"){
-                        currentFlag = ":eyes:";
+                       currentFlag = ":eyes:";
                     }
-                    string += `${currentFlag} ${p.name}`;
+                    string += `${currentFlag} ${this.sanitizeName(p.name)}`;
                 }
             }
         }
@@ -184,6 +184,10 @@ class ServerResponse{
         }
 
         return string;
+    }
+
+    sanitizeName(name) {
+        return name.replaceAll(":", "\\:").replaceAll("*", "\\*").replaceAll("__", "\\_\\_");
     }
 
     createPlayerFields(){
@@ -203,21 +207,24 @@ class ServerResponse{
         if(this.maxTeams === this.maxTeams){
 
             for(let i = 0; i < this.maxTeams; i++){
-
-                fields.push(
-                    {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
-                );
+                if(this.totalPlayers > 0) {
+                 fields.push(
+                      {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
+                   );
+                }
+                else{}
             }
 
         }else{
             fields.push(
-                {"name": ":wrestling: Players", "value":this.createPlayersString(-99, false), "inline": false}
+                {"name": "Players", "value":this.createPlayersString(-99, false), "inline": false}
             );
         }
-
-        fields.push({
-            "name": ":eye: Spectators", "value": `${this.createPlayersString(-1, true)}`, "inline": false}
-        );
+        if(this.spectators > 0) {
+           fields.push({
+            "name": `${this.spectators} ${this.spectators === 1 ? 'Spectator' : 'Spectators'}`, "value": `${this.createPlayersString(-1, true)}`, "inline": false}
+        );}
+        else{}
 
 
         return fields;
@@ -305,7 +312,7 @@ class ServerResponse{
                         }
                     }
 
-                    let string = `:no_entry: **${this.ip}:${this.port}** has timedout!`;
+                    let string = `:no_entry: **${this.ip}:${this.port}** has timed out!`;
 
                     if(this.ip === undefined){
                         string = `:no_entry: That ip does not exist!`;
@@ -327,7 +334,7 @@ class ServerResponse{
 
             this.bReceivedFinal = true;
 
-
+            
             let description = `
 :wrestling: Players **${this.totalPlayers}/${this.maxPlayers}
 :pushpin: ${this.gametype}
@@ -357,21 +364,20 @@ class ServerResponse{
 
             const country = this.getServerCountry();
 
-            const fields = this.createPlayerFields();
-
-            
-            const embed = new Discord.MessageEmbed()
+            let fields = this.createPlayerFields()
+            fields.push({"name": "Join Server", "value": `<unreal://${this.ip}:${this.port}>`, "inline": false});
+                
+            const embed = new Discord.EmbedBuilder()
             .setTitle(`${country}${this.name}`)
             .setColor(embedColor)
             .setDescription(`${description}`)
             .addFields(fields)
-            .addField("Join Server",`**<unreal://${this.ip}:${this.port}>**`,false)
             .setTimestamp();
 
 
             if(!this.bEdit){
 
-                this.discordMessage.send(embed).then(async (m) =>{
+                this.discordMessage.send({ embeds: [embed] }).then(async (m) =>{
 
                     try{
 
@@ -397,7 +403,7 @@ class ServerResponse{
 
                 this.discordMessage.messages.fetch(this.messageId).then((message) =>{
 
-                    message.edit(embed).then(() =>{
+                    message.edit({ embeds: [embed]}).then(() =>{
 
                         this.bSentMessage = true;
 

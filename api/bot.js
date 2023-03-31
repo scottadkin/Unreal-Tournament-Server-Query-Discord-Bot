@@ -1,8 +1,8 @@
 const Discord = require('discord.js');
-const config = require('./config.json');
+const { GatewayIntentBits, Partials } = require('discord.js');
+const config = require('../config/config.json');
 const UT99Query = require('./ut99query.js');
 const Database = require('./db');
-//const dns = require('dns');
 const Servers = require('./servers');
 const Channels = require('./channels');
 const Roles = require('./roles');
@@ -30,13 +30,22 @@ class Bot{
         this.createClient();
     }
 
-    createClient(){
+    createClient(name){
+        this.name = name;
 
         this.client = new Discord.Client({
             messageCacheMaxSize: 1,
             messageCacheLifetime: 10,
             messageSweepInterval: 30,
-            messageEditHistoryMaxSize: 0
+            messageEditHistoryMaxSize: 0,
+            partials: [Partials.Channel],
+            intents: [
+                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
+                GatewayIntentBits.DirectMessages,
+                GatewayIntentBits.GuildMembers,
+            ],
 
         });
 
@@ -44,7 +53,7 @@ class Bot{
 
             this.query = new UT99Query(this.client);
             this.queryAuto = new UT99Query(this.client, true);
-            console.log(`I'm In the discord server...`);
+            console.log(`I'm in the discord server...`);
        
         });
 
@@ -56,7 +65,7 @@ class Bot{
 
         });
 
-        this.client.on('message', (message) =>{
+        this.client.on('messageCreate', (message) =>{
 
             if(!message.author.bot){
 

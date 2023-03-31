@@ -1,4 +1,4 @@
-const config = require('./config.json');
+const config = require('../config/config.json');
 const Database = require('./db');
 
 class Roles{
@@ -148,12 +148,12 @@ class Roles{
 
     getRole(name, message){
 
-        const roles = message.guild.roles.cache.array();
+        const roles = message.guild.roles.cache;
 
-        for(let i = 0; i < roles.length; i++){
+        for(let i = 0; i < roles.size; i++){
 
-            if(roles[i].name.toLowerCase() == name.toLowerCase()){
-                return roles[i];
+            if(roles.at(i).name.toLowerCase() == name.toLowerCase()){
+                return roles.at(i);
             }
         }
 
@@ -198,15 +198,15 @@ class Roles{
             return;
         }
 
-        const channelRoles = message.channel.guild.roles.cache.array();
+        const channelRoles = message.channel.guild.roles.cache;
 
         let c = 0;
 
         let bFound = false;
 
-        for(let i = 0; i < channelRoles.length; i++){
+        for(let i = 0; i < channelRoles.size; i++){
 
-            c = channelRoles[i];
+            c = channelRoles.at(i);
 
             if(c.name.toLowerCase() == result[1].toLowerCase()){
 

@@ -1,7 +1,5 @@
 const sqlite = require('sqlite3').verbose();
-const config = require('./config.json');
-
-
+const config = require('../config/config.json');
 
 class Database{
 
@@ -15,6 +13,5 @@ class Database{
 
     }
 }
-
 
 module.exports = Database;

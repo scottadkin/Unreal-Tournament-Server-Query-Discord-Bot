@@ -1,7 +1,6 @@
-const config = require('./config.json');
+const config = require('../config/config.json');
 const Database = require('./db');
 const dns = require('dns');
-//const Discord = require('discord.js');
 const Channels = require('./channels');
 
 class Servers{
@@ -455,7 +454,7 @@ class Servers{
 
             
 
-            let embed = new Discord.MessageEmbed();
+            let embed = new Discord.EmbedBuilder()
 
             let title = "Unreal Tournament Server List";
 
@@ -483,35 +482,49 @@ class Servers{
             embed.setColor(config.embedColor)
             .setTitle(title)
 
+            let fields = [];
             if(servers.length > 0){
-                embed.addField(this.createServerString("ID", {
-                    "alias": "Alias",
-                    "players": "Play",
-                    "max_players": "ers",
-                    "map": "Map"
-
-                }), serverBlocks[0] ,false);
+                fields.push({
+                    name: this.createServerString("ID", {
+                        "alias": "Alias",
+                        "players": "Play",
+                        "max_players": "ers",
+                        "map": "Map"
+                    }),
+                    value: serverBlocks[0],
+                    inline: false
+                });
             }else{
-                embed.addField(serverBlocks[0], '\u200B',false);
+                fields.push({
+                    name: serverBlocks[0],
+                    value: '\u200B',
+                    inline: false
+                });
             }
 
             if(serverBlocks.length == 1){
-                embed.addField("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);
+                fields.push({
+                    name: "Shorter server query command",
+                    value: `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
+                    inline: false
+                });
             }
+            embed.addFields(fields);
             
-            await message.channel.send(embed);
+            await message.channel.send({ embeds: [embed] });
 
             for(let i = 1; i < serverBlocks.length; i++){
 
-                embed = new Discord.MessageEmbed()
-                .setColor(config.embedColor)
-                .setDescription(serverBlocks[i]);
+                embed = new Discord.EmbedBuilder()
+                embed = new Discord.Mess()
+                    .setColor(config.embedColor)
+                    .setDescription(serverBlocks[i]);
 
                 if(i === serverBlocks.length - 1){
-                    embed.addField("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);
+                    embed.addFields("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);
                 }
 
-                await message.channel.send(embed);
+                await message.channel.send({ embeds: [embed] });
             }
 
         }catch(err){

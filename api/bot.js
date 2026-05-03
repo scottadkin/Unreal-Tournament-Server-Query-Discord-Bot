@@ -618,7 +618,7 @@ class Bot{
 
                     if(this.validEdits.indexOf(editType) !== -1){
 
-                        await this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
+                        this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
 
                         message.channel.send(`${config.passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
                         

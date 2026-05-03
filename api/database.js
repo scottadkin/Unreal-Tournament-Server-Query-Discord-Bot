@@ -20,3 +20,30 @@ export function sqliteGet(query, vars){
         return prepare.get();
     }
 }
+
+
+export function sqliteRun(query, vars){
+
+    const prepare = database.prepare(query);
+
+    if(vars !== undefined){
+        return prepare.run(vars);
+    }else{
+        return prepare.run();
+    }
+}
+
+export function sqliteGetAll(query, vars){
+
+    const prepare = database.prepare(query);
+
+    let result = [];
+
+    if(vars !== undefined){
+        result = prepare.all(vars);
+    }else{
+        result = prepare.all();
+    }
+
+    return result;
+}

@@ -1,5 +1,5 @@
 const config = require('../config/config.json');
-import { sqliteGet } from './database';
+import { sqliteGet, sqliteRun, sqliteGetAll } from './database';
 
 export default class Channels{
 
@@ -41,20 +41,11 @@ export default class Channels{
 
     insertChannel(id){
 
-        return new Promise((resolve, reject) =>{
+        const query = "INSERT INTO channels VALUES(?,?)";
 
-            const query = "INSERT INTO channels VALUES(?,?)";
+        const now = Math.floor(Date.now() * 0.001);
 
-            const now = Math.floor(Date.now() * 0.001)
-
-            this.db.run(query, [id, now], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-
-        });
+        return sqliteRun(query, [id, now]);
     }
 
     async allowChannel(message){
@@ -71,7 +62,7 @@ export default class Channels{
 
                 if(!exists){
 
-                    await this.insertChannel(message.channel.id);
+                    this.insertChannel(message.channel.id);
 
                     message.channel.send(`${config.passIcon} The bot can now be used in this channel.`);
                 
@@ -88,17 +79,9 @@ export default class Channels{
 
     deleteChannel(id){
 
-        return new Promise((resolve, reject) =>{
+        const query = "DELETE FROM channels WHERE id=?";
 
-            const query = "DELETE FROM channels WHERE id=?";
-
-            this.db.run(query, [id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
+        return sqliteRun(query, [id]);
     }
 
     async blockChannel(message){
@@ -112,7 +95,7 @@ export default class Channels{
 
                 if(exists){
 
-                    await this.deleteChannel(message.channel.id);
+                    this.deleteChannel(message.channel.id);
 
                     message.channel.send(`${config.passIcon} Users can no longer use the bot in this channel.`);
 
@@ -131,25 +114,7 @@ export default class Channels{
 
     getAllAllowedChannels(){
 
-        return new Promise((resolve, reject) =>{
-
-            const channels = [];
-
-            const query = "SELECT * FROM channels";
-
-            this.db.each(query, (err, row) =>{
-
-                if(err) reject(err);
-
-                channels.push(row);
-
-            }, (err, totalRows) =>{
-
-                if(err) reject(err);
-
-                resolve(channels);
-            });
-        });
+        return sqliteGetAll("SELECT * FROM channels");
     }
 
 
@@ -182,7 +147,7 @@ export default class Channels{
                     string += `:small_blue_diamond: **${currentChannel.name}** Enabled at ${added.toString()}\n`;
                 }else{
                     string += `:no_entry: Channel no longer exists, deleting it from database!\n`;
-                    await this.deleteChannel(c.id);
+                    this.deleteChannel(c.id);
                 }
             }
 
@@ -201,33 +166,16 @@ export default class Channels{
 
     deleteAutoChannel(){
 
-        return new Promise((resolve, reject) =>{
+        return sqliteRun("DELETE FROM auto_query");
 
-            const query = "DELETE FROM auto_query";
-
-            this.db.run(query, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-
-            });
-        });
     }
 
     setAutoChannel(message){
 
-        return new Promise((resolve, reject) =>{
+        const query = "INSERT INTO auto_query VALUES(?)";
 
-            const query = "INSERT INTO auto_query VALUES(?)";
+        return sqliteRun(query, [message.channel.id]);
 
-            this.db.run(query, [message.channel.id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
     }
 
 
@@ -247,13 +195,13 @@ export default class Channels{
 
         try{
 
-            await this.deleteAutoChannel();
+            this.deleteAutoChannel();
             console.log("Deleted old autoquery channel from database.");
 
             await servers.resetLastMessages();
             console.log("Reset all servers last_message ids");
 
-            await this.setAutoChannel(message);
+            this.setAutoChannel(message);
             let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
 The server status posts will be updated every **${config.autoQueryInterval} seconds.**`;
 
@@ -298,7 +246,7 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
 
         try{
 
-            await this.deleteAutoChannel();
+            this.deleteAutoChannel();
 
             await servers.resetLastMessages();
 
@@ -311,40 +259,21 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
 
     deleteOldAutoMessageInfoId(){
 
-        return new Promise((resolve, reject) =>{
+        return sqliteRun("DELETE FROM auto_query_info");
 
-            const query = "DELETE FROM auto_query_info";
-
-            this.db.run(query, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
     }
 
     insertAutoMessageInfoId(id){
 
-        return new Promise((resolve, reject) =>{
-
-            const query = "INSERT INTO auto_query_info VALUES(?)";
-
-            this.db.run(query, [id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-
-            });
-        });
+        const query = "INSERT INTO auto_query_info VALUES(?)";
+        return sqliteRun(query, [id]);
     }
 
     async setAutoQueryMessageInfoId(id){
 
         try{
 
-            await this.deleteOldAutoMessageInfoId();
+            this.deleteOldAutoMessageInfoId();
 
             await this.insertAutoMessageInfoId(id);
 

@@ -1,13 +1,10 @@
 const config = require('../config/config.json');
-const Database = require('./database.js');
-import { sqliteGet } from './database.js';
+import { sqliteGet, sqliteRun , sqliteGetAll} from './database.js';
 
 class Roles{
 
     constructor(){
 
-        this.db = new Database();
-        this.db = this.db.sqlite;
     }
 
     async bUserAdmin(message){
@@ -18,7 +15,7 @@ class Roles{
 
             const userRoles = message.member.roles.cache;
 
-            const adminRolesData = await this.getAllAddedRoles();
+            const adminRolesData = this.getAllAddedRoles();
 
             const adminRoleIds = [];
 
@@ -80,7 +77,7 @@ class Roles{
 
                     if(bRoleExist){
 
-                        await this.deleteRole(roleData.id, message, roleData.name);
+                        this.deleteRole(roleData.id, message, roleData.name);
 
                         message.channel.send(`${config.passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
 
@@ -100,38 +97,21 @@ class Roles{
 
     deleteRole(role, message, roleName){
 
-        return new Promise((resolve, reject) =>{
+        const query = "DELETE FROM roles WHERE id=?";
 
-            const query = "DELETE FROM roles WHERE id=?";
-
-            this.db.run(query, [role], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-
-        });
+        return sqliteRun(query, [role]);
 
     }
 
     insertRole(role, message, roleName){
 
-        return new Promise((resolve, reject) =>{
+        const query = "INSERT INTO roles VALUES(?,?)";
 
-            const query = "INSERT INTO roles VALUES(?,?)";
+        const now = Math.floor(Date.now() * 0.001);
 
-            const now = Math.floor(Date.now() * 0.001);
+        const result = sqliteRun(query, [role, now]);
 
-            this.db.run(query, [role, now], (err) =>{
-
-                if(err) reject(err);
-
-                message.channel.send(`${config.passIcon} User with the role **${roleName}** can now use admin commands.`);
-
-                resolve();
-            });
-        });
+        message.channel.send(`${config.passIcon} User with the role **${roleName}** can now use admin commands.`);
 
     }
 
@@ -213,25 +193,8 @@ class Roles{
 
     getAllAddedRoles(){
 
-        return new Promise((resolve, reject) =>{
-
-            const roles = [];
-
-            const query = "SELECT * FROM roles";
-
-            this.db.each(query, (err, row) =>{
-
-                if(err) reject(err);
-
-                roles.push(row);
-
-            }, (err) =>{
-
-                if(err) reject(err);
-
-                resolve(roles);
-            });
-        });
+        return sqliteGetAll("SELECT * FROM roles");
+ 
     }
 
 
@@ -239,7 +202,7 @@ class Roles{
 
         try{
 
-            const roles = await this.getAllAddedRoles();
+            const roles = this.getAllAddedRoles();
 
             const discordRoles = message.guild.roles.cache;
 
@@ -263,7 +226,7 @@ class Roles{
                 }else{
                     string += `:no_entry: This role no longer exists in this server, removing it from database.\n`;
 
-                    await this.deleteRole(r.id, message, "DELETED");
+                    this.deleteRole(r.id, message, "DELETED");
                 }
             }
 

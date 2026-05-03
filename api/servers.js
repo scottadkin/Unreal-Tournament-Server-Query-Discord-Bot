@@ -1,5 +1,5 @@
 import config from '../config/config.json' with {'type': 'json'};
-import { sqliteGet } from './database';
+import { sqliteGet, sqliteGetAll, sqliteRun } from './database';
 import dns from 'node:dns';
 import Channels from './channels';
 
@@ -55,7 +55,7 @@ export default class Servers{
 
                         if(!this.bServerAdded(ipResult, port)){
 
-                            await this.insertServer(result[6], ipResult, result[1], port);
+                            this.insertServer(result[6], ipResult, result[1], port);
                             message.channel.send(`${config.passIcon} Server added successfully.`);
 
                         }else{
@@ -73,7 +73,7 @@ export default class Servers{
 
                     if(!this.bServerAdded(ip, port)){
 
-                        await this.insertServer(ip, ip, result[1], port);
+                        this.insertServer(ip, ip, result[1], port);
                         message.channel.send(`${config.passIcon} Server added successfully.`);
 
                     }else{
@@ -100,70 +100,36 @@ export default class Servers{
 
     insertServer(ip, realIp, alias, port){
 
-        //console.log(`${ip}, ${realIp}, ${alias}, ${port}`);
+        const now = Math.floor(Date.now() * 0.001);
 
-        return new Promise((resolve, reject) =>{
+        const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,'None',?,0,0,'N/A','N/A',?,?,-1,0)";
 
-            const now = Math.floor(Date.now() * 0.001);
+        const vars = [
+            ip, 
+            realIp, 
+            port, 
+            "Another UT Server",
+            alias,
+            now,
+            now
+        ];
 
-            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,'None',?,0,0,'N/A','N/A',?,?,-1,0)";
-
-            const vars = [
-                ip, 
-                realIp, 
-                port, 
-                "Another UT Server",
-                alias,
-                now,
-                now
-            ];
-
-            this.db.run(query, vars, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
+        return sqliteRun(query, vars);
     }
 
     deleteServer(id){
 
-        return new Promise((resolve, reject) =>{
+        const query = "DELETE FROM servers WHERE id=?";
+        return sqliteRun(query, [id]);
 
-            const query = "DELETE FROM servers WHERE id=?";
-
-            this.db.run(query, [id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
     }
 
 
     getAllServers(){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT * FROM servers ORDER BY created ASC";
 
-            const servers = [];
-
-            const query = "SELECT * FROM servers ORDER BY created ASC";
-
-            this.db.each(query, (err, row) =>{
-
-                if(err) reject(err);
-
-                servers.push(row);
-
-            }, (err) =>{
-
-                if(err) reject(err);
-
-                resolve(servers);
-            });
-        });
+        return sqliteGetAll(query);
     }
 
 
@@ -178,7 +144,7 @@ export default class Servers{
 
             if(result !== null){
 
-                const servers = await this.getAllServers();
+                const servers = this.getAllServers();
 
                 //console.table(servers);
 
@@ -218,52 +184,39 @@ export default class Servers{
 
     updateQuery(data, bAlt){
 
-        return new Promise((resolve, reject) =>{
+        const now = Math.floor(Date.now() * 0.001);
 
-            const now = Math.floor(Date.now() * 0.001);
+        let query = `UPDATE servers 
+        SET name=?, country=?, players=?, max_players=?, gametype=?, map=?, modified=?
+        WHERE real_ip=? AND port=?`;
 
-            let query = `UPDATE servers 
-            SET name=?, country=?, players=?, max_players=?, gametype=?, map=?, modified=?
+
+        let vars = [];
+        
+        if(bAlt !== undefined){
+
+            query = `UPDATE servers 
+            SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
             WHERE real_ip=? AND port=?`;
 
-
-            let vars = [];
+            vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
             
+        }else{
 
-            if(bAlt !== undefined){
+            let country = "";
 
-                query = `UPDATE servers 
-                SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
-                WHERE real_ip=? AND port=?`;
+            if(data.country != undefined){
 
-                vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
-                
-            }else{
-
-                let country = "";
-
-                if(data.country != undefined){
-
-                    if(data.country != '' && data.country != "none"){
-                        country = data.country;
-                    }
+                if(data.country != '' && data.country != "none"){
+                    country = data.country;
                 }
-            
-                vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
             }
+        
+            vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
+        }
 
-                 
-            this.db.run(query, vars, (err) =>{
-
-                if(err){
-                   // console.log(vars);
-                    reject(err);
-                }
-
-                resolve();
-            });
-        });
-
+        return sqliteRun(query, vars);
+ 
     }
 
     async updateInfo(data){
@@ -275,9 +228,9 @@ export default class Servers{
             //console.log(bCountryOverride);
 
             if(!bCountryOverride){
-                await this.updateQuery(data);
+                this.updateQuery(data);
             }else{
-                await this.updateQuery(data, true);
+                this.updateQuery(data, true);
             }
 
         }catch(err){
@@ -402,7 +355,7 @@ export default class Servers{
 
         try{
 
-            const servers = await this.getAllServers();
+            const servers = this.getAllServers();
             
             const maxPerBlock = config.maxServersPerBlock;
 
@@ -520,34 +473,16 @@ export default class Servers{
 
     setLastMessageId(ip, port, id){
 
-        return new Promise((resolve, reject) =>{
-
-            const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
-
-            this.db.run(query, [id, ip, port], (err) =>{
-
-                if(err) reject(err);
-
-               // console.log(`Set message_id = ${id} WHERE address is ${ip}:${port}`);
-                resolve();
-            });
-        });
+        const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
+        return sqliteRun(query, [id, ip, port]);
     }
 
 
     resetLastMessages(){
 
-        return new Promise((resolve, reject) =>{
+        const query = "UPDATE servers SET last_message=-1";
 
-            const query = "UPDATE servers SET last_message=-1";
-
-            this.db.run(query, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
+        return sqliteRun(query);
     }
 
     async bValidServerId(id){
@@ -562,7 +497,7 @@ export default class Servers{
 
             if(id < 0) throw new Error("Id must be a positive integer.");
 
-            const servers = await this.getAllServers();
+            const servers = this.getAllServers();
 
             if(id < servers.length){
 
@@ -583,7 +518,7 @@ export default class Servers{
 
             if(await this.bValidServerId(id)){
 
-                const servers = await this.getAllServers();
+                const servers = this.getAllServers();
 
                 id = parseInt(id);
 
@@ -602,34 +537,19 @@ export default class Servers{
 
     editServerValue(ip, port, key, value){
         
-        return new Promise((resolve, reject) =>{
+        const query = `UPDATE servers SET ${key}=? WHERE ip=? AND port=?`;
 
-            const query = `UPDATE servers SET ${key}=? WHERE ip=? AND port=?`;
+        if(key === 'country' && value === 'uk'){
+            value = 'gb';
+        }
 
-            if(key === 'country' && value === 'uk'){
-                value = 'gb';
-            }
+        sqliteRun(query, [value, ip, port]);
 
-            this.db.run(query, [value, ip, port], (err) =>{
+        if(key !== 'country') return;
 
-                if(err) reject(err);
+        const countryQuery = `UPDATE servers SET override_country=1 WHERE ip=? AND port=?`;
 
-                if(key === 'country'){
-
-                    const countryQuery = `UPDATE servers SET override_country=1 WHERE ip=? AND port=?`;
-
-                    this.db.run(countryQuery, [ip, port], (err) =>{
-
-                        if(err) reject(err);
-
-                        resolve();
-                    });
-
-                }else{
-                    resolve();
-                }
-            });
-        });
+        sqliteRun(countryQuery, [ip, port]);
     }
 
     bCountryOverride(ip, port){

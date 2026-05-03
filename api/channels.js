@@ -1,45 +1,28 @@
 const config = require('../config/config.json');
-const Database = require('./database.mjs');
+import { sqliteGet } from './database';
 
-class Channels{
+export default class Channels{
 
     constructor(){
 
-        this.db = new Database();
-        this.db = this.db.sqlite;
     }
 
     bBotCanCommentInChannel(message){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT COUNT(*) as total_channels from channels WHERE id=?";
 
-            const channelId = message.channel.id;
+        const result = sqliteGet(query, [message.channel.id]);
 
-            const query = "SELECT COUNT(*) as total_channels from channels WHERE id=?";
-
-            this.db.get(query, [channelId], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row.total_channels > 0){
-
-                    resolve(true);
-                }
-
-                resolve(false);
-            });
-        });
+        return result.total_channels > 0;
     }
 
     bChannelExist(message, channelId){
 
         const channels = message.guild.channels.cache;
 
-        let c = 0;
-
         for(let i = 0; i < channels.size; i++){
 
-            c = channels.at(i);
+            const c = channels.at(i);
 
             if(c.id == channelId){
                 return true;
@@ -51,26 +34,9 @@ class Channels{
 
     bChannelAdded(id){
 
-        return new Promise((resolve, reject) =>{
-
-            const query = "SELECT COUNT(*) as total_channels FROM channels WHERE id=?";
-
-            this.db.get(query, [id], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row !== undefined){
-
-                    if(row.total_channels > 0){
-                        resolve(true);
-                    }
-                }
-
-                resolve(false);
-            });
-
-        });
-        
+        const query = "SELECT COUNT(*) as total_channels FROM channels WHERE id=?";
+        const result = sqliteGet(query, [id]);
+        return result.total_channels > 0;        
     }
 
     insertChannel(id){
@@ -101,7 +67,7 @@ class Channels{
 
             }else{
 
-                const exists = await this.bChannelAdded(message.channel.id);
+                const exists = this.bChannelAdded(message.channel.id);
 
                 if(!exists){
 
@@ -267,21 +233,14 @@ class Channels{
 
     getAutoQueryChannel(){
 
-        return new Promise((resolve, reject) =>{
+        const query = `SELECT id FROM auto_query`;
 
-            const query = "SELECT * FROM auto_query LIMIT 1";
+        const result = sqliteGet(query);
 
-            this.db.get(query, (err, row) =>{
+        if(result === undefined) return null;
 
-                if(err) reject(err);
+        return result.id;
 
-                if(row !== undefined){
-                    resolve(row.id);
-                }
-
-                resolve(null);
-            });
-        });
     }
 
     async enableAutoQuery(message, servers, Discord){
@@ -398,25 +357,12 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
 
     getAutoQueryMessageId(){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT id FROM auto_query_info";
 
-            const query = "SELECT * FROM auto_query_info LIMIT 1";
+        const result = sqliteGet(query);
 
-            this.db.get(query, (err, row) =>{
+        if(result === undefined) return null;
 
-                if(err) reject(err);
-
-                if(row !== undefined){
-
-                    resolve(row.id);
-                }
-
-                resolve(null);
-            });
-        });
+        return result.id;
     }
-
 }
-
-
-module.exports = Channels;

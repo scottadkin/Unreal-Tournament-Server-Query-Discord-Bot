@@ -1,18 +1,14 @@
-const config = require('../config/config.json');
-const dgram = require('dgram');
-const ServerResponse = require('./serverResponse');
-const dns = require('dns');
-const Servers = require('./servers');
-const Channels = require('./channels');
-const Database = require('./database.mjs');
-const Discord = require('discord.js');
+import config from '../config/config.json' with {'type': 'json'};
+import dgram from 'node:dgram';
+import dns from 'node:dns';
+import ServerResponse from './serverResponse.js';
+import Servers from './servers';
+import Channels from './channels';
 
 class UT99Query{
 
     constructor(discord, bAuto){
 
-        this.db = new Database();
-        this.db = this.db.sqlite;
         this.server = null;
 
         this.responses = [];
@@ -43,11 +39,9 @@ class UT99Query{
 
             const now = Math.floor(Date.now() * 0.001);
 
-            let r = 0;
-
             for(let i = 0; i < this.responses.length; i++){
 
-                r = this.responses[i];
+                const r = this.responses[i];
       
                 if(now - r.timeStamp > config.serverTimeout && !r.bSentMessage){
 
@@ -88,11 +82,9 @@ class UT99Query{
 
         const potatoes = [];
 
-        let r = 0;
-
         for(let i = 0; i < this.responses.length; i++){
 
-            r = this.responses[i];
+            const r = this.responses[i];
 
             if(r.type !== "basic"){
 
@@ -158,64 +150,18 @@ class UT99Query{
 
         this.autoQueryLoop = setInterval(async () =>{
 
-            const queryChannelId = await this.channels.getAutoQueryChannel();
+            const queryChannelId = this.channels.getAutoQueryChannel();
 
             if(queryChannelId !== null){
 
                 this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
 
                     const servers = await this.servers.getAllServers();  
-                    
-                    /*if(config.bAutoQueryMessagesOnly){
-
-                        const serverMessageIds = [];
-                        
-                        for(let i = 0; i < servers.length; i++){
-
-                            if(serverMessageIds.indexOf(servers[i].last_message) === -1){
-                                serverMessageIds.push(servers[i].last_message);
-                            }
-                        }
-
-
-                        const autoQueryInfoPostId = await this.channels.getAutoQueryMessageId();
-
-                        let messages = await channel.messages.fetch({"limit": 20});
-
-                        messages = messages.array();
-
-                        for(let i = 0; i < messages.length; i++){
-
-
-                            //console.log(i);
-                            //console.log(`autoQueryInfoPostId = ${autoQueryInfoPostId}`);
-                            if(autoQueryInfoPostId !== null){
-
-                                if(messages[i].id == autoQueryInfoPostId){
-                                    //console.log("FOUND AUTO QUERY MESSAGE ID");
-                                    continue;
-                                }
-                            }
-
-                            if(!messages[i].author.bot || serverMessageIds.indexOf(messages[i].id) === -1){
-
-                                await messages[i].delete().then(() =>{
-
-                                   // console.log("Old message deleted");
-
-                                }).catch((err) =>{
-                                    //console.trace(err);
-                                    console.log('Error deleting old message.');
-                                });
-                            }
-                        }
-                    }  */
-
+ 
                     for(let i = 0; i < servers.length; i++){
 
-                        //setTimeout(async () =>{
-                            await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
-                       // }, 500);     
+                        await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
+                          
                     }
                     
                 }).catch((err) =>{
@@ -235,7 +181,6 @@ class UT99Query{
 
     async initServerPingLoop(){
 
-        //this.pingAllServers();
         try{
 
             await this.pingAllServers();
@@ -246,8 +191,6 @@ class UT99Query{
 
         this.pingLoop = setInterval(async () =>{
 
-            //console.log("PING INTERVAL")
-            
             try{
                 await this.pingAllServers();
             }catch(err){
@@ -265,22 +208,12 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            //message = message.toString();
-            //console.log(`*******************************************************`);
-            //console.log(`${message}`);
-            //console.log(`-------------------------------------------------------`);
-
             const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
-            //BUFFER IS CAUSING THE MEMORY LEAK
-
-            //MOVE PARSING STUFF INSIDE THIS CLASS NOT SERVER RESPOSE
             if(matchingResponse !== null){
 
                 this.parsePacket(message, matchingResponse);
 
-            }else{
-                //console.log("There is no matching data for this server");
             }
 
         });
@@ -620,7 +553,6 @@ class UT99Query{
 
             result = meshReg.exec(data);
 
-           // console.log(result);
             if(result !== null){
                 currentMesh = result[2].toLowerCase();
                 response.updatePlayer(result[1], "mesh", result[2]);
@@ -661,16 +593,11 @@ class UT99Query{
         }
     }
 
-    //ADD COUNTRY REG FOR SERVERSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
-
     getMatchingResponse(ip, port, ignoreTimeStamp){
-
-        //console.log(`Looking for ${ip}:${port}`);
-        let r = 0;
 
         for(let i = 0; i < this.responses.length; i++){
 
-            r = this.responses[i];
+            const r = this.responses[i];
 
             if(r.ip == ip && r.port == port && !r.bSentMessage){
 
@@ -692,8 +619,6 @@ class UT99Query{
     getFullServer(ip, port, message, bEdit, messageId){
 
         try{
-
-            //console.log(arguments);
             port = parseInt(port);
 
             if(port !== port){
@@ -737,9 +662,7 @@ class UT99Query{
             port = parseInt(port);
 
             if(port !== port){
-                //console.trace("port must be a valid integer.");
                 reject("port must be a valid integer.");
-                //throw new Error("port must be a valid integer.");
             }
 
             port = port + 1;
@@ -748,10 +671,7 @@ class UT99Query{
 
                 if(err) reject(err);
 
-                //MEMORY LEAK
                 this.responses.push(new ServerResponse(address, port, "basic"));
-
-                //constructor(ip, port, type, discordMessage, bEdit, messageId)
 
                 this.server.send('\\info\\xserverquery\\', port, address, (err) =>{
 

@@ -1,5 +1,6 @@
 const config = require('../config/config.json');
-const Database = require('./database.mjs');
+const Database = require('./database.js');
+import { sqliteGet } from './database.js';
 
 class Roles{
 
@@ -52,24 +53,12 @@ class Roles{
 
     bRoleAdded(role){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT COUNT(*) as total_roles FROM roles WHERE id=?";
 
-            const query = "SELECT COUNT(*) as total_roles FROM roles WHERE id=?";
+        const result = sqliteGet(query, [role]);
+        if(result === undefined) return null;
 
-            this.db.get(query, [role], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row != undefined){
-
-                    if(row.total_roles > 0){
-                        resolve(true);
-                    }
-                }
-
-                resolve(false);
-            });
-        });
+        return result.total_roles > 0;
     }
 
 
@@ -87,7 +76,7 @@ class Roles{
 
                 if(roleData !== null){
 
-                    const bRoleExist = await this.bRoleAdded(roleData.id);
+                    const bRoleExist = this.bRoleAdded(roleData.id);
 
                     if(bRoleExist){
 
@@ -168,7 +157,7 @@ class Roles{
 
             if(roleData !== null){
 
-                const bRoleAdded = await this.bRoleAdded(roleData.id);
+                const bRoleAdded = this.bRoleAdded(roleData.id);
 
                 if(!bRoleAdded){
 

@@ -1,14 +1,11 @@
-const config = require('../config/config.json');
-const Database = require('./database.mjs');
-const dns = require('dns');
-const Channels = require('./channels');
+import config from '../config/config.json' with {'type': 'json'};
+import { sqliteGet } from './database';
+import dns from 'node:dns';
+import Channels from './channels';
 
-class Servers{
+export default class Servers{
 
     constructor(){
-
-        this.db = new Database();
-        this.db = this.db.sqlite;
         
         this.channels = new Channels();
     }
@@ -56,7 +53,7 @@ class Servers{
                         //console.log(await this.bServerAdded(ipResult));
                         //ip, realIp, alias, port
 
-                        if(!await this.bServerAdded(ipResult, port)){
+                        if(!this.bServerAdded(ipResult, port)){
 
                             await this.insertServer(result[6], ipResult, result[1], port);
                             message.channel.send(`${config.passIcon} Server added successfully.`);
@@ -74,7 +71,7 @@ class Servers{
                         port = parseInt(result[5]);
                     }
 
-                    if(!await this.bServerAdded(ip, port)){
+                    if(!this.bServerAdded(ip, port)){
 
                         await this.insertServer(ip, ip, result[1], port);
                         message.channel.send(`${config.passIcon} Server added successfully.`);
@@ -93,24 +90,12 @@ class Servers{
 
     bServerAdded(ip, port){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT COUNT(id) as total_servers FROM servers WHERE real_ip=? AND port=?";
 
-            const query = "SELECT COUNT(*) as total_servers FROM servers WHERE real_ip=? AND port=?";
+        const result = sqliteGet(query, [ip, port]);
 
-            this.db.get(query, [ip, port], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row !== undefined){
-
-                    if(row.total_servers > 0){
-                        //console.log(`Total servers = ${row.total_servers}`);
-                        resolve(true);
-                    }
-                }
-                resolve(false);
-            });
-        });
+        return result.total_servers > 0;
+    
     }
 
     insertServer(ip, realIp, alias, port){
@@ -285,7 +270,7 @@ class Servers{
 
         try{
 
-            const bCountryOverride = await this.bCountryOverride(data.ip, data.port);
+            const bCountryOverride = this.bCountryOverride(data.ip, data.port);
 
             //console.log(bCountryOverride);
 
@@ -649,28 +634,14 @@ class Servers{
 
     bCountryOverride(ip, port){
 
-        return new Promise((resolve, reject) =>{
+        const query = `SELECT override_country FROM servers WHERE ip=? AND port=?`;
 
-            const query = `SELECT override_country FROM servers WHERE ip=? AND port=?`;
+        const result = sqliteGet(query, [ip, port]);
 
-            this.db.get(query, [ip, port], (err, result) =>{
+        return result.override_country > 0;
 
-                if(err) reject(err);
-
-                if(result !== undefined){
-                    if(result.override_country > 0) resolve(true);
-                    
-                }
-                
-                resolve(false);
-                
-            });
-        });
     }
 
     
 
 }
-
-
-module.exports = Servers;

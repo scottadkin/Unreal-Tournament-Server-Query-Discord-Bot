@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const { GatewayIntentBits, Partials } = require('discord.js');
 const config = require('../config/config.json');
 const UT99Query = require('./ut99query.js');
-const Database = require('./database.mjs');
+const Database = require('./database.js');
 const Servers = require('./servers');
 const Channels = require('./channels');
 const Roles = require('./roles');
@@ -116,7 +116,7 @@ class Bot{
 
         try{
 
-            if(await this.channels.bBotCanCommentInChannel(message)){
+            if(this.channels.bBotCanCommentInChannel(message)){
 
                 const helpReg = /^.help$/i;
                 const shortServerQueryReg = /^.q\d+$/i;

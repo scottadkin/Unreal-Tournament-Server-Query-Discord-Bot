@@ -1,4 +1,4 @@
-class ServerResponse{
+export default class ServerResponse{
 
     constructor(ip, port, type, discordMessage, bEdit, messageId){
 
@@ -293,7 +293,7 @@ class ServerResponse{
                 if(!this.bEdit){
 
 
-                    const autoChannelId = await channels.getAutoQueryChannel();
+                    const autoChannelId = channels.getAutoQueryChannel();
 
                     if(autoChannelId !== null){
                         //stop bot posting timeouts in autochannel
@@ -372,7 +372,7 @@ class ServerResponse{
 
                     try{
 
-                        const autoQueryChannelId = await channels.getAutoQueryChannel();
+                        const autoQueryChannelId = channels.getAutoQueryChannel();
 
                         if(autoQueryChannelId !== null){
 
@@ -851,5 +851,3 @@ class ServerResponse{
         return false;
     }
 }
-
-module.exports = ServerResponse;

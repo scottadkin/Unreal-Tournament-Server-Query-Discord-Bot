@@ -1,6 +1,6 @@
 {
   "name": "discordutserverquerybot",
-  "version": "1.0.0",
+  "version": "2.5.0",
   "description": "A Discord bot that can communicate with Unreal Tournament servers and display their responses.",
   "main": "app.js",
   "scripts": {

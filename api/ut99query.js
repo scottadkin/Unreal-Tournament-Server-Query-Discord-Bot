@@ -1,5 +1,4 @@
 const config = require('../config/config.json');
-const Promise = require('promise');
 const dgram = require('dgram');
 const ServerResponse = require('./serverResponse');
 const dns = require('dns');

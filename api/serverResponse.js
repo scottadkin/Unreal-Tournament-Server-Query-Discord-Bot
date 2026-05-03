@@ -1,12 +1,3 @@
-//const Discord = require('discord.js');
-//const geoip = require('geoip-lite');
-//const countryList = require('country-list');
-//const config = require('./config.json');
-//const Servers = require('./servers');
-//const Channels = require('./channels');
-//const Buffer = require('buffer');
-
-
 class ServerResponse{
 
     constructor(ip, port, type, discordMessage, bEdit, messageId){

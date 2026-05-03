@@ -42,14 +42,12 @@ class Bot{
             intents: [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.MessageContent,
-                GatewayIntentBits.DirectMessages,
-                GatewayIntentBits.GuildMembers,
+                GatewayIntentBits.MessageContent
             ],
 
         });
 
-        this.client.on('ready', () =>{
+        this.client.on('clientReady', () =>{
 
             this.query = new UT99Query(this.client);
             this.queryAuto = new UT99Query(this.client, true);

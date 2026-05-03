@@ -2,7 +2,7 @@
 A discord bot that communicates with Unreal Tournament, and Unreal servers and displays their responses into a text channel.
 
 # Requirements
-- Node.js v12 or later
+- Node.js v22.12.0 or later
 
 # Installing
 - Place the contents of the archive into a folder.
@@ -72,6 +72,10 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 ![alt text](https://i.imgur.com/od3eEHf.png "test")
 
 # Release Log
+## 2026-05-03
+- Upgrade all packages to their latest.
+- Removed promise dependency.
+- Changed ready event to clientReady(DeprecationWarning)
 ## 2023-03-31
 - Upgrade all packages to their latest. Major change *DiscordJs v14 (~~v12~~)**
 - Making repository git compataible

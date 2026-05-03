@@ -1,5 +1,5 @@
 import config from '../config/config.json' with {'type': 'json'};
-import { sqliteGet, sqliteRun, sqliteGetAll } from './database';
+import { sqliteGet, sqliteRun, sqliteGetAll } from './database.js';
 import { EmbedBuilder } from 'discord.js';
 
 export default class Channels{
@@ -225,7 +225,7 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
 
                 const embed = new EmbedBuilder()
                     .setColor(config.embedColor)
-                    .setDescription(`Waiting for data for server **${currentServers[i].name}** id (${i+1})`);
+                    .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
 
                 await message.channel.send({ "embeds": [embed] }).then((message) =>{
           

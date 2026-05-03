@@ -2,8 +2,8 @@ import config from '../config/config.json' with {'type': 'json'};
 import dgram from 'node:dgram';
 import dns from 'node:dns';
 import ServerResponse from './serverResponse.js';
-import Servers from './servers';
-import Channels from './channels';
+import Servers from './servers.js';
+import Channels from './channels.js';
 
 export default class UT99Query{
 
@@ -49,7 +49,7 @@ export default class UT99Query{
                     r.bTimedOut = true;
 
                     if(r.type !== "basic"){
-                        r.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
+                        r.sendFullServerResponse(this.channels, this.servers, config.embedColor);
                     }else{
 
                         r.bSentMessage = true;
@@ -304,7 +304,7 @@ export default class UT99Query{
                     return;
 
                 }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
-                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
+                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor);
                     return;
                 }
 
@@ -314,7 +314,7 @@ export default class UT99Query{
 
                 if(response.type == "full"){
 
-                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
+                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor);
                     return true;
 
                 }else if(response.type == "basic"){

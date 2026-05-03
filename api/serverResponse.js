@@ -1,3 +1,5 @@
+import { EmbedBuilder } from "discord.js";
+
 export default class ServerResponse{
 
     constructor(ip, port, type, discordMessage, bEdit, messageId){
@@ -321,15 +323,12 @@ export default class ServerResponse{
 
             this.sortPlayersByScore();
 
-            //console.table(this.players);
-
             this.bReceivedFinal = true;
 
             
-            let description = `
-:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}
-:pushpin: ${this.gametype}
-:map: ${this.mapName}**\n`;
+            let description = `:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}`;
+            description += `:pushpin: ${this.gametype}`;
+            description += `:map: ${this.mapName}**\n`;
             
             if(!this.bUnreal){
                 description += `:goal: Target Score **${this.goalscore}**\n`;
@@ -351,14 +350,13 @@ export default class ServerResponse{
             if(this.protection !== undefined){
                 description += `:shield: ${this.protection}`;
             }
-        // console.table(this.players);
 
             const country = this.getServerCountry();
 
             let fields = this.createPlayerFields()
             fields.push({"name": "Join Server", "value": `<unreal://${this.ip}:${this.port}>`, "inline": false});
                 
-            const embed = new Discord.EmbedBuilder()
+            const embed = new EmbedBuilder()
             .setTitle(`${country}${this.name}`)
             .setColor(embedColor)
             .setDescription(`${description}`)

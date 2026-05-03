@@ -1,7 +1,7 @@
 import config from '../config/config.json' with {'type': 'json'};
-import { sqliteGet, sqliteGetAll, sqliteRun } from './database';
+import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
 import dns from 'node:dns';
-import Channels from './channels';
+import Channels from './channels.js';
 import { EmbedBuilder } from 'discord.js';
 
 export default class Servers{
@@ -354,9 +354,12 @@ export default class Servers{
 
     async listServers(message, bOnlyActive){
 
+        TODO: clean this mess
         try{
 
             const servers = this.getAllServers();
+
+            console.log(servers);
             
             const maxPerBlock = config.maxServersPerBlock;
 
@@ -408,36 +411,38 @@ export default class Servers{
                 serverBlocks.push(string);
             }
 
-            const fields = [];
+            let fields = [];
 
             if(servers.length > 0){
 
                 fields.push({
-                    name: this.createServerString("ID", {
+                    "name": this.createServerString("ID", {
                         "alias": "Alias",
                         "players": "Play",
                         "max_players": "ers",
                         "map": "Map"
                     }),
-                    value: serverBlocks[0],
-                    inline: false
+                    "value": serverBlocks[0],
+                    "inline": false
                 });
 
             }else{
 
                 fields.push({
-                    name: serverBlocks[0],
-                    value: '\u200B',
-                    inline: false
+                    "name": serverBlocks[0],
+                    "value": '\u200B',
+                    "inline": false
                 });
             }
 
-            if(serverBlocks.length == 1){
+            console.log(serverBlocks);
+
+            if(serverBlocks.length === 1){
 
                 fields.push({
-                    name: "Shorter server query command",
-                    value: `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
-                    inline: false
+                    "name": "Shorter server query command",
+                    "value": `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
+                    "inline": false
                 });
             }
 
@@ -445,17 +450,30 @@ export default class Servers{
             const embed = new EmbedBuilder()
             .setColor(config.embedColor)
             .setTitle(title)
-            .setDescription(serverBlocks[0])
             .setFields(fields);
 
             
             await message.channel.send({ "embeds": [embed] });
 
+
+            
             for(let i = 1; i < serverBlocks.length; i++){
 
+                fields = [];
+
+
+                for(let x = 0; x < serverBlocks.length; x++){
+
+                    fields.push({
+                        "name": serverBlocks[0],
+                        "value": '\u200B',
+                        "inline": false
+                    });
+                }
+                
                 const embed = new EmbedBuilder()
                 .setColor(config.embedColor)
-                .setDescription(serverBlocks[i])
+                .setFields(fields)
           
 
                 if(i === serverBlocks.length - 1){
@@ -557,6 +575,11 @@ export default class Servers{
         const query = `SELECT override_country FROM servers WHERE ip=? AND port=?`;
 
         const result = sqliteGet(query, [ip, port]);
+        
+        if(result === undefined){
+            console.log(`TODO: Need to add support so domain names can get the correct country`);
+            return false;
+        }
 
         return result.override_country > 0;
 

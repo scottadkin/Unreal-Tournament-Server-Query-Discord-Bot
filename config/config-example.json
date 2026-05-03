@@ -6,7 +6,7 @@
     "commandPrefix": ".",
     "databaseFile": "./db/data.db",
     "serverTimeout": 2,
-    "embedColor": "0xff0000",
+    "embedColor": [255,0,0],
     "serverInfoPingInterval": 20,
     "failIcon": ":no_entry:",
     "passIcon": ":white_check_mark:",

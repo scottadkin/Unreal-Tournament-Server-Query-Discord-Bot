@@ -1,11 +1,11 @@
-import {Client, Events, GatewayIntentBits} from "discord.js";
-import config from "../config.json" with {"type": "json"};
-import UT99Query from "./ut99query.js;"
+import {Client, Events, GatewayIntentBits, Partials} from "discord.js";
+import config from "../config/config.json" with {"type": "json"};
+import UT99Query from "./ut99query.js";
 import Servers from "./servers.js";
 import Channels from "./channels.js";
 import Roles from "./roles.js";
 
-class Bot{
+export default class Bot{
 
     constructor(){
 
@@ -636,6 +636,3 @@ class Bot{
     }
     
 }
-
-
-module.exports = Bot;

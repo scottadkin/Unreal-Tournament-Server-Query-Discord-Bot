@@ -289,6 +289,27 @@ export default class Servers{
         }
     }
 
+    limitStringLength(input, limit, bSpecial){
+
+        input = input.toString();
+
+        if(input.length > limit){
+            input = input.substring(0, limit);
+        }
+
+        while(input.length < limit){
+
+            if(bSpecial === undefined){
+                input += " ";
+            }else{
+                input = " "+input;
+            }
+        
+        }
+
+        return input;
+
+    }
 
     createServerString(id, server){
 
@@ -300,34 +321,9 @@ export default class Servers{
         const now = Math.floor(Date.now() * 0.001);
         const diff = now - server.modified;
 
+        const serverId = this.limitStringLength(id, idLength);
+        const alias = this.limitStringLength(server.alias, aliasLength);
         
-
-        const fixValue = (input, limit, bSpecial) =>{
-
-            input = input.toString();
-
-            if(input.length > limit){
-                input = input.substring(0, limit);
-            }
-
-            while(input.length < limit){
-
-                if(bSpecial === undefined){
-                    input += " ";
-                }else{
-                    input = " "+input;
-                }
-           
-            }
-
-            return input;
-        }
-
-
-        let serverId = fixValue(id, idLength);
-        let alias = fixValue(server.alias, aliasLength);
-        
-
         let playerString = "";
 
         if(server.max_players == "ers"){
@@ -341,20 +337,31 @@ export default class Servers{
             playerString = "N/A";
         }
 
-        let map = fixValue(server.map, mapLength)+" ";
+        const map = this.limitStringLength(server.map, mapLength)+" ";
       
+        const players = this.limitStringLength(playerString, playersLength, true);
 
-        let players = fixValue(playerString, playersLength, true);
+        return `\`${serverId} - ${alias} ${map} ${players}\``;
 
-        let string = `\`${serverId} - ${alias} ${map} ${players}\``;
-
-        return string;
     }
 
+    sendNoServers(message, bOnlyActive){
+
+        const title =  "Unreal Tournament Server List";
+
+        const desc = (bOnlyActive) ? `There are currently no active servers.` : "There aren't any servers added to the bot.";
+
+        const embed = new EmbedBuilder()
+        .setColor(config.embedColor)
+        .setTitle(`${(bOnlyActive) ? "Active" : ""} ${title}`)
+        .setDescription(desc)
+        .setTimestamp();
+
+        return message.channel.send({"embeds": [embed]});
+    }
 
     async listServers(message, bOnlyActive){
 
-        TODO: clean this mess
         try{
 
             const servers = this.getAllServers();
@@ -363,7 +370,14 @@ export default class Servers{
             
             const maxPerBlock = config.maxServersPerBlock;
 
-            let string = "";
+            if(servers.length !== 0){
+
+                return this.sendNoServers(message, bOnlyActive);
+            }
+
+
+
+            /*let string = "";
 
             let currentBlockSize = 0;
             const serverBlocks = [];
@@ -392,20 +406,6 @@ export default class Servers{
 
             let title = "Unreal Tournament Server List";
 
-            if(bOnlyActive !== undefined){
-
-                title = "Active Unreal Tournament Server List";
-
-                if(string == "" && serverBlocks.length === 0){
-                    string = "There are currently no active servers.";
-                }
-
-            }else{
-
-                if(string == "" && serverBlocks.length === 0){
-                    string = "There are currently no servers added.";
-                }
-            }
 
             if(string !== ''){
                 serverBlocks.push(string);
@@ -481,7 +481,7 @@ export default class Servers{
                 }
 
                 await message.channel.send({ embeds: [embed] });
-            }
+            }*/
 
         }catch(err){
             console.trace(err);

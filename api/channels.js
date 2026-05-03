@@ -1,5 +1,6 @@
-const config = require('../config/config.json');
+import config from '../config/config.json' with {'type': 'json'};
 import { sqliteGet, sqliteRun, sqliteGetAll } from './database';
+import { EmbedBuilder } from 'discord.js';
 
 export default class Channels{
 
@@ -191,7 +192,7 @@ export default class Channels{
 
     }
 
-    async enableAutoQuery(message, servers, Discord){
+    async enableAutoQuery(message, servers){
 
         try{
 
@@ -219,15 +220,14 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
 
             let currentMessage = 0;
 
-            let embed = 0;
 
             for(let i = 0; i < currentServers.length; i++){
 
-                embed = new Discord.EmbedBuilder()
+                const embed = new EmbedBuilder()
                     .setColor(config.embedColor)
                     .setDescription(`Waiting for data for server **${currentServers[i].name}** id (${i+1})`);
 
-                await message.channel.send({ embeds: [embed] }).then((message) =>{
+                await message.channel.send({ "embeds": [embed] }).then((message) =>{
           
                     currentMessage = message;
                 });

@@ -5,7 +5,7 @@ import ServerResponse from './serverResponse.js';
 import Servers from './servers';
 import Channels from './channels';
 
-class UT99Query{
+export default class UT99Query{
 
     constructor(discord, bAuto){
 
@@ -723,6 +723,3 @@ class UT99Query{
         });
     }
 }
-
-
-module.exports = UT99Query;

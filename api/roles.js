@@ -1,11 +1,9 @@
-const config = require('../config/config.json');
+import config from '../config/config.json' with {'type': 'json'}
 import { sqliteGet, sqliteRun , sqliteGetAll} from './database.js';
 
-class Roles{
+export default class Roles{
 
-    constructor(){
-
-    }
+    constructor(){}
 
     async bUserAdmin(message){
 
@@ -243,5 +241,3 @@ class Roles{
         }
     }
 }
-
-module.exports = Roles;

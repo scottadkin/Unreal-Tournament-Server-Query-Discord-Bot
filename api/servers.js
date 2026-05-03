@@ -2,6 +2,7 @@ import config from '../config/config.json' with {'type': 'json'};
 import { sqliteGet, sqliteGetAll, sqliteRun } from './database';
 import dns from 'node:dns';
 import Channels from './channels';
+import { EmbedBuilder } from 'discord.js';
 
 export default class Servers{
 
@@ -351,7 +352,7 @@ export default class Servers{
     }
 
 
-    async listServers(Discord, message, bOnlyActive){
+    async listServers(message, bOnlyActive){
 
         try{
 
@@ -361,15 +362,12 @@ export default class Servers{
 
             let string = "";
 
-            let s = 0;
-
-           // let currentBlock = '';
             let currentBlockSize = 0;
             const serverBlocks = [];
 
             for(let i = 0; i < servers.length; i++){
 
-                s = servers[i];
+                const s = servers[i];
 
                 if(currentBlockSize >= maxPerBlock){
                     serverBlocks.push(string);
@@ -386,13 +384,8 @@ export default class Servers{
                         currentBlockSize++;
                         string += this.createServerString(i + 1, s)+"\n";
                     }
-                }
-                
+                }    
             }
-
-            
-
-            let embed = new Discord.EmbedBuilder()
 
             let title = "Unreal Tournament Server List";
 
@@ -415,13 +408,10 @@ export default class Servers{
                 serverBlocks.push(string);
             }
 
-           // console.log(serverBlocks);
+            const fields = [];
 
-            embed.setColor(config.embedColor)
-            .setTitle(title)
-
-            let fields = [];
             if(servers.length > 0){
+
                 fields.push({
                     name: this.createServerString("ID", {
                         "alias": "Alias",
@@ -432,7 +422,9 @@ export default class Servers{
                     value: serverBlocks[0],
                     inline: false
                 });
+
             }else{
+
                 fields.push({
                     name: serverBlocks[0],
                     value: '\u200B',
@@ -441,22 +433,30 @@ export default class Servers{
             }
 
             if(serverBlocks.length == 1){
+
                 fields.push({
                     name: "Shorter server query command",
                     value: `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
                     inline: false
                 });
             }
-            embed.addFields(fields);
+
+
+            const embed = new EmbedBuilder()
+            .setColor(config.embedColor)
+            .setTitle(title)
+            .setDescription(serverBlocks[0])
+            .setFields(fields);
+
             
-            await message.channel.send({ embeds: [embed] });
+            await message.channel.send({ "embeds": [embed] });
 
             for(let i = 1; i < serverBlocks.length; i++){
 
-                embed = new Discord.EmbedBuilder()
-                embed = new Discord.Mess()
-                    .setColor(config.embedColor)
-                    .setDescription(serverBlocks[i]);
+                const embed = new EmbedBuilder()
+                .setColor(config.embedColor)
+                .setDescription(serverBlocks[i])
+          
 
                 if(i === serverBlocks.length - 1){
                     embed.addFields("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);

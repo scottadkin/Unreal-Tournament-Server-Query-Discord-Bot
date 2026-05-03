@@ -1,11 +1,9 @@
-const Discord = require('discord.js');
-const { GatewayIntentBits, Partials } = require('discord.js');
-const config = require('../config/config.json');
-const UT99Query = require('./ut99query.js');
-const Database = require('./database.js');
-const Servers = require('./servers');
-const Channels = require('./channels');
-const Roles = require('./roles');
+import {Client, Events, GatewayIntentBits} from "discord.js";
+import config from "../config.json" with {"type": "json"};
+import UT99Query from "./ut99query.js;"
+import Servers from "./servers.js";
+import Channels from "./channels.js";
+import Roles from "./roles.js";
 
 class Bot{
 
@@ -20,9 +18,6 @@ class Bot{
             "port"
         ];
         
-        this.db = new Database();
-        this.db = this.db.sqlite;
-
         this.servers = new Servers();
         this.channels = new Channels();
         this.roles = new Roles();
@@ -33,13 +28,13 @@ class Bot{
     createClient(name){
         this.name = name;
 
-        this.client = new Discord.Client({
-            messageCacheMaxSize: 1,
-            messageCacheLifetime: 10,
-            messageSweepInterval: 30,
-            messageEditHistoryMaxSize: 0,
-            partials: [Partials.Channel],
-            intents: [
+        this.client = new Client({
+            "messageCacheMaxSize": 1,
+            "messageCacheLifetime": 10,
+            "messageSweepInterval": 30,
+            "messageEditHistoryMaxSize": 0,
+            "partials": [Partials.Channel],
+            "intents": [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent
@@ -143,11 +138,11 @@ class Bot{
 
                 }else if(listReg.test(message.content)){
 
-                    this.servers.listServers(Discord, message);
+                    this.servers.listServers(message);
 
                 }else if(activeReg.test(message.content)){
 
-                    this.servers.listServers(Discord, message, true);
+                    this.servers.listServers(message, true);
 
                 }else if(ipReg.test(message.content)){
 
@@ -331,7 +326,7 @@ class Bot{
 
         }else if(m.startsWith(commands[8])){
 
-            this.channels.enableAutoQuery(message, this.servers, Discord);
+            this.channels.enableAutoQuery(message, this.servers);
 
             return true;
 

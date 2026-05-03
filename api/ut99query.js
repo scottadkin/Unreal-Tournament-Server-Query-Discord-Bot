@@ -4,7 +4,7 @@ const ServerResponse = require('./serverResponse');
 const dns = require('dns');
 const Servers = require('./servers');
 const Channels = require('./channels');
-const Database = require('./db');
+const Database = require('./database.mjs');
 const Discord = require('discord.js');
 
 class UT99Query{

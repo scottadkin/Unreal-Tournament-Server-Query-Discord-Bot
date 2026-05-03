@@ -1,5 +1,5 @@
 const config = require('../config/config.json');
-const Database = require('./db');
+const Database = require('./database.mjs');
 const dns = require('dns');
 const Channels = require('./channels');
 

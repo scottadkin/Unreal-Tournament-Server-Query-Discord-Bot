@@ -126,6 +126,10 @@ export default class Servers{
     }
 
 
+    getAllActiveServers(){
+        return sqliteGetAll(`SELECT * FROM servers WHERE players>0 ORDER BY created ASC`);
+    }
+
     getAllServers(){
 
         const query = "SELECT * FROM servers ORDER BY created ASC";
@@ -289,7 +293,7 @@ export default class Servers{
         }
     }
 
-    limitStringLength(input, limit, bSpecial){
+    forceStringLength(input, limit, bSpecial){
 
         input = input.toString();
 
@@ -321,8 +325,8 @@ export default class Servers{
         const now = Math.floor(Date.now() * 0.001);
         const diff = now - server.modified;
 
-        const serverId = this.limitStringLength(id, idLength);
-        const alias = this.limitStringLength(server.alias, aliasLength);
+        const serverId = this.forceStringLength(id, idLength);
+        const alias = this.forceStringLength(server.alias, aliasLength);
         
         let playerString = "";
 
@@ -337,9 +341,9 @@ export default class Servers{
             playerString = "N/A";
         }
 
-        const map = this.limitStringLength(server.map, mapLength)+" ";
+        const map = this.forceStringLength(server.map, mapLength)+" ";
       
-        const players = this.limitStringLength(playerString, playersLength, true);
+        const players = this.forceStringLength(playerString, playersLength, true);
 
         return `\`${serverId} - ${alias} ${map} ${players}\``;
 
@@ -360,131 +364,69 @@ export default class Servers{
         return message.channel.send({"embeds": [embed]});
     }
 
+
+    createServerListParts(servers){
+
+        const parts = [];
+
+        let desc = this.createServerString("ID", {"alias": "Alias", "map": "Map", "players": 0, "max_players": "ers"}, );
+        desc += `\n`;
+
+        let currentCount = 0;
+
+        for(let i = 0; i < servers.length; i++){
+
+            const s = servers[i];
+
+            desc += this.createServerString(i + 1, s);
+            if(i < servers.length - 1) desc += `\n`;
+
+            currentCount++;
+
+            if(currentCount >= config.maxServersPerBlock){
+                currentCount = 0;
+                parts.push(desc);
+                desc = ``;
+            }
+        }
+
+        if(parts.length === 0) parts.push(desc);
+
+        return parts;
+    }
+
     async listServers(message, bOnlyActive){
 
-        try{
+        const servers = (bOnlyActive) ? this.getAllActiveServers() : this.getAllServers();
 
-            const servers = this.getAllServers();
+        if(servers.length === 0){
+            return this.sendNoServers(message, bOnlyActive);
+        }
 
-            console.log(servers);
-            
-            const maxPerBlock = config.maxServersPerBlock;
+        const parts = this.createServerListParts(servers);
 
-            if(servers.length !== 0){
+        const infoField = {
+            "name": "Shorter server query command",
+            "value": `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
+            "inline": false
+        };
 
-                return this.sendNoServers(message, bOnlyActive);
+        for(let i = 0; i < parts.length; i++){
+
+            const embed = new EmbedBuilder().setColor(config.embedColor);
+
+            if(i === 0){
+                embed.setTitle(`:desktop: ${(bOnlyActive) ? "Active" : ""} UT Servers List`);
             }
 
+            embed.setDescription(parts[i]);
 
+            if(i === parts.length - 1){
 
-            /*let string = "";
-
-            let currentBlockSize = 0;
-            const serverBlocks = [];
-
-            for(let i = 0; i < servers.length; i++){
-
-                const s = servers[i];
-
-                if(currentBlockSize >= maxPerBlock){
-                    serverBlocks.push(string);
-                    currentBlockSize = 0;
-                    string = '';
-                }
-
-                if(bOnlyActive === undefined){
-                    currentBlockSize++;
-                    string += this.createServerString(i + 1, s)+"\n";
-                }else{
-
-                    if(s.players > 0){
-                        currentBlockSize++;
-                        string += this.createServerString(i + 1, s)+"\n";
-                    }
-                }    
+                embed.addFields([infoField]).setTimestamp();
             }
 
-            let title = "Unreal Tournament Server List";
-
-
-            if(string !== ''){
-                serverBlocks.push(string);
-            }
-
-            let fields = [];
-
-            if(servers.length > 0){
-
-                fields.push({
-                    "name": this.createServerString("ID", {
-                        "alias": "Alias",
-                        "players": "Play",
-                        "max_players": "ers",
-                        "map": "Map"
-                    }),
-                    "value": serverBlocks[0],
-                    "inline": false
-                });
-
-            }else{
-
-                fields.push({
-                    "name": serverBlocks[0],
-                    "value": '\u200B',
-                    "inline": false
-                });
-            }
-
-            console.log(serverBlocks);
-
-            if(serverBlocks.length === 1){
-
-                fields.push({
-                    "name": "Shorter server query command",
-                    "value": `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
-                    "inline": false
-                });
-            }
-
-
-            const embed = new EmbedBuilder()
-            .setColor(config.embedColor)
-            .setTitle(title)
-            .setFields(fields);
-
-            
-            await message.channel.send({ "embeds": [embed] });
-
-
-            
-            for(let i = 1; i < serverBlocks.length; i++){
-
-                fields = [];
-
-
-                for(let x = 0; x < serverBlocks.length; x++){
-
-                    fields.push({
-                        "name": serverBlocks[0],
-                        "value": '\u200B',
-                        "inline": false
-                    });
-                }
-                
-                const embed = new EmbedBuilder()
-                .setColor(config.embedColor)
-                .setFields(fields)
-          
-
-                if(i === serverBlocks.length - 1){
-                    embed.addFields("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);
-                }
-
-                await message.channel.send({ embeds: [embed] });
-            }*/
-
-        }catch(err){
-            console.trace(err);
+            message.channel.send({embeds: [embed]});
         }
     }
 

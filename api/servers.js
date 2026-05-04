@@ -13,79 +13,67 @@ export default class Servers{
 
     async addServer(message){
 
-        try{
+        const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
 
-            const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
+        const result = reg.exec(message.content);
 
-            const result = reg.exec(message.content);
+        if(result === null){
+            return message.channel.send(`${config.failIcon} Incorrect syntax for **addserver**`);
+        }
 
-            if(result === null){
+        let port = 7777;
+        let ip = 0;
 
-                message.channel.send(`${config.failIcon} Incorrect syntax for **addserver**`);
-                return;
+        if(result[3] === undefined){
 
-            }else{
+            ip = dns.lookup(result[6], async (err, ipResult) =>{
 
-                let port = 7777;
-                let ip = 0;
+                if(err){
+                    return message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
+                }
 
-                if(result[3] === undefined){
+                /*if(ipResult === undefined){
 
-                    ip = dns.lookup(result[6], async (err, ipResult) =>{
+                    message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
+                    return;
+                }*/
 
-                        if(err){
-                            message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
-                            return;
-                        }
+                if(result[8] !== undefined){
 
-                        /*if(ipResult === undefined){
-
-                            message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
-                            return;
-                        }*/
-
-                        if(result[8] !== undefined){
-
-                            if(result[8] !== ''){
-                                port = parseInt(result[8]);
-                            }
-                        }
-
-                        //console.log(await this.bServerAdded(ipResult));
-                        //ip, realIp, alias, port
-
-                        if(!this.bServerAdded(ipResult, port)){
-
-                            this.insertServer(result[6], ipResult, result[1], port);
-                            message.channel.send(`${config.passIcon} Server added successfully.`);
-
-                        }else{
-                            message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
-                        }
-                    });   
-
-                }else{
-
-                    ip = result[3];
-
-                    if(result[5] !== undefined){
-                        port = parseInt(result[5]);
-                    }
-
-                    if(!this.bServerAdded(ip, port)){
-
-                        this.insertServer(ip, ip, result[1], port);
-                        message.channel.send(`${config.passIcon} Server added successfully.`);
-
-                    }else{
-                        message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
+                    if(result[8] !== ''){
+                        port = parseInt(result[8]);
                     }
                 }
+
+
+                if(!this.bServerAdded(ipResult, port)){
+
+                    this.insertServer(result[6], ipResult, result[1], port);
+                    return message.channel.send(`${config.passIcon} Server added successfully.`);
+
+                }else{
+                    return message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
+                }
+            });   
+
+        }else{
+
+            ip = result[3];
+
+            if(result[5] !== undefined){
+                port = parseInt(result[5]);
             }
 
-        }catch(err){
-            console.trace(err);
+            if(!this.bServerAdded(ip, port)){
+
+                this.insertServer(ip, ip, result[1], port);
+                return message.channel.send(`${config.passIcon} Server added successfully.`);
+
+            }else{
+                return message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
+            }
         }
+        
 
     }
 
@@ -139,51 +127,42 @@ export default class Servers{
 
 
 
-    async removeServer(message){
+    removeServer(message){
 
-        try{
+        const reg = /^.removeserver (\d+)$/i;
 
-            const reg = /^.removeserver (\d+)$/i;
+        const result = reg.exec(message.content);
 
-            const result = reg.exec(message.content);
+        if(result === null){
 
-            if(result !== null){
-
-                const servers = this.getAllServers();
-
-                //console.table(servers);
-
-                let id = parseInt(result[1]);
-
-                if(id !== id){
-
-                    message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver, id must be a valid integer.`);
-                    return;
-
-                }else if(id > servers.length || id < 1){
-
-                    message.channel.send(`${config.failIcon} There are no servers with the id ${id}`);
-                    return;
-
-                }
-
-                id = id - 1;
-
-                const s = servers[id];
-
-                await this.deleteServer(s.id);
-
-                message.channel.send(`${config.passIcon} Deleted server successfully.`);        
-
-            }else{
-
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver.`);
-            }
-
-
-        }catch(err){
-            console.trace(err);
+            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver.`);
         }
+
+      
+        const servers = this.getAllServers();
+
+        let id = parseInt(result[1]);
+
+        if(id !== id){
+
+            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver, id must be a valid integer.`);
+            
+
+        }else if(id > servers.length || id < 1){
+
+            return message.channel.send(`${config.failIcon} There are no servers with the id ${id}`);
+           
+
+        }
+
+        id = id - 1;
+
+        const s = servers[id];
+
+        this.deleteServer(s.id);
+
+        return message.channel.send(`${config.passIcon} Deleted server successfully.`);        
+
     }
 
 
@@ -224,73 +203,46 @@ export default class Servers{
  
     }
 
-    async updateInfo(data){
+    updateInfo(data){
 
-        try{
+        const bCountryOverride = this.bCountryOverride(data.ip, data.port);
 
-            const bCountryOverride = this.bCountryOverride(data.ip, data.port);
-
-            //console.log(bCountryOverride);
-
-            if(!bCountryOverride){
-                this.updateQuery(data);
-            }else{
-                this.updateQuery(data, true);
-            }
-
-        }catch(err){
-            console.trace(err);
+        if(!bCountryOverride){
+            this.updateQuery(data);
+        }else{
+            this.updateQuery(data, true);
         }
-        
+  
     }
 
 
-    async getIp(message){
+    getIp(message){
 
-        try{
+        const reg = /^.ip(\d+)$/i;
 
-            const reg = /^.ip(\d+)$/i;
+        const result = reg.exec(message.content);
 
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                const server = await this.getServerById(result[1]);
-
-
-                if(server === null){
-
-                   // throw new Error("");
-                    message.channel.send(`${config.failIcon} A server with that id does not exist.`);
-                    return;
-
-                }else{
-
-                    let flag = server.country;
-
-                    if(flag == '' || flag == 'none'){
-                        flag = ':video_game:';
-                    }else{
-                        flag = `:flag_${flag.toLowerCase()}:`;
-                    }
-
-                    flag = `${flag} `;
-
-                    let string = `${flag}**${server.name}**\n**<unreal://${server.ip}:${server.port}>**`;
-
-                    message.channel.send(string);
-                    
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}ip command.`);
-            }
-
-
-
-        }catch(err){
-            console.trace(err);
+        if(result === null){
+            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}ip command.`);
         }
+        const server = this.getServerById(result[1]);
+
+        if(servers === null){
+            return message.channel.send(`${config.failIcon} A server with that id does not exist.`);
+        }
+
+        let flag = server.country;
+
+        if(flag == '' || flag == 'none'){
+            flag = ':video_game:';
+        }else{
+            flag = `:flag_${flag.toLowerCase()}:`;
+        }
+
+        let string = `${flag} **${server.name}**\n**<unreal://${server.ip}:${server.port}>**`;
+
+        return message.channel.send(string);
+        
     }
 
     forceStringLength(input, limit, bSpecial){
@@ -390,7 +342,11 @@ export default class Servers{
             }
         }
 
-        if(parts.length === 0) parts.push(desc);
+        if(parts.length === 0){
+            parts.push(desc);
+        }else if(desc !== ""){
+            parts.push(desc);
+        }
 
         return parts;
     }
@@ -447,51 +403,39 @@ export default class Servers{
 
     async bValidServerId(id){
 
-        try{
+        id = parseInt(id);
 
-            id = parseInt(id);
+        if(id !== id) throw new Error("Id must be a valid integer.");
 
-            if(id !== id) throw new Error("Id must be a valid integer.");
+        id--;
 
-            id--;
+        if(id < 0) throw new Error("Id must be a positive integer.");
 
-            if(id < 0) throw new Error("Id must be a positive integer.");
+        const servers = this.getAllServers();
 
-            const servers = this.getAllServers();
+        if(id < servers.length){
 
-            if(id < servers.length){
-
-                return true;
-            }
-
-            return false;
-
-        }catch(err){
-            console.trace(err);
+            return true;
         }
+
+        return false;
 
     }
 
-    async getServerById(id){
+    getServerById(id){
 
-        try{
+        if(this.bValidServerId(id)){
 
-            if(await this.bValidServerId(id)){
+            const servers = this.getAllServers();
 
-                const servers = this.getAllServers();
+            id = parseInt(id);
 
-                id = parseInt(id);
+            id--;
 
-                id--;
-
-                return servers[id];
-                
-            }else{
-                return null;
-            }
-
-        }catch(err){
-            console.trace(err);
+            return servers[id];
+            
+        }else{
+            return null;
         }
     }
 
@@ -526,7 +470,4 @@ export default class Servers{
         return result.override_country > 0;
 
     }
-
-    
-
 }

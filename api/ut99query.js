@@ -283,9 +283,7 @@ export default class UT99Query{
                         "port": response.port
                     };
 
-                    await this.servers.updateInfo(potato);
-                    
-                    return;
+                    return this.servers.updateInfo(potato);
 
                 }else if(response.type === 'players'){
 
@@ -332,7 +330,7 @@ export default class UT99Query{
                         "port": response.port
                     };
 
-                    await this.servers.updateInfo(potato);
+                    this.servers.updateInfo(potato);
                     
                     return true;
 

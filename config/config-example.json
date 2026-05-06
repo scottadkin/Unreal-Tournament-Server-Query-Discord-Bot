@@ -13,5 +13,6 @@
     "autoQueryInterval": 30,
     "bAutoQueryMessagesOnly": true,
     "bDisplayNotEnabledMessage": true,
-    "maxServersPerBlock": 10
+    "maxServersPerBlock": 10,
+    "bSkipAdminHelpToNonAdmins": false
 }

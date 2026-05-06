@@ -26,6 +26,7 @@ export default class Bot{
     }
 
     createClient(name){
+
         this.name = name;
 
         this.client = new Client({
@@ -61,7 +62,14 @@ export default class Bot{
         this.client.on('messageCreate', (message) =>{
 
             if(message.author.bot) return;
-            this.checkCommand(message);
+            
+            try{
+
+                this.checkCommand(message);
+
+            }catch(err){
+                console.trace(err);
+            }
             
         });
 
@@ -70,101 +78,94 @@ export default class Bot{
 
     checkCommand(message){
 
-        try{
-
-            if(!message.content.startsWith(config.commandPrefix) || message.content.length === 1){
-                return;
-            }
-
-            //ignore double in case someone wants to show another user how to use a command like ..q1
-            if(message.content[0] == config.commandPrefix && message.content[1] == config.commandPrefix){
-                return;
-            }
-
-            if(this.roles.bUserAdmin(message)){
-
-                if(this.adminCommands(message)){
-                    return;
-                }
-                
-            }else{
-
-                if(this.adminCommands(message, true)){
-                    return;
-                }
-            }
-
-            this.normalCommands(message);
-            
-
-        }catch(err){
-            console.trace(err);
+        if(!message.content.startsWith(config.commandPrefix) || message.content.length === 1){
+            return;
         }
+
+        //ignore double in case someone wants to show another user how to use a command like ..q1
+        if(message.content[0] == config.commandPrefix && message.content[1] == config.commandPrefix){
+            return;
+        }
+
+        if(this.roles.bUserAdmin(message)){
+
+            if(this.adminCommands(message)){
+                return;
+            }
+            
+        }else{
+
+            if(this.adminCommands(message, true)){
+                return;
+            }
+        }
+
+        this.normalCommands(message);
 
     }
 
     normalCommands(message){
 
-        if(this.channels.bBotCanCommentInChannel(message)){
+        if(!this.channels.bBotCanCommentInChannel(message)){
 
-            const helpReg = /^.help$/i;
-            const shortServerQueryReg = /^.q\d+$/i;
-            const serverQueryReg = /^.q .+$/i;
-            const listReg = /^.servers/i;
-            const activeReg = /^.active/i;
-            const ipReg = /^.ip\d+/i;
-            const extendedReg = /^.extended \d+$/i;
-            const altExtendedReg = /^.extended .+$/i;
-            const playersReg = /^.players \d+$/i;
-            const altPlayersReg = /^.players .+/i;
-
-            if(helpReg.test(message.content)){
-
-                this.helpCommand(message);
-
-            }else if(shortServerQueryReg.test(message.content)){
-                
-                this.shortQueryServer(message);
-                
-            }else if(serverQueryReg.test(message.content)){
-
-                this.queryServer(message);
-
-            }else if(listReg.test(message.content)){
-
-                this.servers.listServers(message);
-
-            }else if(activeReg.test(message.content)){
-
-                this.servers.listServers(message, true);
-
-            }else if(ipReg.test(message.content)){
-
-                this.servers.getIp(message);
-
-            }else if(extendedReg.test(message.content)){
-
-                this.queryServerExtended(message);
-
-            }else if(altExtendedReg.test(message.content)){
-
-                this.queryServerExtendedAlt(message);
-
-            }else if(playersReg.test(message.content)){
-
-                this.queryPlayers(message);
-
-            }else if(altPlayersReg.test(message.content)){
-
-                this.queryPlayersAlt(message);
-
-            }
-
-
-        }else{
             if(config.bDisplayNotEnabledMessage){
                 message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
             }
+
+            return;
+        }
+
+        const helpReg = /^.help$/i;
+        const shortServerQueryReg = /^.q\d+$/i;
+        const serverQueryReg = /^.q .+$/i;
+        const listReg = /^.servers/i;
+        const activeReg = /^.active/i;
+        const ipReg = /^.ip\d+/i;
+        const extendedReg = /^.extended \d+$/i;
+        const altExtendedReg = /^.extended .+$/i;
+        const playersReg = /^.players \d+$/i;
+        const altPlayersReg = /^.players .+/i;
+
+        if(helpReg.test(message.content)){
+
+            this.helpCommand(message);
+
+        }else if(shortServerQueryReg.test(message.content)){
+            
+            this.shortQueryServer(message);
+            
+        }else if(serverQueryReg.test(message.content)){
+
+            this.queryServer(message);
+
+        }else if(listReg.test(message.content)){
+
+            this.servers.listServers(message);
+
+        }else if(activeReg.test(message.content)){
+
+            this.servers.listServers(message, true);
+
+        }else if(ipReg.test(message.content)){
+
+            this.servers.getIp(message);
+
+        }else if(extendedReg.test(message.content)){
+
+            this.queryServerExtended(message);
+
+        }else if(altExtendedReg.test(message.content)){
+
+            this.queryServerExtendedAlt(message);
+
+        }else if(playersReg.test(message.content)){
+
+            this.queryPlayers(message);
+
+        }else if(altPlayersReg.test(message.content)){
+
+            this.queryPlayersAlt(message);
+
         }
 
     }
@@ -207,24 +208,25 @@ export default class Bot{
 
         string += `${icon+icon} **User Commands** ${icon+icon}\n`;
 
-        let c = 0;
 
         for(let i = 0; i < userCommands.length; i++){
 
-            c = userCommands[i];
+            const c = userCommands[i];
 
             string += `**${c.name}** ${c.content}\n`;
         }
 
         message.channel.send(string);
 
-        string = "";
-    
-        string += `\n${icon+icon} **Admin Commands** ${icon+icon}\n`;
+        if(!this.roles.bUserAdmin(message) && config.bSkipAdminHelpToNonAdmins){
+            return;
+        }
+
+        string = `\n${icon+icon} **Admin Commands** ${icon+icon}\n`;
 
         for(let i = 0; i < adminCommands.length; i++){
 
-            c = adminCommands[i];
+            const c = adminCommands[i];
 
             string += `**${c.name}** ${c.content}\n`;
         }

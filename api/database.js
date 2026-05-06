@@ -1,7 +1,7 @@
 import sqlite from 'node:sqlite';
-import config from '../config/config.json' with {'type': 'json'};
+import { databaseFile } from '../config/config';
 import { DatabaseSync } from 'node:sqlite';
-const database = new DatabaseSync(config.databaseFile);
+const database = new DatabaseSync(databaseFile);
 
 
 export function createTable(query){

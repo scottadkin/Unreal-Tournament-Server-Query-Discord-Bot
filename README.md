@@ -9,8 +9,8 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - Open the command prompt in the same directory.
 - Run the command **npm install** to install all dependencies.
 - Run the command **node install** to install the database.
-- Copy **config/config-example.json** to **config/config.json**.
-- Edit **config.json**
+- Copy **config/config-example.js** to **config/config.js**.
+- Edit **config.js**
     - Now set the Discord token **token** to connect the bot to the server. [How to add a Discord bot](https://discordpy.readthedocs.io/en/latest/discord.html)
     - Now set **defaultAdminRole** to a role name that is in your Discord server, do not add a common role name as it gives those users access to admin commands.
 - Install process is now completed.
@@ -26,7 +26,7 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - **.active** Lists all servers added to the database that have at least one player.
 - **.q ip:port** Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.
 - **.q serverID** Query a Unreal Tournament server by just using the server's id instead of it's ip and port. Use the .servers command to find a server's id.
-- **.ip serverID** Displays the specified server's name with a clickable link.
+- **.ip serverID** Displays the specified server's name and address
 - **.players serverID** Displays extended information about players on the server.
 - **.players ip:port** Displays extended information about players on the server, domain address also work, if no port specified 7777 is used.
 - **.extended serverID** Displays extended information about the server.
@@ -46,24 +46,34 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - **.editserver id type value** Edit selected server's value type. Types:(alias,ip,country,port)
 
 
-# Config
+# Config.js
 ```javascript
-{
-    "udpPort": "19999", //port for standard queries
-    "udpPortAuto": "19998", //port for auto queries
-    "token": "", //discord bot token
-    "defaultAdminRole": "Toilet Brush", //super admin role
-    "commandPrefix": ".", //what character you want the bot to respond to
-    "databaseFile": "./db/data.db",
-    "serverTimeout": 2, //how many seconds until the bot will display a server timeout
-    "embedColor": "#ff0000", //the border color of discord embeds
-    "serverInfoPingInterval": 5, //how often you want the bot to ping all servers for basic info(for .servers and .active)
-    "failIcon": ":no_entry:",
-    "passIcon": ":white_check_mark:",
-    "autoQueryInterval": 30, //how often you want the bot to update autoquery posts in the auto query channel
-    "bAutoQueryMessagesOnly": true, //delete any message in the auto query channel that's not a server query
-    "bDisplayNotEnabledMessage": true //Change to false if you don't want the bot to post 'The bot is not enabled in this channel'
-}
+export const udpPort = 19999;
+export const udpPortAuto = 19998;
+//discord token
+export const token = "";
+// make sure you set this to a role that exists
+// Make sure it's not a general role otherwise everyone in that group can use admin commands.
+export const defaultAdminRole = "Toilet Brush";
+//The character the bot will look for at the start of messages
+export const commandPrefix = ".";
+export const databaseFile = "./db/data.db";
+//how long to wait until giving up and showing server timed out message
+export const serverTimeout = 2;
+//                          R,G,B
+export const embedColor = [255,0,0];
+//how often the bot pings(in seconds) all servers to get basic info like player count and map
+export const serverInfoPingInterval = 20;
+export const failIcon = ":no_entry:";
+export const passIcon = ":white_check_mark:";
+//how often the bot will update the posts in the auto query channel if enabled.(seconds)
+export const autoQueryInterval = 30;
+//set to false to make the bot stop posting the not enabled message.
+export const bDisplayNotEnabledMessage = true;
+//max amount of servers to list in each discord embed
+export const maxServersPerBlock = 10;
+//Only display admin help commands to admins
+export const bSkipAdminHelpToNonAdmins = true;
 ```
 
 # Screenshots
@@ -72,6 +82,12 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 ![alt text](https://i.imgur.com/od3eEHf.png "test")
 
 # Release Log
+## 2026-xx-xx
+- **Breaking Change:** config file is now a .js file instead of a json file.
+- Added bSkipAdminHelpToNonAdmins to config.js, setting this value to false will hide the admin help commands to users that don’t have admin roles.
+- Removed the now unsupported clickable like in .ip commands.
+- Help commands now use discord embeds.
+
 ## 2026-05-03
 - Upgrade all packages to their latest.
 - Removed promise dependency.

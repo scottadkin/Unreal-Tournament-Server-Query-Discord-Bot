@@ -1,4 +1,5 @@
 import config from '../config/config.json' with {'type': 'json'};
+import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serverInfoPingInterval } from '../config/config.js';
 import dgram from 'node:dgram';
 import dns from 'node:dns';
 import ServerResponse from './serverResponse.js';
@@ -43,13 +44,13 @@ export default class UT99Query{
 
                 const r = this.responses[i];
       
-                if(now - r.timeStamp > config.serverTimeout && !r.bSentMessage){
+                if(now - r.timeStamp > serverTimeout && !r.bSentMessage){
 
                     r.bReceivedFinal = true;
                     r.bTimedOut = true;
 
                     if(r.type !== "basic"){
-                        r.sendFullServerResponse(this.channels, this.servers, config.embedColor);
+                        r.sendFullServerResponse(this.channels, this.servers, embedColor);
                     }else{
 
                         r.bSentMessage = true;
@@ -66,7 +67,7 @@ export default class UT99Query{
                 }
             });
 
-        }, (config.serverTimeout * 2) * 1000);
+        }, (serverTimeout * 2) * 1000);
 
 
         if(this.bAuto){
@@ -175,7 +176,7 @@ export default class UT99Query{
                 //console.log(`AutoqueryChannel is not SET!`);
             }
 
-        }, config.autoQueryInterval * 1000);
+        }, autoQueryInterval * 1000);
     }
 
 
@@ -197,7 +198,7 @@ export default class UT99Query{
                 console.trace(err);
             }
 
-        }, config.serverInfoPingInterval * 1000);
+        }, serverInfoPingInterval * 1000);
 
 
     }
@@ -229,9 +230,9 @@ export default class UT99Query{
 
        // console.log(`this.bAuto = ${this.bAuto}`);
         if(!this.bAuto){
-            this.server.bind(config.udpPort);
+            this.server.bind(udpPort);
         }else{
-            this.server.bind(config.udpPortAuto);
+            this.server.bind(udpPortAuto);
         }
     }
 
@@ -302,7 +303,7 @@ export default class UT99Query{
                     return;
 
                 }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
-                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor);
+                    response.sendFullServerResponse(this.channels, this.servers, embedColor);
                     return;
                 }
 
@@ -312,7 +313,7 @@ export default class UT99Query{
 
                 if(response.type == "full"){
 
-                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor);
+                    response.sendFullServerResponse(this.channels, this.servers, embedColor);
                     return true;
 
                 }else if(response.type == "basic"){

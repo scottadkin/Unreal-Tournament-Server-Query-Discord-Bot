@@ -1,4 +1,4 @@
-import config from '../config/config.json' with {'type': 'json'};
+import { passIcon, failIcon, commandPrefix, serverInfoPingInterval, embedColor, maxServersPerBlock } from '../config/config.js';
 import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
 import dns from 'node:dns';
 import Channels from './channels.js';
@@ -18,7 +18,7 @@ export default class Servers{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} Incorrect syntax for **addserver**`);
+            return message.channel.send(`${failIcon} Incorrect syntax for **addserver**`);
         }
 
         let port = 7777;
@@ -29,12 +29,12 @@ export default class Servers{
             ip = dns.lookup(result[6], async (err, ipResult) =>{
 
                 if(err){
-                    return message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
+                    return message.channel.send(`${failIcon} There is no matching ip for that domain address.`);
                 }
 
                 /*if(ipResult === undefined){
 
-                    message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
+                    message.channel.send(`${failIcon} There is no matching ip for that domain address.`);
                     return;
                 }*/
 
@@ -49,10 +49,10 @@ export default class Servers{
                 if(!this.bServerAdded(ipResult, port)){
 
                     this.insertServer(result[6], ipResult, result[1], port);
-                    return message.channel.send(`${config.passIcon} Server added successfully.`);
+                    return message.channel.send(`${passIcon} Server added successfully.`);
 
                 }else{
-                    return message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
+                    return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
                 }
             });   
 
@@ -67,10 +67,10 @@ export default class Servers{
             if(!this.bServerAdded(ip, port)){
 
                 this.insertServer(ip, ip, result[1], port);
-                return message.channel.send(`${config.passIcon} Server added successfully.`);
+                return message.channel.send(`${passIcon} Server added successfully.`);
 
             }else{
-                return message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
+                return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
             }
         }
         
@@ -135,7 +135,7 @@ export default class Servers{
 
         if(result === null){
 
-            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}removeserver.`);
         }
 
       
@@ -145,12 +145,12 @@ export default class Servers{
 
         if(id !== id){
 
-            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver, id must be a valid integer.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}removeserver, id must be a valid integer.`);
             
 
         }else if(id > servers.length || id < 1){
 
-            return message.channel.send(`${config.failIcon} There are no servers with the id ${id}`);
+            return message.channel.send(`${failIcon} There are no servers with the id ${id}`);
            
 
         }
@@ -161,7 +161,7 @@ export default class Servers{
 
         this.deleteServer(s.id);
 
-        return message.channel.send(`${config.passIcon} Deleted server successfully.`);        
+        return message.channel.send(`${passIcon} Deleted server successfully.`);        
 
     }
 
@@ -223,12 +223,12 @@ export default class Servers{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}ip command.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}ip command.`);
         }
         const server = this.getServerById(result[1]);
 
         if(server === null){
-            return message.channel.send(`${config.failIcon} A server with that id does not exist.`);
+            return message.channel.send(`${failIcon} A server with that id does not exist.`);
         }
 
         let flag = server.country;
@@ -288,7 +288,7 @@ export default class Servers{
             playerString = server.players+"/"+server.max_players;
         }
 
-        if(diff >= config.serverInfoPingInterval * 2 && server.modified !== undefined){
+        if(diff >= serverInfoPingInterval * 2 && server.modified !== undefined){
             server.map = "Timed Out!";
             playerString = "N/A";
         }
@@ -308,7 +308,7 @@ export default class Servers{
         const desc = (bOnlyActive) ? `There are currently no active servers.` : "There aren't any servers added to the bot.";
 
         const embed = new EmbedBuilder()
-        .setColor(config.embedColor)
+        .setColor(embedColor)
         .setTitle(`${(bOnlyActive) ? "Active" : ""} ${title}`)
         .setDescription(desc)
         .setTimestamp();
@@ -335,7 +335,7 @@ export default class Servers{
 
             currentCount++;
 
-            if(currentCount >= config.maxServersPerBlock){
+            if(currentCount >= maxServersPerBlock){
                 currentCount = 0;
                 parts.push(desc);
                 desc = ``;
@@ -363,13 +363,13 @@ export default class Servers{
 
         const infoField = {
             "name": "Shorter server query command",
-            "value": `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
+            "value": `Type **${commandPrefix}q id** to query a server instead of ip:port.`,
             "inline": false
         };
 
         for(let i = 0; i < parts.length; i++){
 
-            const embed = new EmbedBuilder().setColor(config.embedColor);
+            const embed = new EmbedBuilder().setColor(embedColor);
 
             if(i === 0){
                 embed.setTitle(`:desktop: ${(bOnlyActive) ? "Active" : ""} UT Servers List`);

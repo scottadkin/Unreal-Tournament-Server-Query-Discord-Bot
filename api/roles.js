@@ -1,4 +1,4 @@
-import config from '../config/config.json' with {'type': 'json'}
+import { passIcon, failIcon, defaultAdminRole } from '../config/config.js';
 import { sqliteGet, sqliteRun , sqliteGetAll} from './database.js';
 
 export default class Roles{
@@ -26,7 +26,7 @@ export default class Roles{
 
         if(userRoles.some((r) =>{
 
-            if(adminRoleIds.indexOf(r.id) !== -1 || r.name.toLowerCase() == config.defaultAdminRole.toLowerCase()){
+            if(adminRoleIds.indexOf(r.id) !== -1 || r.name.toLowerCase() == defaultAdminRole.toLowerCase()){
             
                 passed = true;
             }
@@ -69,13 +69,13 @@ export default class Roles{
 
                         this.deleteRole(roleData.id, message, roleData.name);
 
-                        message.channel.send(`${config.passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
+                        message.channel.send(`${passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
 
                     }else{
-                        message.channel.send(`${config.failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
+                        message.channel.send(`${failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
                     }
                 }else{
-                    message.channel.send(`${config.failIcon} The role **${roleData.name}** does not exist in this server.`);
+                    message.channel.send(`${failIcon} The role **${roleData.name}** does not exist in this server.`);
                 }
             }
 
@@ -101,7 +101,7 @@ export default class Roles{
 
         const result = sqliteRun(query, [role, now]);
 
-        message.channel.send(`${config.passIcon} User with the role **${roleName}** can now use admin commands.`);
+        message.channel.send(`${passIcon} User with the role **${roleName}** can now use admin commands.`);
 
     }
 
@@ -134,11 +134,11 @@ export default class Roles{
                     await this.insertRole(roleData.id, message, roleData.name);
 
                 }else{
-                    message.channel.send(`${config.failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
+                    message.channel.send(`${failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
                 }
 
             }else{
-                message.channel.send(`${config.failIcon} `);
+                message.channel.send(`${failIcon} `);
             }
 
         }catch(err){
@@ -153,7 +153,7 @@ export default class Roles{
         const result = reg.exec(message.content);
 
         if(result === null){
-            message.channel.send(`${config.failIcon} Wrong syntax for allowrole command.`);
+            message.channel.send(`${failIcon} Wrong syntax for allowrole command.`);
             return;
         }
 
@@ -176,7 +176,7 @@ export default class Roles{
         }
 
         if(!bFound){
-            message.channel.send(`${config.failIcon} There is no role called **${result[1]}** in this channel.`);
+            message.channel.send(`${failIcon} There is no role called **${result[1]}** in this channel.`);
         }
 
     }

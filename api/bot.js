@@ -1,5 +1,5 @@
-import {blockQuote, Client, codeBlock, EmbedBuilder, Events, GatewayIntentBits, inlineCode, Partials} from "discord.js";
-import config from "../config/config.json" with {"type": "json"};
+import { blockQuote, Client, codeBlock, EmbedBuilder, Events, GatewayIntentBits, inlineCode, Partials } from "discord.js";
+import { commandPrefix, failIcon, passIcon, token, bDisplayNotEnabledMessage, embedColor, bSkipAdminHelpToNonAdmins } from "../config/config.js";
 import UT99Query from "./ut99query.js";
 import Servers from "./servers.js";
 import Channels from "./channels.js";
@@ -9,7 +9,7 @@ const USER_COMMANDS = [
     {"name": `servers`, "content": `Lists all servers added to the database.`},
     {"name": `active`, "content": `Lists all servers added to the database that have at least one player.`},
     {"name": `q ip:port`, "content": `Query an Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
-    {"name": `q serverID`, "content": `Query an Unreal Tournament server by just using the server's id. Use the ${config.commandPrefix}servers command to find a server's id.`},
+    {"name": `q serverID`, "content": `Query an Unreal Tournament server by just using the server's id. Use the ${commandPrefix}servers command to find a server's id.`},
     {"name": `ip serverID`, "content": `Displays the specified server's address.`},
     {"name": `players serverID`, "content": `Displays extended information about players on the server.`},
     {"name": `players ip:port`, "content": `Displays extended information about players on the server, domain address also work, if no port specified 7777 is used.`},
@@ -108,17 +108,17 @@ export default class Bot{
             
         });
 
-        this.client.login(config.token);
+        this.client.login(token);
     }
 
     checkCommand(message){
 
-        if(!message.content.startsWith(config.commandPrefix) || message.content.length === 1){
+        if(!message.content.startsWith(commandPrefix) || message.content.length === 1){
             return;
         }
 
         //ignore double in case someone wants to show another user how to use a command like ..q1
-        if(message.content[0] == config.commandPrefix && message.content[1] == config.commandPrefix){
+        if(message.content[0] == commandPrefix && message.content[1] == commandPrefix){
             return;
         }
 
@@ -143,8 +143,8 @@ export default class Bot{
 
         if(!this.channels.bBotCanCommentInChannel(message)){
 
-            if(config.bDisplayNotEnabledMessage){
-                message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
+            if(bDisplayNotEnabledMessage){
+                message.channel.send(`${failIcon} The bot is not enabled in this channel.`);
             }
 
             return;
@@ -206,7 +206,7 @@ export default class Bot{
 
     createHelpEmbed(message, bAdmin){
 
-        const p = config.commandPrefix;
+        const p = commandPrefix;
         const commands = (bAdmin) ? ADMIN_COMMANDS : USER_COMMANDS;
 
         const fields = commands.map((c) =>{
@@ -218,7 +218,7 @@ export default class Bot{
         });
 
         const embed = new EmbedBuilder()
-        .setColor(config.embedColor)
+        .setColor(embedColor)
         .setTitle(`${(bAdmin) ? "Admin Commands" : "User Commands"}`)
         .setFields(fields);
 
@@ -231,7 +231,7 @@ export default class Bot{
 
         this.createHelpEmbed(message, false);
 
-        if(!this.roles.bUserAdmin(message) && config.bSkipAdminHelpToNonAdmins){
+        if(!this.roles.bUserAdmin(message) && bSkipAdminHelpToNonAdmins){
             return;
         }
 
@@ -241,7 +241,7 @@ export default class Bot{
     adminCommands(message, bFailed){
 
         const m = message.content;
-        const p = config.commandPrefix;
+        const p = commandPrefix;
 
         const commands = [
             `${p}allowrole `,
@@ -263,7 +263,7 @@ export default class Bot{
             for(let i = 0; i < commands.length; i++){
 
                 if(message.content.startsWith(commands[i])){
-                    message.channel.send(`${config.failIcon} Only users with an admin role can use that command.`);
+                    message.channel.send(`${failIcon} Only users with an admin role can use that command.`);
                     return true;
                 }
             } 
@@ -328,13 +328,13 @@ export default class Bot{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}q serverid.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}q serverid.`);
         }
 
         const server = this.servers.getServerById(result[1]);
 
         if(server === null){
-            return message.channel.send(`${config.failIcon} There is no server with the id of ${parseInt(result[1])}.`);
+            return message.channel.send(`${failIcon} There is no server with the id of ${parseInt(result[1])}.`);
         }
 
 
@@ -387,7 +387,7 @@ export default class Bot{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} There is no server with that id.`);
+            return message.channel.send(`${failIcon} There is no server with that id.`);
         }
 
         const server = this.servers.getServerById(result[1]);
@@ -402,7 +402,7 @@ export default class Bot{
             
         }else{
         
-            message.channel.send(`${config.failIcon} There is no server with that id.`);
+            message.channel.send(`${failIcon} There is no server with that id.`);
         }
     }
 
@@ -413,7 +413,7 @@ export default class Bot{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} Incorrect syntax for queryServerExtended.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for queryServerExtended.`);
         }
 
         let ip = "";
@@ -429,7 +429,7 @@ export default class Bot{
                 port = parseInt(port);
 
                 if(port !== port){
-                    message.channel.send(`${config.failIcon} Port must be a valid integer`);
+                    message.channel.send(`${failIcon} Port must be a valid integer`);
                     return;
                 }
             }
@@ -446,7 +446,7 @@ export default class Bot{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}players.`);
         }
 
         const server = this.servers.getServerById(result[1]);
@@ -456,7 +456,7 @@ export default class Bot{
             this.query.getPlayers(server.ip, server.port, message.channel);
 
         }else{
-            message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1])} does not exist.`);
+            message.channel.send(`${failIcon} A server with id ${parseInt(result[1])} does not exist.`);
         }
 
     }
@@ -468,7 +468,7 @@ export default class Bot{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players command.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}players command.`);
         }
 
         let ip = "";
@@ -507,7 +507,7 @@ export default class Bot{
         const result = editReg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${config.failIcon} Incorrect syntax for edit server.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for edit server.`);
         }
 
         const serverId = parseInt(result[1]);
@@ -515,7 +515,7 @@ export default class Bot{
         const server = this.servers.getServerById(serverId); 
         
         if(server === null){
-            return message.channel.send(`${config.failIcon} A server with id ${serverId} does not exist.`);
+            return message.channel.send(`${failIcon} A server with id ${serverId} does not exist.`);
         }
 
         const editType = result[2].toLowerCase();
@@ -523,13 +523,13 @@ export default class Bot{
         if(editType == 'country'){
 
             if(result[3].length !== 2){
-                return message.channel.send(`${config.failIcon} Server country code must be 2 characters long.`);      
+                return message.channel.send(`${failIcon} Server country code must be 2 characters long.`);      
             }
 
         }else if(editType == 'ip'){
             
             if(result[3].includes(':')){
-                return message.channel.send(`${config.failIcon} Server ip can not include the port.`);     
+                return message.channel.send(`${failIcon} Server ip can not include the port.`);     
             }
 
         }else if(editType == 'port'){
@@ -537,7 +537,7 @@ export default class Bot{
             result[3] = result[3].replace(/\D/ig, '');
             
             if(result[3] < 1 || result[3] > 65535){
-                return message.channel.send(`${config.failIcon} Server port must be a interger between 1 and 65535`);             
+                return message.channel.send(`${failIcon} Server port must be a interger between 1 and 65535`);             
             }     
         }
 
@@ -546,10 +546,10 @@ export default class Bot{
 
             this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
 
-            message.channel.send(`${config.passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
+            message.channel.send(`${passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
             
         }else{
-            message.channel.send(`${config.failIcon} **${result[2]}** is not a valid edit type for servers.`);
+            message.channel.send(`${failIcon} **${result[2]}** is not a valid edit type for servers.`);
         }
     }
     

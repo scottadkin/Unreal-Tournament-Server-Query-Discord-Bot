@@ -1,4 +1,4 @@
-import config from '../config/config.json' with {'type': 'json'};
+import { failIcon, passIcon, embedColor, autoQueryInterval } from '../config/config.js';
 import { sqliteGet, sqliteRun, sqliteGetAll } from './database.js';
 import { EmbedBuilder } from 'discord.js';
 
@@ -55,7 +55,7 @@ export default class Channels{
 
             if(!this.bChannelExist(message, message.channelId)){
 
-                message.channel.send(`${config.failIcon} There is no channel called **${message.channel.name}** in this server.`);
+                message.channel.send(`${failIcon} There is no channel called **${message.channel.name}** in this server.`);
 
             }else{
 
@@ -65,10 +65,10 @@ export default class Channels{
 
                     this.insertChannel(message.channel.id);
 
-                    message.channel.send(`${config.passIcon} The bot can now be used in this channel.`);
+                    message.channel.send(`${passIcon} The bot can now be used in this channel.`);
                 
                 }else{
-                    message.channel.send(`${config.failIcon} This channel has already been enabled for bot use.`);
+                    message.channel.send(`${failIcon} This channel has already been enabled for bot use.`);
                 }
             }
 
@@ -98,14 +98,14 @@ export default class Channels{
 
                     this.deleteChannel(message.channel.id);
 
-                    message.channel.send(`${config.passIcon} Users can no longer use the bot in this channel.`);
+                    message.channel.send(`${passIcon} Users can no longer use the bot in this channel.`);
 
                 }else{
-                    message.channel.send(`${config.failIcon} This channel has not been enabled for bot use.`);
+                    message.channel.send(`${failIcon} This channel has not been enabled for bot use.`);
                 }
 
             }else{
-                message.channel.send(`${config.failIcon} The channel specified doesn't exist.`);
+                message.channel.send(`${failIcon} The channel specified doesn't exist.`);
             }
 
         }catch(err){
@@ -204,7 +204,7 @@ export default class Channels{
 
             this.setAutoChannel(message);
             let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
-The server status posts will be updated every **${config.autoQueryInterval} seconds.**`;
+The server status posts will be updated every **${autoQueryInterval} seconds.**`;
 
 
             await message.channel.send(string).then((message) =>{
@@ -221,7 +221,7 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
             for(let i = 0; i < currentServers.length; i++){
 
                 const embed = new EmbedBuilder()
-                    .setColor(config.embedColor)
+                    .setColor(embedColor)
                     .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
 
                 await message.channel.send({ "embeds": [embed] }).then((message) =>{
@@ -247,7 +247,7 @@ The server status posts will be updated every **${config.autoQueryInterval} seco
 
             await servers.resetLastMessages();
 
-            message.channel.send(`${config.passIcon} Autoquery has been disabled.`);
+            message.channel.send(`${passIcon} Autoquery has been disabled.`);
 
         }catch(err){
             console.trace(err);

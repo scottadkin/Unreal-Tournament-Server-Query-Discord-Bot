@@ -60,46 +60,42 @@ export default class Bot{
 
         this.client.on('messageCreate', (message) =>{
 
-            if(!message.author.bot){
-
-                this.checkCommand(message);
-            }
+            if(message.author.bot) return;
+            this.checkCommand(message);
+            
         });
 
         this.client.login(config.token);
     }
 
-    async checkCommand(message){
+    checkCommand(message){
 
         try{
 
-            if(message.content == "test"){
-
-                this.query.pingAllServers();
+            if(!message.content.startsWith(config.commandPrefix) || message.content.length === 1){
                 return;
             }
 
-            if(message.content.startsWith(config.commandPrefix) && message.content.length > 1){
-
-                if(message.content[0] == config.commandPrefix && message.content[1] == config.commandPrefix) return;
-
-                if(await this.roles.bUserAdmin(message)){
-
-                    //console.log("user is an admin");
-
-                    if(this.adminCommands(message)){
-                        return;
-                    }
-                    
-                }else{
-                    console.log("user is not an admin");
-                    if(this.adminCommands(message, true)){
-                        return;
-                    }
-                }
-
-                this.normalCommands(message);
+            //ignore double in case someone wants to show another user how to use a command like ..q1
+            if(message.content[0] == config.commandPrefix && message.content[1] == config.commandPrefix){
+                return;
             }
+
+            if(this.roles.bUserAdmin(message)){
+
+                if(this.adminCommands(message)){
+                    return;
+                }
+                
+            }else{
+
+                if(this.adminCommands(message, true)){
+                    return;
+                }
+            }
+
+            this.normalCommands(message);
+            
 
         }catch(err){
             console.trace(err);
@@ -107,75 +103,70 @@ export default class Bot{
 
     }
 
-    async normalCommands(message){
+    normalCommands(message){
 
-        try{
+        if(this.channels.bBotCanCommentInChannel(message)){
 
-            if(this.channels.bBotCanCommentInChannel(message)){
+            const helpReg = /^.help$/i;
+            const shortServerQueryReg = /^.q\d+$/i;
+            const serverQueryReg = /^.q .+$/i;
+            const listReg = /^.servers/i;
+            const activeReg = /^.active/i;
+            const ipReg = /^.ip\d+/i;
+            const extendedReg = /^.extended \d+$/i;
+            const altExtendedReg = /^.extended .+$/i;
+            const playersReg = /^.players \d+$/i;
+            const altPlayersReg = /^.players .+/i;
 
-                const helpReg = /^.help$/i;
-                const shortServerQueryReg = /^.q\d+$/i;
-                const serverQueryReg = /^.q .+$/i;
-                const listReg = /^.servers/i;
-                const activeReg = /^.active/i;
-                const ipReg = /^.ip\d+/i;
-                const extendedReg = /^.extended \d+$/i;
-                const altExtendedReg = /^.extended .+$/i;
-                const playersReg = /^.players \d+$/i;
-                const altPlayersReg = /^.players .+/i;
+            if(helpReg.test(message.content)){
 
-                if(helpReg.test(message.content)){
+                this.helpCommand(message);
 
-                    this.helpCommand(message);
+            }else if(shortServerQueryReg.test(message.content)){
+                
+                this.shortQueryServer(message);
+                
+            }else if(serverQueryReg.test(message.content)){
 
-                }else if(shortServerQueryReg.test(message.content)){
-                    
-                    this.shortQueryServer(message);
-                    
-                }else if(serverQueryReg.test(message.content)){
+                this.queryServer(message);
 
-                    this.queryServer(message);
+            }else if(listReg.test(message.content)){
 
-                }else if(listReg.test(message.content)){
+                this.servers.listServers(message);
 
-                    this.servers.listServers(message);
+            }else if(activeReg.test(message.content)){
 
-                }else if(activeReg.test(message.content)){
+                this.servers.listServers(message, true);
 
-                    this.servers.listServers(message, true);
+            }else if(ipReg.test(message.content)){
 
-                }else if(ipReg.test(message.content)){
+                this.servers.getIp(message);
 
-                    this.servers.getIp(message);
+            }else if(extendedReg.test(message.content)){
 
-                }else if(extendedReg.test(message.content)){
+                this.queryServerExtended(message);
 
-                    this.queryServerExtended(message);
+            }else if(altExtendedReg.test(message.content)){
 
-                }else if(altExtendedReg.test(message.content)){
+                this.queryServerExtendedAlt(message);
 
-                    this.queryServerExtendedAlt(message);
+            }else if(playersReg.test(message.content)){
 
-                }else if(playersReg.test(message.content)){
+                this.queryPlayers(message);
 
-                    this.queryPlayers(message);
+            }else if(altPlayersReg.test(message.content)){
 
-                }else if(altPlayersReg.test(message.content)){
+                this.queryPlayersAlt(message);
 
-                    this.queryPlayersAlt(message);
-
-                }
-
-
-            }else{
-                if(config.bDisplayNotEnabledMessage){
-                    message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
-                }
             }
 
-        }catch(err){
-            console.trace(err);
+
+        }else{
+            if(config.bDisplayNotEnabledMessage){
+                message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
+            }
         }
+
     }
 
     helpCommand(message){
@@ -271,78 +262,59 @@ export default class Bot{
                     message.channel.send(`${config.failIcon} Only users with an admin role can use that command.`);
                     return true;
                 }
-            }
-
-            
+            } 
         }
 
         if(m.startsWith(commands[0])){
 
             this.roles.allowRole(message);
 
-            return true;
-
         }else if(m.startsWith(commands[1])){
 
             this.roles.removeRole(message);
-            
-            return true;
 
         }else if(m.startsWith(commands[2])){
 
             this.roles.listRoles(message);
 
-            return true;
-            
         }else if(m.startsWith(commands[3])){
 
             this.channels.allowChannel(message);
-
-            return true;
 
         }else if(m.startsWith(commands[4])){
 
             this.channels.blockChannel(message);
 
-            return true;
-
         }else if(m.startsWith(commands[5])){
 
             this.channels.listChannels(message);
-
-            return true;
 
         }else if(m.startsWith(commands[6])){
 
             this.servers.addServer(message);
 
-            return true;
-
         }else if(m.startsWith(commands[7])){
 
             this.servers.removeServer(message);
-
-            return true;
 
         }else if(m.startsWith(commands[8])){
 
             this.channels.enableAutoQuery(message, this.servers);
 
-            return true;
-
         }else if(m.startsWith(commands[9])){
 
             this.channels.disableAutoQuery(message, this.servers);
-            return true;
 
         }else if(m.startsWith(commands[10])){
 
             this.editServer(message);
 
-            return true;
+        }else{
+
+            return false;
         }
 
-        return false;
+        return true;
     }
 
     async shortQueryServer(message){

@@ -5,44 +5,36 @@ export default class Roles{
 
     constructor(){}
 
-    async bUserAdmin(message){
+    bUserAdmin(message){
 
-        try{
+        let passed = false;
 
-            let passed = false;
+        const userRoles = message.member.roles.cache;
 
-            const userRoles = message.member.roles.cache;
+        const adminRolesData = this.getAllAddedRoles();
 
-            const adminRolesData = this.getAllAddedRoles();
+        const adminRoleIds = [];
 
-            const adminRoleIds = [];
+        for(let i = 0; i < adminRolesData.length; i++){
 
-            let a = 0;
+            const a = adminRolesData[i];
 
-            for(let i = 0; i < adminRolesData.length; i++){
+            if(adminRoleIds.indexOf(a.id) === -1){
+                adminRoleIds.push(a.id);
+            }
+        }
 
-                a = adminRolesData[i];
+        if(userRoles.some((r) =>{
 
-                if(adminRoleIds.indexOf(a.id) === -1){
-                    adminRoleIds.push(a.id);
-                }
+            if(adminRoleIds.indexOf(r.id) !== -1 || r.name.toLowerCase() == config.defaultAdminRole.toLowerCase()){
+            
+                passed = true;
             }
 
-            if(userRoles.some((r) =>{
+        }));
 
-                if(adminRoleIds.indexOf(r.id) !== -1 || r.name.toLowerCase() == config.defaultAdminRole.toLowerCase()){
-               
-                    passed = true;
-                }
+        return passed;
 
-            }));
-  
-            //console.log(`passed ${passed}`);
-            return passed;
-
-        }catch(err){
-            console.trace(err);
-        }
 
     }
 

@@ -1,4 +1,4 @@
-import { blockQuote, Client, codeBlock, EmbedBuilder, Events, GatewayIntentBits, inlineCode, Partials } from "discord.js";
+import { Client,  EmbedBuilder, Events, GatewayIntentBits, Partials } from "discord.js";
 import { commandPrefix, failIcon, passIcon, token, bDisplayNotEnabledMessage, embedColor, bSkipAdminHelpToNonAdmins } from "../config/config.js";
 import UT99Query from "./ut99query.js";
 import Servers from "./servers.js";
@@ -244,7 +244,7 @@ export default class Bot{
         const p = commandPrefix;
 
         const commands = [
-            `${p}allowrole `,
+            `${p}allowrole`,
             `${p}removerole `,
             `${p}listroles`,
             `${p}allowchannel`,

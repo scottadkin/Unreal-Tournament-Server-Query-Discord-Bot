@@ -1,5 +1,5 @@
 import sqlite from 'node:sqlite';
-import { databaseFile } from '../config/config';
+import { databaseFile } from '../config/config.js';
 import { DatabaseSync } from 'node:sqlite';
 const database = new DatabaseSync(databaseFile);
 

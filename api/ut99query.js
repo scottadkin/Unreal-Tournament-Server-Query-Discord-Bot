@@ -1,4 +1,3 @@
-import config from '../config/config.json' with {'type': 'json'};
 import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serverInfoPingInterval } from '../config/config.js';
 import dgram from 'node:dgram';
 import dns from 'node:dns';

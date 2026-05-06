@@ -49,32 +49,26 @@ export default class Channels{
         return sqliteRun(query, [id, now]);
     }
 
-    async allowChannel(message){
+    allowChannel(message){
 
-        try{
-
-            if(!this.bChannelExist(message, message.channelId)){
-
-                message.channel.send(`${failIcon} There is no channel called **${message.channel.name}** in this server.`);
-
-            }else{
-
-                const exists = this.bChannelAdded(message.channel.id);
-
-                if(!exists){
-
-                    this.insertChannel(message.channel.id);
-
-                    message.channel.send(`${passIcon} The bot can now be used in this channel.`);
-                
-                }else{
-                    message.channel.send(`${failIcon} This channel has already been enabled for bot use.`);
-                }
-            }
-
-        }catch(err){
-            console.trace(err);
+        if(!this.bChannelExist(message, message.channelId)){
+            return message.channel.send(`${failIcon} There is no channel called **${message.channel.name}** in this server.`);
         }
+   
+        const exists = this.bChannelAdded(message.channel.id);
+
+        if(!exists){
+
+            this.insertChannel(message.channel.id);
+
+            return message.channel.send(`${passIcon} The bot can now be used in this channel.`);
+        
+        }else{
+            return message.channel.send(`${failIcon} This channel has already been enabled for bot use.`);
+        }
+        
+
+       
     }
 
 
@@ -85,31 +79,22 @@ export default class Channels{
         return sqliteRun(query, [id]);
     }
 
-    async blockChannel(message){
+    blockChannel(message){
 
+        if(!this.bChannelExist(message, message.channel.id)){
+            return message.channel.send(`${failIcon} The channel specified doesn't exist.`);
+        }
 
-        try{
+        const exists = this.bChannelAdded(message.channel.id);
 
-            if(this.bChannelExist(message, message.channel.id)){
+        if(exists){
 
-                const exists = this.bChannelAdded(message.channel.id);
+            this.deleteChannel(message.channel.id);
 
-                if(exists){
+            message.channel.send(`${passIcon} Users can no longer use the bot in this channel.`);
 
-                    this.deleteChannel(message.channel.id);
-
-                    message.channel.send(`${passIcon} Users can no longer use the bot in this channel.`);
-
-                }else{
-                    message.channel.send(`${failIcon} This channel has not been enabled for bot use.`);
-                }
-
-            }else{
-                message.channel.send(`${failIcon} The channel specified doesn't exist.`);
-            }
-
-        }catch(err){
-            console.trace(err);
+        }else{
+            message.channel.send(`${failIcon} This channel has not been enabled for bot use.`);
         }
     }
 
@@ -119,50 +104,39 @@ export default class Channels{
     }
 
 
-    async listChannels(message){
+    listChannels(message){
 
-        try{
+        const channels = this.getAllAllowedChannels();
 
-            const channels = await this.getAllAllowedChannels();
+        let string = "";
 
-            //console.table(channels);
+        const discordChannels = message.guild.channels.cache;
 
-            let string = "";
+        for(let i = 0; i < channels.length; i++){
 
-            let c = 0;
-            let added = 0;
+            const c = channels[i];
 
-            const discordChannels = message.guild.channels.cache;
+            const currentChannel = discordChannels.get(c.id)
 
-            let currentChannel = 0;
+            const added = new Date(c.added * 1000);
 
-            for(let i = 0; i < channels.length; i++){
-
-                c = channels[i];
-
-                currentChannel = discordChannels.get(c.id)
-
-                added = new Date(c.added * 1000);
-
-                if(currentChannel !== undefined){
-                    string += `:small_blue_diamond: **${currentChannel.name}** Enabled at ${added.toString()}\n`;
-                }else{
-                    string += `:no_entry: Channel no longer exists, deleting it from database!\n`;
-                    this.deleteChannel(c.id);
-                }
+            if(currentChannel !== undefined){
+                string += `:small_blue_diamond: **${currentChannel.name}** Enabled at ${added.toString()}\n`;
+            }else{
+                string += `:no_entry: Channel no longer exists, deleting it from database!\n`;
+                this.deleteChannel(c.id);
             }
-
-            if(string == ""){
-                string = `There are currently no channels enabled for bot use.`;
-            }
-
-            string = `:large_orange_diamond: **Channels the bot is enabled in.\n**`+string;
-
-            message.channel.send(string);
-
-        }catch(err){
-            console.trace(err);
         }
+
+        if(string == ""){
+            string = `There are currently no channels enabled for bot use.`;
+        }
+
+        string = `:large_orange_diamond: **Channels the bot is enabled in.\n**`+string;
+
+        message.channel.send(string);
+
+    
     }
 
     deleteAutoChannel(){
@@ -192,66 +166,51 @@ export default class Channels{
 
     }
 
-    async enableAutoQuery(message, servers){
+    enableAutoQuery(message, servers){
 
-        try{
+        this.deleteAutoChannel();
 
-            this.deleteAutoChannel();
-            console.log("Deleted old autoquery channel from database.");
+        servers.resetLastMessages();
 
-            servers.resetLastMessages();
-            console.log("Reset all servers last_message ids");
-
-            this.setAutoChannel(message);
-            let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
+        this.setAutoChannel(message);
+        let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
 The server status posts will be updated every **${autoQueryInterval} seconds.**`;
 
 
-            await message.channel.send(string).then((message) =>{
+        message.channel.send(string).then((message) =>{
 
-                this.setAutoQueryMessageInfoId(message.id);
+            this.setAutoQueryMessageInfoId(message.id);
 
-            })
+        })
 
-            const currentServers = await servers.getAllServers();
+        const currentServers = servers.getAllServers();
 
-            let currentMessage = 0;
+        for(let i = 0; i < currentServers.length; i++){
 
+            const embed = new EmbedBuilder()
+                .setColor(embedColor)
+                .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
 
-            for(let i = 0; i < currentServers.length; i++){
+            message.channel.send({ "embeds": [embed] }).then((message) =>{
 
-                const embed = new EmbedBuilder()
-                    .setColor(embedColor)
-                    .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
+                servers.setLastMessageId(currentServers[i].real_ip, currentServers[i].port, message.id);
+            });
 
-                await message.channel.send({ "embeds": [embed] }).then((message) =>{
-          
-                    currentMessage = message;
-                });
-
-                await servers.setLastMessageId(currentServers[i].real_ip, currentServers[i].port, currentMessage.id);
-               // console.log(currentMessage.id);
-            }
+        }
 
 
-        }catch(err){
-            console.trace(err);
-        }   
     }
 
-    async disableAutoQuery(message, servers){
+    disableAutoQuery(message, servers){
 
-        try{
+     
+        this.deleteAutoChannel();
 
-            this.deleteAutoChannel();
+        servers.resetLastMessages();
 
-            await servers.resetLastMessages();
+        message.channel.send(`${passIcon} Autoquery has been disabled.`);
 
-            message.channel.send(`${passIcon} Autoquery has been disabled.`);
-
-        }catch(err){
-            console.trace(err);
-        }
+       
     }
 
     deleteOldAutoMessageInfoId(){
@@ -268,17 +227,14 @@ The server status posts will be updated every **${autoQueryInterval} seconds.**`
 
     async setAutoQueryMessageInfoId(id){
 
-        try{
+   
+        this.deleteOldAutoMessageInfoId();
 
-            this.deleteOldAutoMessageInfoId();
+        await this.insertAutoMessageInfoId(id);
 
-            await this.insertAutoMessageInfoId(id);
+        console.log(`New auto query message set. (${id})`);
 
-            console.log(`New auto query message set. (${id})`);
-
-        }catch(err){
-            console.trace(err);
-        }   
+    
     }
 
     getAutoQueryMessageId(){

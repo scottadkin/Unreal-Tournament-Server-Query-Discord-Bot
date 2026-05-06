@@ -199,16 +199,13 @@ export default class Channels{
             this.deleteAutoChannel();
             console.log("Deleted old autoquery channel from database.");
 
-            await servers.resetLastMessages();
+            servers.resetLastMessages();
             console.log("Reset all servers last_message ids");
 
             this.setAutoChannel(message);
             let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
 The server status posts will be updated every **${config.autoQueryInterval} seconds.**`;
 
-            /*if(config.bAutoQueryMessagesOnly){
-                string += `\n:warning: **Posts that are not posted by the bot will be deleted.** :warning:`;
-            }*/
 
             await message.channel.send(string).then((message) =>{
 

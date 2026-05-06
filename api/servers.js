@@ -227,7 +227,7 @@ export default class Servers{
         }
         const server = this.getServerById(result[1]);
 
-        if(servers === null){
+        if(server === null){
             return message.channel.send(`${config.failIcon} A server with that id does not exist.`);
         }
 
@@ -239,7 +239,7 @@ export default class Servers{
             flag = `:flag_${flag.toLowerCase()}:`;
         }
 
-        let string = `${flag} **${server.name}**\n**<unreal://${server.ip}:${server.port}>**`;
+        let string = `${flag} **${server.name}**\n**unreal://${server.ip}:${server.port}**`;
 
         return message.channel.send(string);
         

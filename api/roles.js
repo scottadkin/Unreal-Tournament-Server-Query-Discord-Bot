@@ -49,40 +49,34 @@ export default class Roles{
     }
 
 
-    async removeRole(message){
+    removeRole(message){
 
-        try{
+        const reg = /^.removerole (.+)$/i;
 
-            const reg = /^.removerole (.+)$/i;
+        const result = reg.exec(message.content);
 
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                const roleData = this.getRole(result[1], message);
-
-                if(roleData !== null){
-
-                    const bRoleExist = this.bRoleAdded(roleData.id);
-
-                    if(bRoleExist){
-
-                        this.deleteRole(roleData.id, message, roleData.name);
-
-                        message.channel.send(`${passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
-
-                    }else{
-                        message.channel.send(`${failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
-                    }
-                }else{
-                    message.channel.send(`${failIcon} The role **${roleData.name}** does not exist in this server.`);
-                }
-            }
-
-        }catch(err){
-
-            if(err) console.trace(err);
+        if(result === null){
+            return;
         }
+
+        const roleData = this.getRole(result[1], message);
+
+        if(roleData === null){
+            message.channel.send(`${failIcon} The role **${roleData.name}** does not exist in this server.`);
+        }
+
+        const bRoleExist = this.bRoleAdded(roleData.id);
+
+        if(bRoleExist){
+
+            this.deleteRole(roleData.id, message, roleData.name);
+
+            message.channel.send(`${passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
+
+        }else{
+            message.channel.send(`${failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
+        }
+    
     }
 
     deleteRole(role, message, roleName){
@@ -119,31 +113,25 @@ export default class Roles{
         return null;
     }
 
-    async addRole(role, message){
+    addRole(role, message){
 
-        try{
+        const roleData = this.getRole(role, message);
 
-            const roleData = this.getRole(role, message);
-
-            if(roleData !== null){
-
-                const bRoleAdded = this.bRoleAdded(roleData.id);
-
-                if(!bRoleAdded){
-
-                    await this.insertRole(roleData.id, message, roleData.name);
-
-                }else{
-                    message.channel.send(`${failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
-                }
-
-            }else{
-                message.channel.send(`${failIcon} `);
-            }
-
-        }catch(err){
-            console.trace(err);
+        if(roleData === null){
+            return message.channel.send(`${failIcon} Failed to get role data.`);
         }
+
+
+        const bRoleAdded = this.bRoleAdded(roleData.id);
+
+        if(!bRoleAdded){
+
+            this.insertRole(roleData.id, message, roleData.name);
+
+        }else{
+            message.channel.send(`${failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
+        }
+
     }
 
     allowRole(message){
@@ -159,13 +147,11 @@ export default class Roles{
 
         const channelRoles = message.channel.guild.roles.cache;
 
-        let c = 0;
-
         let bFound = false;
 
         for(let i = 0; i < channelRoles.size; i++){
 
-            c = channelRoles.at(i);
+            const c = channelRoles.at(i);
 
             if(c.name.toLowerCase() == result[1].toLowerCase()){
 
@@ -188,48 +174,40 @@ export default class Roles{
     }
 
 
-    async listRoles(message){
+    listRoles(message){
 
-        try{
 
-            const roles = this.getAllAddedRoles();
+        const roles = this.getAllAddedRoles();
 
-            const discordRoles = message.guild.roles.cache;
+        const discordRoles = message.guild.roles.cache;
 
-            let string = ``;
+        let string = ``;
 
-            let r = 0;
-            let added = 0;
 
-            let currentRole = 0;
+        for(let i = 0; i < roles.length; i++){
 
-            for(let i = 0; i < roles.length; i++){
+            const r = roles[i];
 
-                r = roles[i];
+            const added = new Date(r.added * 1000);
 
-                added = new Date(r.added * 1000);
+            const currentRole = discordRoles.get(r.id);
 
-                currentRole = discordRoles.get(r.id);
+            if(currentRole !== undefined){
+                string += `:small_blue_diamond: **${currentRole.name}** Added ${added}\n`;
+            }else{
+                string += `:no_entry: This role no longer exists in this server, removing it from database.\n`;
 
-                if(currentRole !== undefined){
-                    string += `:small_blue_diamond: **${currentRole.name}** Added ${added}\n`;
-                }else{
-                    string += `:no_entry: This role no longer exists in this server, removing it from database.\n`;
-
-                    this.deleteRole(r.id, message, "DELETED");
-                }
+                this.deleteRole(r.id, message, "DELETED");
             }
-
-            if(string == ""){
-                string = "There are currently no roles allowed to use the bots admin commands.";
-            }
-            
-            string = `:large_orange_diamond: **User roles that have admin privileges**\n`+string;
-
-            message.channel.send(string);
-
-        }catch(err){
-            console.trace(err);
         }
+
+        if(string == ""){
+            string = "There are currently no roles allowed to use the bots admin commands.";
+        }
+        
+        string = `:large_orange_diamond: **User roles that have admin privileges**\n`+string;
+
+        message.channel.send(string);
+ 
     }
 }

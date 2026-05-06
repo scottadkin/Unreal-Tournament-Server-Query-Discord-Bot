@@ -131,27 +131,27 @@ export default class Bot{
             this.helpCommand(message);
 
         }else if(shortServerQueryReg.test(message.content)){
-            
+        
             this.shortQueryServer(message);
             
         }else if(serverQueryReg.test(message.content)){
-
+    
             this.queryServer(message);
 
         }else if(listReg.test(message.content)){
-
+        
             this.servers.listServers(message);
 
         }else if(activeReg.test(message.content)){
-
+           
             this.servers.listServers(message, true);
 
         }else if(ipReg.test(message.content)){
-
+      
             this.servers.getIp(message);
 
         }else if(extendedReg.test(message.content)){
-
+   
             this.queryServerExtended(message);
 
         }else if(altExtendedReg.test(message.content)){
@@ -319,34 +319,24 @@ export default class Bot{
         return true;
     }
 
-    async shortQueryServer(message){
+    shortQueryServer(message){
 
-        try{
+        const reg = /^.q(\d+)$/i;
 
-            const reg = /^.q(\d+)$/i;
+        const result = reg.exec(message.content);
 
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-       
-                const server = await this.servers.getServerById(result[1]);
-
-                if(server !== null){
-
-                    this.query.getFullServer(server.ip, server.port, message.channel);
-
-                }else{
-                    message.channel.send(`${config.failIcon} There is no server with the id of ${parseInt(result[1])}.`);
-                }
-                
-            }else{
-
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}q serverid.`);
-            }
-
-        }catch(err){
-            console.trace(err);
+        if(result === null){
+            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}q serverid.`);
         }
+
+        const server = this.servers.getServerById(result[1]);
+
+        if(server === null){
+            return message.channel.send(`${config.failIcon} There is no server with the id of ${parseInt(result[1])}.`);
+        }
+
+
+        this.query.getFullServer(server.ip, server.port, message.channel);
     }
 
     queryServer(message){
@@ -355,258 +345,210 @@ export default class Bot{
 
         const result = reg.exec(message.content);
 
-        if(result !== null){
-      
-            //check if an ip or domain name
-            if(result[2] === undefined){
+        if(result === null) return;
 
-                const domainName = result[6];
+        //check if an ip or domain name
+        if(result[2] === undefined){
 
-                let port = 7777;
+            const domainName = result[6];
 
-                if(result[7] !== ''){
+            let port = 7777;
 
-                    port = parseInt(result[7].replace(':',''));            
+            if(result[7] !== ''){
 
-                }
+                port = parseInt(result[7].replace(':',''));            
 
-                this.query.getFullServer(domainName, port, message.channel);
-
-                return;
-
-            }else{
-
-                const ip = result[3];
-
-                let port = 7777;
-
-                if(result[4] !== ''){      
-                    port = parseInt(result[4].replace(':',''));
-                }
-
-                this.query.getFullServer(ip, port, message.channel);
             }
+
+            this.query.getFullServer(domainName, port, message.channel);
+
+        }else{
+
+            const ip = result[3];
+
+            let port = 7777;
+
+            if(result[4] !== ''){      
+                port = parseInt(result[4].replace(':',''));
+            }
+
+            this.query.getFullServer(ip, port, message.channel);
         }
+        
     }
 
 
-    async queryServerExtended(message){
+    queryServerExtended(message){
 
-        try{
+        const reg = /^.extended (\d+)$/i;
 
-            const reg = /^.extended (\d+)$/i;
+        const result = reg.exec(message.content);
 
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                const server = await this.servers.getServerById(result[1]);
-
-                if(server != null){
-
-                    let id = parseInt(result[1]);
-
-                    id--;
-
-                    this.query.getExtended(server.ip, server.port, message.channel);
-                 
-                }else{
-                
-                    message.channel.send(`${config.failIcon} There is no server with that id.`);
-                }
-            }
-
-        }catch(err){
-            console.trace(err);
+        if(result === null){
+            return message.channel.send(`${config.failIcon} There is no server with that id.`);
         }
-    }
 
-    async queryServerExtendedAlt(message){
+        const server = this.servers.getServerById(result[1]);
 
-        try{
+        if(server != null){
 
-            const reg = /^.extended (((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+|))|(.+?(:\d+|)))$/i;
+            let id = parseInt(result[1]);
 
-            const result = reg.exec(message.content);
+            id--;
 
-            if(result !== null){
-
-                let ip = "";
-                let port = 7777;
-
-                if(result[3] !== ''){
-
-                    ip = result[3];
-
-                    if(result[4] !== ''){
-
-                        port = result[4].replace(':','');
-                        port = parseInt(port);
-
-                        if(port !== port){
-                            message.channel.send(`${config.failIcon} Port must be a valid integer`);
-                            return;
-                        }
-                    }
-
-                    this.query.getExtended(ip, port, message.channel);
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for queryServerExtended.`);
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
-
-
-    async queryPlayers(message){
-
-        try{
-
-            const reg = /^.players (\d+)$/i;
-
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                const server = await this.servers.getServerById(result[1]);
-
-                if(server !== null){
-
-                    this.query.getPlayers(server.ip, server.port, message.channel);
-
-                }else{
-                    message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1])} does not exist.`);
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players.`);
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
-
-    async queryPlayersAlt(message){
-
-        try{
-
-            const reg = /^.players ((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(:\d+|)|(.+?)(:\d+|))$/i;
-
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                let ip = "";
-                let port = 7777;
-
-                if(result[2] === undefined){
-
-                    if(result[8] !== ''){
-
-                        result[8] = result[8].replace(':','');
-
-                        port = parseInt(result[8]);
-                    }
-
-                    this.query.getPlayers(result[7], port, message.channel);
-
-                }else{
-
-                    ip = `${result[2]}.${result[3]}.${result[4]}.${result[5]}`;
-
-                    if(result[6] !== ''){
-
-                        result[6] = result[6].replace(':','');
-
-                        port = parseInt(result[6]);
-                    }
-
-                    this.query.getPlayers(ip, port, message.channel);
-                }             
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players command.`);
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
-
-    async editServer(message){
-
-        //this.servers.editServer(message.content);
-
-        try{
-
-            const editReg = /^.editserver (\d+) (.+?) (.+)$/i;
+            this.query.getExtended(server.ip, server.port, message.channel);
             
-            const result = editReg.exec(message.content);
+        }else{
+        
+            message.channel.send(`${config.failIcon} There is no server with that id.`);
+        }
+    }
 
-            if(result != null){
+    queryServerExtendedAlt(message){
 
-                const serverId = parseInt(result[1]);
+        const reg = /^.extended (((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+|))|(.+?(:\d+|)))$/i;
 
-                const server = await this.servers.getServerById(serverId);        
+        const result = reg.exec(message.content);
 
-                if(server != null){
-
-                    const editType = result[2].toLowerCase();
-
-                    if(editType == 'country'){
-
-                        if(result[3].length !== 2){
-                            message.channel.send(`${config.failIcon} Server country code must be 2 characters long.`);
-                            return;
-                        }
-
-                    }else if(editType == 'ip'){
-                        
-                        if(result[3].includes(':')){
-                            message.channel.send(`${config.failIcon} Server ip can not include the port.`);
-                            return;
-                        }
-
-                    }else if(editType == 'port'){
-
-                        result[3] = result[3].replace(/\D/ig, '');
-                        
-                        if(result[3] < 1 || result[3] > 65535){
-                            message.channel.send(`${config.failIcon} Server port must be a interger between 1 and 65535`);
-                            return;
-                        }
-                        
-                    }
-
-                    //console.log(result);
-
-                    if(this.validEdits.indexOf(editType) !== -1){
-
-                        this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
-
-                        message.channel.send(`${config.passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
-                        
-                    }else{
-                        message.channel.send(`${config.failIcon} **${result[2]}** is not a valid edit type for servers.`);
-                    }
-
-                }else{
-                    message.channel.send(`${config.failIcon} A server with id ${serverId} does not exist.`);
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for edit server.`);
-            }
-
-        }catch(err){
-            console.trace(err);
+        if(result === null){
+            return message.channel.send(`${config.failIcon} Incorrect syntax for queryServerExtended.`);
         }
 
+        let ip = "";
+        let port = 7777;
+
+        if(result[3] !== ''){
+
+            ip = result[3];
+
+            if(result[4] !== ''){
+
+                port = result[4].replace(':','');
+                port = parseInt(port);
+
+                if(port !== port){
+                    message.channel.send(`${config.failIcon} Port must be a valid integer`);
+                    return;
+                }
+            }
+
+            this.query.getExtended(ip, port, message.channel);
+        }
+    }
+
+
+    queryPlayers(message){
+
+        const reg = /^.players (\d+)$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players.`);
+        }
+
+        const server = this.servers.getServerById(result[1]);
+
+        if(server !== null){
+
+            this.query.getPlayers(server.ip, server.port, message.channel);
+
+        }else{
+            message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1])} does not exist.`);
+        }
+
+    }
+
+    queryPlayersAlt(message){
+
+        const reg = /^.players ((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(:\d+|)|(.+?)(:\d+|))$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players command.`);
+        }
+
+        let ip = "";
+        let port = 7777;
+
+        if(result[2] === undefined){
+
+            if(result[8] !== ''){
+
+                result[8] = result[8].replace(':','');
+
+                port = parseInt(result[8]);
+            }
+
+            this.query.getPlayers(result[7], port, message.channel);
+
+        }else{
+
+            ip = `${result[2]}.${result[3]}.${result[4]}.${result[5]}`;
+
+            if(result[6] !== ''){
+
+                result[6] = result[6].replace(':','');
+
+                port = parseInt(result[6]);
+            }
+
+            this.query.getPlayers(ip, port, message.channel);
+        }
+    }
+
+    editServer(message){
+
+        const editReg = /^.editserver (\d+) (.+?) (.+)$/i;
+        
+        const result = editReg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${config.failIcon} Incorrect syntax for edit server.`);
+        }
+
+        const serverId = parseInt(result[1]);
+
+        const server = this.servers.getServerById(serverId); 
+        
+        if(server === null){
+            return message.channel.send(`${config.failIcon} A server with id ${serverId} does not exist.`);
+        }
+
+        const editType = result[2].toLowerCase();
+
+        if(editType == 'country'){
+
+            if(result[3].length !== 2){
+                return message.channel.send(`${config.failIcon} Server country code must be 2 characters long.`);      
+            }
+
+        }else if(editType == 'ip'){
+            
+            if(result[3].includes(':')){
+                return message.channel.send(`${config.failIcon} Server ip can not include the port.`);     
+            }
+
+        }else if(editType == 'port'){
+
+            result[3] = result[3].replace(/\D/ig, '');
+            
+            if(result[3] < 1 || result[3] > 65535){
+                return message.channel.send(`${config.failIcon} Server port must be a interger between 1 and 65535`);             
+            }     
+        }
+
+
+        if(this.validEdits.indexOf(editType) !== -1){
+
+            this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
+
+            message.channel.send(`${config.passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
+            
+        }else{
+            message.channel.send(`${config.failIcon} **${result[2]}** is not a valid edit type for servers.`);
+        }
     }
     
 }

@@ -11,7 +11,7 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - Run the command **node install** to install the database.
 - Copy **config/config-example.js** to **config/config.js**.
 - Edit **config.js**
-    - Now set the Discord token **token** to connect the bot to the server. [How to add a Discord bot](https://discordpy.readthedocs.io/en/latest/discord.html)
+    - Now set the Discord token **token** to connect the bot to the server. [How to add a Discord bot](https://discordjs.guide/legacy/preparations/app-setup)
     - Now set **defaultAdminRole** to a role name that is in your Discord server, do not add a common role name as it gives those users access to admin commands.
 - Install process is now completed.
 

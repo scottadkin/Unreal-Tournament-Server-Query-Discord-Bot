@@ -4,6 +4,7 @@ import dns from 'node:dns';
 import ServerResponse from './serverResponse.js';
 import Servers from './servers.js';
 import Channels from './channels.js';
+import { bValidPort, getIP4Address } from './generic.js';
 
 export default class UT99Query{
 
@@ -102,7 +103,7 @@ export default class UT99Query{
 
             this.deleteAllBasic();
 
-            const servers = await this.servers.getAllServers();
+            const servers = this.servers.getAllServers();
             
             for(let i = 0; i < servers.length; i++){
 
@@ -617,6 +618,7 @@ export default class UT99Query{
     getFullServer(ip, port, message, bEdit, messageId){
 
         try{
+
             port = parseInt(port);
 
             if(port !== port){
@@ -653,37 +655,50 @@ export default class UT99Query{
         }
     }
 
-    getBasicServer(ip, port){
+    udpSend(address, port, type){
 
         return new Promise((resolve, reject) =>{
 
-            port = parseInt(port);
+            if(type === undefined) reject("Message type is required");
+            type = type.toLowerCase();
 
-            if(port !== port){
-                reject("port must be a valid integer.");
+            let message = ``;
+
+            if(type === "basic"){
+                message = `\\info\\xserverquery\\`;
+            }else{
+
+                reject("Unknown Message Type");
             }
 
-            port = port + 1;
+            this.responses.push(new ServerResponse(address, port, "basic"));
 
-            dns.lookup(ip, (err, address) =>{
+            this.server.send(message, port, address, (err) =>{
 
-                if(err) reject(err);
+                if(err){
+                    reject(err);
+                }
 
-                this.responses.push(new ServerResponse(address, port, "basic"));
-
-                this.server.send('\\info\\xserverquery\\', port, address, (err) =>{
-
-                    if(err){
-                        reject(err);
-                    }
-
-                    resolve();
-                });
+                resolve();
             });
-
         });
-       
+    }
+
+    async getBasicServer(ip, port){
+
+        const address = await getIP4Address(ip);
+
+        if(address === null){
+            throw new Error("Not a valid server address");
+        }
         
+        port = parseInt(port);
+
+        if(!bValidPort(port)) throw new Error("Not a valid port");
+
+        port = port + 1;
+
+        await this.udpSend(address, port, "basic");
 
     }
 

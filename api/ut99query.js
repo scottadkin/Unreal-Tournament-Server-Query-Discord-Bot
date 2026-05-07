@@ -1,6 +1,5 @@
 import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serverInfoPingInterval } from '../config/config.js';
 import dgram from 'node:dgram';
-import dns from 'node:dns';
 import ServerResponse from './serverResponse.js';
 import Servers from './servers.js';
 import Channels from './channels.js';
@@ -11,9 +10,7 @@ export default class UT99Query{
     constructor(discord, bAuto){
 
         this.server = null;
-
         this.responses = [];
-
         this.bAuto = false;
 
         if(bAuto !== undefined){
@@ -99,7 +96,6 @@ export default class UT99Query{
 
     async pingAllServers(){
 
-       
         this.deleteAllBasic();
 
         const servers = this.servers.getAllServers();
@@ -109,7 +105,6 @@ export default class UT99Query{
             await this.getBasicServer(servers[i].ip, servers[i].port);
             
         }
-
     }
 
 
@@ -136,7 +131,8 @@ export default class UT99Query{
        
             }else{
 
-                this.getFullServer(serverInfo.ip, serverInfo.port, channel);
+                throw new Error("Autoquery message doesn't exist.");
+                //this.getFullServer(serverInfo.ip, serverInfo.port, channel);
                // console.log("Message doesn't exist");
             }
 
@@ -611,45 +607,6 @@ export default class UT99Query{
 
     }
 
-    getFullServer(ip, port, message, bEdit, messageId){
-
-        try{
-
-            port = parseInt(port);
-
-            if(port !== port){
-                throw new Error("Port must be a valid integer!");
-            }
-
-            port = port + 1;
-
-            dns.lookup(ip, (err, address) =>{
-
-                if(err) console.trace(err);
-
-                //console.log('address: %j family: IPv%s', address, family);
-
-
-                if(bEdit === undefined){
-                    this.responses.push(new ServerResponse(address, port, "full", message));
-                }else{
-                    this.responses.push(new ServerResponse(address, port, "full", message, true, messageId));
-                }
-
-                this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\', port, address, (err) =>{
-
-                    if(err){
-                        console.trace(err);
-                    }
-
-                });
-            });
-
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
 
     getQueryMessage(type){
 
@@ -661,6 +618,8 @@ export default class UT99Query{
             return `\\info\\xserverquery\\\\players\\xserverquery\\`;
         }else if(type === "extended"){
             return `\\info\\xserverquery\\\\rules\\xserverquery\\`;
+        }else if(type === "full"){
+            return `\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\`;
         }
 
 
@@ -668,7 +627,7 @@ export default class UT99Query{
         
     }
 
-    udpSend(address, port, type, discordMessage){
+    udpSend(address, port, type, discordMessage, bEdit, messageId){
 
         return new Promise((resolve, reject) =>{
             
@@ -682,7 +641,7 @@ export default class UT99Query{
             
             const message = this.getQueryMessage(type);
             
-            this.responses.push(new ServerResponse(address, port, type, discordMessage));
+            this.responses.push(new ServerResponse(address, port, type, discordMessage, bEdit, messageId));
 
             this.server.send(message, port, address, (err) =>{
 
@@ -695,6 +654,13 @@ export default class UT99Query{
         });
     }
 
+    async getFullServer(ip, port, discordMessage, bEdit, messageId){
+
+        const address = await getIP4Address(ip);
+
+        await this.udpSend(address, port, "full", discordMessage, bEdit, messageId);
+
+    }
 
     //catch errors here so pingAllServers doesn't stop before the last server
     async getBasicServer(ip, port){

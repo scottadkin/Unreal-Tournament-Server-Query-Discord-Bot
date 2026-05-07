@@ -45,7 +45,7 @@ export async function getIP4Address(address){
     }catch(err){
 
         console.trace(err);
-        return null;
+        throw new Error(`Ip4 address not found for domain ${address}`);
     }
 
 }

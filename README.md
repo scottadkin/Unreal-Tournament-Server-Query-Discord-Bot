@@ -87,6 +87,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Added bSkipAdminHelpToNonAdmins to config.js, setting this value to false will hide the admin help commands to users that don’t have admin roles.
 - Removed the now unsupported clickable like in .ip commands.
 - Help commands now use discord embeds.
+- Fixed pingAllServers skipping the next servers in the list if there is an error.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

@@ -99,21 +99,17 @@ export default class UT99Query{
 
     async pingAllServers(){
 
-        try{
+       
+        this.deleteAllBasic();
 
-            this.deleteAllBasic();
+        const servers = this.servers.getAllServers();
+        
+        for(let i = 0; i < servers.length; i++){
 
-            const servers = this.servers.getAllServers();
+            await this.getBasicServer(servers[i].ip, servers[i].port);
             
-            for(let i = 0; i < servers.length; i++){
-
-                await this.getBasicServer(servers[i].ip, servers[i].port);
-              
-            }
-
-        }catch(err){
-            console.trace(err);
         }
+
     }
 
 
@@ -655,28 +651,43 @@ export default class UT99Query{
         }
     }
 
-    udpSend(address, port, type){
+    getQueryMessage(type){
+
+        type = type.toLowerCase();
+
+        if(type === "basic"){
+            return `\\info\\xserverquery\\`;
+        }else if(type === "players"){
+            return `\\info\\xserverquery\\\\players\\xserverquery\\`;
+        }else if(type === "extended"){
+            return `\\info\\xserverquery\\\\rules\\xserverquery\\`;
+        }
+
+
+        throw new Error("Unknown Message Type");
+        
+    }
+
+    udpSend(address, port, type, discordMessage){
 
         return new Promise((resolve, reject) =>{
+            
+            port = parseInt(port);
 
-            if(type === undefined) reject("Message type is required");
-            type = type.toLowerCase();
+            if(!bValidPort(port)) return reject("Not a valid port");
 
-            let message = ``;
+            port = port + 1;
 
-            if(type === "basic"){
-                message = `\\info\\xserverquery\\`;
-            }else{
-
-                reject("Unknown Message Type");
-            }
-
-            this.responses.push(new ServerResponse(address, port, "basic"));
+            if(type === undefined) return reject("Message type is required");
+            
+            const message = this.getQueryMessage(type);
+            
+            this.responses.push(new ServerResponse(address, port, type, discordMessage));
 
             this.server.send(message, port, address, (err) =>{
 
                 if(err){
-                    reject(err);
+                    return reject(err);
                 }
 
                 resolve();
@@ -684,55 +695,33 @@ export default class UT99Query{
         });
     }
 
+
+    //catch errors here so pingAllServers doesn't stop before the last server
     async getBasicServer(ip, port){
+
+        try{
+
+            const address = await getIP4Address(ip);
+
+            await this.udpSend(address, port, "basic");
+
+        }catch(err){
+            console.trace(err);
+        }
+
+    }
+
+    async getPlayers(ip, port, discordMessage){
 
         const address = await getIP4Address(ip);
 
-        if(address === null){
-            throw new Error("Not a valid server address");
-        }
-        
-        port = parseInt(port);
-
-        if(!bValidPort(port)) throw new Error("Not a valid port");
-
-        port = port + 1;
-
-        await this.udpSend(address, port, "basic");
-
+        await this.udpSend(address, port, "players", discordMessage);
     }
 
-    getPlayers(ip, port, message){
+    async getExtended(ip, port, discordMessage){
 
-        dns.lookup(ip, (err, address) =>{
+        const address = await getIP4Address(ip);
 
-            if(err) console.trace(err);
-
-            this.responses.push(new ServerResponse(address, port + 1, "players", message));
-
-            this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\', port + 1, address, (err) =>{
-
-                if(err){
-                    console.log(err);
-                }
-            });
-        });
-    }
-
-    getExtended(ip, port, message){
-
-        dns.lookup(ip, (err, address, family) =>{
-
-            if(err) console.trace(err);
-
-            this.responses.push(new ServerResponse(address, port + 1, "extended", message));
-
-            this.server.send('\\info\\xserverquery\\\\rules\\xserverquery\\', port + 1, address, (err) =>{
-
-                if(err){
-                    console.log(err);
-                }
-            });
-        });
+        await this.udpSend(address, port, "extended", discordMessage);;
     }
 }

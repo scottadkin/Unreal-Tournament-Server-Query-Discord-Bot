@@ -120,8 +120,9 @@ export default class ServerResponse{
             let currentFlag = this.getFlag(p.country);
 
             if(!bSpectator){
-                
+
                 if(p.mesh?.toLowerCase() != "spectator"){
+
                     if(team == -99){
 
                         if(p.frags !== undefined){
@@ -132,27 +133,26 @@ export default class ServerResponse{
 
                         if(parseInt(p.team) == team){
 
-                            //if(p.mesh.toLowerCase() != "spectator"){
-                                string += `${currentFlag} ${this.sanitizeName(p.name)} **${p.frags}**\n`;
-                           // }
+                            string += `${currentFlag} ${this.sanitizeName(p.name)} **${p.frags}**\n`;
+                          
                         }
                     }
                 }
-
-            }else if(bSpectator){
-                    
-                if(p.mesh?.toLowerCase() == "spectator" || p.frags === undefined){
-
-                    if(string != ""){
-                        string += ", ";
-                    }
-
-                    if(currentFlag == ":video_game:"){
-                       currentFlag = ":eyes:";
-                    }
-                    string += `${currentFlag} ${this.sanitizeName(p.name)}`;
-                }
+                continue;
             }
+     
+            if(p.mesh?.toLowerCase() == "spectator" || p.frags === undefined){
+
+                if(string != ""){
+                    string += ", ";
+                }
+
+                if(currentFlag == ":video_game:"){
+                    currentFlag = ":eyes:";
+                }
+                string += `${currentFlag} ${this.sanitizeName(p.name)}`;
+            }
+           
         }
 
         if(string == ""){
@@ -470,25 +470,20 @@ export default class ServerResponse{
     getLongestDeaths(bAlt){
 
         let best = 0;
-        let length = 0;
-        let c = 0;
 
         for(let i = 0; i < this.players.length; i++){
 
-            if(bAlt === undefined){
-                c = this.players[i].deaths;
-            }else{
-                c = this.players[i].frags;
-            }
+            const p = this.players[i];
 
-            if(c !== undefined){
+            const c = (bAlt === undefined) ? p.deaths : p.frags;
 
-                length = c.toString().length
+            if(c === undefined) continue;
 
-                if(length > best){
-                    best = length;
-                }
-            }
+            const length = c.toString().length;
+
+            if(length > best){
+                best = length;
+            }  
         }
 
         return best;
@@ -684,10 +679,7 @@ export default class ServerResponse{
         this.password = this.getTrueFalseIcon(this.password);
         this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
         this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
-        
-
         this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
-
         this.tournament = this.getTrueFalseIcon(this.tournament);
 
         string += `**Address:** ${this.ip}:${this.port}\n`;
@@ -697,8 +689,7 @@ export default class ServerResponse{
         string += `**FriendlyFire:** ${this.friendlyFire} **Tournament Mode:** ${this.tournament} **Gamestyle:** ${this.gamestyle}\n`;
         string += `**Gametype:** ${this.gametype} `;
         string += `**Map:** ${this.mapName} `;
-        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
-        
+        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;   
         string += `**Mutators: **`;
 
         if(this.mutators.length == 0){
@@ -716,12 +707,9 @@ export default class ServerResponse{
             }else{
                 string += '.';
             }
-
         }
 
-
         this.discordMessage.send(string);
-
         this.bSentMessage = true;
     }
 
@@ -735,10 +723,7 @@ export default class ServerResponse{
         this.password = this.getTrueFalseIcon(this.password);
         this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
         this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
-        
-
         this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
-
         this.tournament = this.getTrueFalseIcon(this.tournament);
 
         string += `**Address:** ${this.ip}:${this.port}\n`;
@@ -765,15 +750,11 @@ export default class ServerResponse{
             }else{
                 string += '.';
             }
-
         }
 
-
         this.discordMessage.send(string);
-
         this.bSentMessage = true;
     }
-
 
     //used to check unreal player count
     getCurrentPlayers(){

@@ -416,26 +416,26 @@ export default class Bot{
             return message.channel.send(`${failIcon} Incorrect syntax for queryServerExtended.`);
         }
 
-        let ip = "";
         let port = 7777;
 
-        if(result[3] !== ''){
+        if(result[3] === undefined) return;
+        if(result[3] === "") return;
 
-            ip = result[3];
+        const ip = result[3];
 
-            if(result[4] !== ''){
+        if(result[4] !== undefined && result[4] !== ""){
 
-                port = result[4].replace(':','');
-                port = parseInt(port);
+            port = result[4].replace(':','');
+            port = parseInt(port);
 
-                if(port !== port){
-                    message.channel.send(`${failIcon} Port must be a valid integer`);
-                    return;
-                }
+            if(port !== port){
+                message.channel.send(`${failIcon} Port must be a valid integer`);
+                return;
             }
-
-            this.query.getExtended(ip, port, message.channel);
         }
+
+        this.query.getExtended(ip, port, message.channel);
+        
     }
 
 

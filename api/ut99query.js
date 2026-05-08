@@ -620,9 +620,13 @@ export default class UT99Query{
 
     async getFullServer(ip, port, discordMessage, bEdit, messageId){
 
-        const address = await getIP4Address(ip);
+        try{
+            const address = await getIP4Address(ip);
 
-        await this.udpSend(address, port, "full", discordMessage, bEdit, messageId);
+            await this.udpSend(address, port, "full", discordMessage, bEdit, messageId);
+        }catch(err){
+            console.trace(err);
+        }
 
     }
 
@@ -643,9 +647,13 @@ export default class UT99Query{
 
     async getPlayers(ip, port, discordMessage){
 
-        const address = await getIP4Address(ip);
+        try{
+            const address = await getIP4Address(ip);
 
-        await this.udpSend(address, port, "players", discordMessage);
+            await this.udpSend(address, port, "players", discordMessage);
+        }catch(err){
+            console.trace(err);
+        }
     }
 
     async getExtended(ip, port, discordMessage){

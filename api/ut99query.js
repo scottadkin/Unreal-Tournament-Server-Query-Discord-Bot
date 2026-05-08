@@ -17,8 +17,6 @@ export default class UT99Query{
             this.bAuto = true;
         }
 
-        console.log(this.bAuto);
-
         this.createClient();
 
         this.servers = new Servers();
@@ -40,8 +38,10 @@ export default class UT99Query{
             for(let i = 0; i < this.responses.length; i++){
 
                 const r = this.responses[i];
-      
-                if(now - r.timeStamp > serverTimeout && !r.bSentMessage){
+
+                const age = now - r.timeStamp;
+
+                if(age > serverTimeout && !r.bSentMessage){
 
                     r.bReceivedFinal = true;
                     r.bTimedOut = true;
@@ -51,8 +51,6 @@ export default class UT99Query{
                     }else{
                         r.bSentMessage = true;
                     }
-
-                    continue;
                 }
             }
 
@@ -63,14 +61,13 @@ export default class UT99Query{
                 }
             });
 
-        }, (serverTimeout * 2) * 1000);
+        }, 1000);
 
 
-        if(this.bAuto){
-
-            this.startAutoQueryLoop();   
-            this.initServerPingLoop();
-        }
+        if(!this.bAuto) return
+        this.startAutoQueryLoop();   
+        this.initServerPingLoop();
+        
     }
 
 
@@ -98,7 +95,6 @@ export default class UT99Query{
 
         const servers = this.servers.getAllServers();
 
-        
         for(let i = 0; i < servers.length; i++){
             this.getBasicServer(servers[i].ip, servers[i].port);       
         }
@@ -214,7 +210,6 @@ export default class UT99Query{
 
     parsePacket(data, response){
 
-
         const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
 
         if(unrealCheckReg.test(data)){
@@ -280,26 +275,15 @@ export default class UT99Query{
             return;
         }
 
-        if(finalReg.test(data)){
+        if(!finalReg.test(data)) return;
 
-            if(response.type == "full"){
-
-                response.sendFullServerResponse(this.channels, this.servers, embedColor);
-      
-
-            }else if(response.type == "players"){
-
-                response.sendPlayersResponse();
-         
-
-            }else if(response.type == "extended"){
-
-                response.sendExtendedResponse();
-
-            }
+        if(response.type == "full"){
+            response.sendFullServerResponse(this.channels, this.servers, embedColor);
+        }else if(response.type == "players"){
+            response.sendPlayersResponse();
+        }else if(response.type == "extended"){
+            response.sendExtendedResponse();
         }
-
-
     }
 
     parseServerInfoData(data, response){
@@ -529,7 +513,7 @@ export default class UT99Query{
         }
     }
 
-    getMatchingResponse(ip, port, ignoreTimeStamp){
+    getMatchingResponse(ip, port){
 
         for(let i = 0; i < this.responses.length; i++){
 
@@ -537,14 +521,7 @@ export default class UT99Query{
 
             if(r.ip == ip && r.port == port && !r.bSentMessage){
 
-                if(ignoreTimeStamp === undefined){
-                    return r;
-                }else{
-
-                    if(r.timeStamp !== ignoreTimeStamp){
-                        return r;
-                    }
-                }
+                return r;
             }
         }
 

@@ -190,7 +190,7 @@ export default class Servers{
             vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
         }
 
-        console.log(query);
+        console.log("UPDATEINFO", data.ip, data.port);
 
         return sqliteRun(query, vars);
  
@@ -199,8 +199,6 @@ export default class Servers{
     updateInfo(data){
 
         const bCountryOverride = this.bCountryOverride(data.ip, data.port);
-
-        console.log("updateInfo");
 
         if(!bCountryOverride){
             this.updateQuery(data);

@@ -5,8 +5,6 @@ export default class ServerResponse{
 
     constructor(ip, port, type, discordMessage, bEdit, messageId){
 
-        console.log(`new response ${ip}:${[port]} ${type}`);
-
         this.ip = ip;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);

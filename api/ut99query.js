@@ -33,8 +33,6 @@ export default class UT99Query{
 
         setInterval(() =>{
 
-            //console.log(`Total Responses = ${this.responses.length} (${this.bAuto})`);
-
             const now = Math.floor(Date.now() * 0.001);
 
             for(let i = 0; i < this.responses.length; i++){
@@ -49,7 +47,6 @@ export default class UT99Query{
                     if(r.type !== "basic"){
                         r.sendFullServerResponse(this.channels, this.servers, embedColor);
                     }else{
-
                         r.bSentMessage = true;
                     }
 
@@ -69,8 +66,7 @@ export default class UT99Query{
 
         if(this.bAuto){
 
-            this.startAutoQueryLoop();
-        
+            this.startAutoQueryLoop();   
             this.initServerPingLoop();
         }
     }
@@ -78,7 +74,7 @@ export default class UT99Query{
 
     deleteAllBasic(){
 
-        const potatoes = [];
+        const responses = [];
 
         for(let i = 0; i < this.responses.length; i++){
 
@@ -86,11 +82,11 @@ export default class UT99Query{
 
             if(r.type !== "basic"){
 
-                potatoes.push(r);
+                responses.push(r);
             }
         }
 
-        this.responses = potatoes;
+        this.responses = responses;
     }
 
 
@@ -102,8 +98,7 @@ export default class UT99Query{
         
         for(let i = 0; i < servers.length; i++){
 
-            await this.getBasicServer(servers[i].ip, servers[i].port);
-            
+            await this.getBasicServer(servers[i].ip, servers[i].port);       
         }
     }
 
@@ -132,8 +127,6 @@ export default class UT99Query{
             }else{
 
                 throw new Error("Autoquery message doesn't exist.");
-                //this.getFullServer(serverInfo.ip, serverInfo.port, channel);
-               // console.log("Message doesn't exist");
             }
 
         });
@@ -145,28 +138,20 @@ export default class UT99Query{
 
             const queryChannelId = this.channels.getAutoQueryChannel();
 
-            if(queryChannelId !== null){
+            if(queryChannelId === null) return;
 
-                this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
+            this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
 
-                    const servers = await this.servers.getAllServers();  
- 
-                    for(let i = 0; i < servers.length; i++){
+                const servers = await this.servers.getAllServers();  
 
-                        await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
-                          
-                    }
-                    
-                }).catch((err) =>{
-                    console.trace(err);
-                });
+                for(let i = 0; i < servers.length; i++){
 
-
-
-            }else{
-
-                //console.log(`AutoqueryChannel is not SET!`);
-            }
+                    await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);               
+                }
+                
+            }).catch((err) =>{
+                console.trace(err);
+            });
 
         }, autoQueryInterval * 1000);
     }
@@ -192,7 +177,6 @@ export default class UT99Query{
 
         }, serverInfoPingInterval * 1000);
 
-
     }
 
     createClient(){
@@ -201,14 +185,17 @@ export default class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
+            try{
 
-            if(matchingResponse !== null){
+                const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
+
+                if(matchingResponse === null) return;
 
                 this.parsePacket(message, matchingResponse);
 
+            }catch(err){
+                console.trace(err);
             }
-
         });
 
         this.server.on('listening', () =>{
@@ -220,7 +207,6 @@ export default class UT99Query{
             console.trace(err);
         });
 
-       // console.log(`this.bAuto = ${this.bAuto}`);
         if(!this.bAuto){
             this.server.bind(udpPort);
         }else{
@@ -228,122 +214,111 @@ export default class UT99Query{
         }
     }
 
-    async parsePacket(data, response){
+    parsePacket(data, response){
 
-        try{
+        const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
 
-            const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
+        if(unrealCheckReg.test(data)){
 
-            if(unrealCheckReg.test(data)){
+            const typeResult = unrealCheckReg.exec(data);
 
-                const typeResult = unrealCheckReg.exec(data);
-
-                if(typeResult[1].toLowerCase() === 'mapfilename'){
-                    response.bHaveUnrealMutators = true;
-                }
-                
-                response.bUnreal = true;
+            if(typeResult[1].toLowerCase() === 'mapfilename'){
+                response.bHaveUnrealMutators = true;
             }
-
-            this.parseServerInfoData(data, response);
-
-            this.parseMapData(data, response);
-
-            if(response.type !== "basic"){
-
-                this.parseTeamData(data, response);
-                this.parseMutators(data, response);
-                this.parsePlayerData(data, response);
-            }
-
-            const finalReg = /\\final\\$/i;
-
-            //unreal queries don;t end with /final/ so we have to do different checks
-            if(response.bUnreal){
-
-                if(response.type === 'basic'){
-
-                   // response.bHaveUnrealBasic = true;
-                    response.bSentMessage = true;
-
-                    const potato = {
-                        "name": response.name,
-                        "currentPlayers": response.currentPlayers,
-                        "maxPlayers": response.maxPlayers,
-                        "gametype": response.gametype,
-                        "mapName": response.mapName,
-                        "ip": response.ip,
-                        "port": response.port
-                    };
-
-                    return this.servers.updateInfo(potato);
-
-                }else if(response.type === 'players'){
-
-                   // console.log(response);
-
-                    if(response.bFetchedAllPlayers()){
-                        response.sendPlayersResponse();
-                    }
-
-                    return;
-
-                }else if(response.type === 'extended' && response.bHaveUnrealMutators){
-                    
-                    response.sendExtendedResponse();
-
-                    return;
-
-                }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
-                    response.sendFullServerResponse(this.channels, this.servers, embedColor);
-                    return;
-                }
-
-            }
-
-            if(finalReg.test(data)){
-
-                if(response.type == "full"){
-
-                    response.sendFullServerResponse(this.channels, this.servers, embedColor);
-                    return true;
-
-                }else if(response.type == "basic"){
-
-                    response.bSentMessage = true;
-                   
-                    //data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port
-                    const potato = {
-                        "name": response.name,
-                        "currentPlayers": response.currentPlayers,
-                        "maxPlayers": response.maxPlayers,
-                        "gametype": response.gametype,
-                        "mapName": response.mapName,
-                        "ip": response.ip,
-                        "port": response.port
-                    };
-
-                    this.servers.updateInfo(potato);
-                    
-                    return true;
-
-                }else if(response.type == "players"){
-
-                    response.sendPlayersResponse();
-                    return true;
-
-                }else if(response.type == "extended"){
-
-                    response.sendExtendedResponse();
-                    return true;
-                }
-            }
-
-            return false;
-
-        }catch(err){
-            console.trace(err);
+            
+            response.bUnreal = true;
         }
+
+        this.parseServerInfoData(data, response);
+
+        this.parseMapData(data, response);
+
+        if(response.type !== "basic"){
+
+            this.parseTeamData(data, response);
+            this.parseMutators(data, response);
+            this.parsePlayerData(data, response);
+        }
+
+        const finalReg = /\\final\\$/i;
+
+        //unreal queries don;t end with /final/ so we have to do different checks
+        if(response.bUnreal){
+
+            if(response.type === 'basic'){
+
+                response.bSentMessage = true;
+
+                const potato = {
+                    "name": response.name,
+                    "currentPlayers": response.currentPlayers,
+                    "maxPlayers": response.maxPlayers,
+                    "gametype": response.gametype,
+                    "mapName": response.mapName,
+                    "ip": response.ip,
+                    "port": response.port
+                };
+
+                return this.servers.updateInfo(potato);
+
+            }else if(response.type === 'players'){
+
+                if(response.bFetchedAllPlayers()){
+                    response.sendPlayersResponse();
+                }
+
+
+            }else if(response.type === 'extended' && response.bHaveUnrealMutators){
+                
+                response.sendExtendedResponse();
+
+            }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
+
+                response.sendFullServerResponse(this.channels, this.servers, embedColor);       
+            }
+
+            return;
+        }
+
+        if(finalReg.test(data)){
+
+            if(response.type == "full"){
+
+                response.sendFullServerResponse(this.channels, this.servers, embedColor);
+                return true;
+
+            }else if(response.type == "basic"){
+
+                response.bSentMessage = true;
+                
+                const potato = {
+                    "name": response.name,
+                    "currentPlayers": response.currentPlayers,
+                    "maxPlayers": response.maxPlayers,
+                    "gametype": response.gametype,
+                    "mapName": response.mapName,
+                    "ip": response.ip,
+                    "port": response.port
+                };
+
+                this.servers.updateInfo(potato);
+                
+                return true;
+
+            }else if(response.type == "players"){
+
+                response.sendPlayersResponse();
+                return true;
+
+            }else if(response.type == "extended"){
+
+                response.sendExtendedResponse();
+                return true;
+            }
+        }
+
+        return false;
+
     }
 
     parseServerInfoData(data, response){
@@ -405,12 +380,8 @@ export default class UT99Query{
             "adminName",
             "adminEmail",
             "country",
-
             "shortname"
         ];
-
-        let result = "";
-
 
         const tOrF = [
             "dedicated",
@@ -423,25 +394,17 @@ export default class UT99Query{
 
         for(let i = 0; i < regs.length; i++){
 
-            if(regs[i].test(data)){
+            if(!regs[i].test(data)) continue;
 
-                result = regs[i].exec(data);
+            const result = regs[i].exec(data);
 
-                if(tOrF.indexOf(keys[i]) == -1){
+            if(tOrF.indexOf(keys[i]) == -1){
 
-                    response[keys[i]] = result[1];
-
-                }else{
-
-                    result[1] = result[1].toLowerCase();
-
-                    if(result[1] == "false"){
-                        response[keys[i]] = false;
-                    }else if(result[1] == "true"){
-                        response[keys[i]] = true;
-                    }             
-                }
+                response[keys[i]] = result[1];
+                continue;
             }
+
+            response[keys[i]] = result[1].toLowerCase() === "true";     
         }
     }
 
@@ -488,24 +451,25 @@ export default class UT99Query{
 
                 response.mutators = result[1].split(', ');
             }     
-
-        }else{
-
-            const uReg = /\\mutator\\(.+?)\\/ig;
-
-            let result = '';
-
-            while(result !== null){
-
-                result = uReg.exec(message);
-
-                if(result !== null){
-
-                    response.mutators.push(result[1]);
-                }
-            }
-
+            return;
         }
+        
+
+        const uReg = /\\mutator\\(.+?)\\/ig;
+
+        let result = '';
+
+        while(result !== null){
+
+            result = uReg.exec(message);
+
+            if(result !== null){
+
+                response.mutators.push(result[1]);
+            }
+        }
+
+        
     }
 
     parsePlayerData(data, response){

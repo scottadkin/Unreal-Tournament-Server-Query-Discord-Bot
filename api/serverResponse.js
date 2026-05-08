@@ -1,4 +1,5 @@
 import { EmbedBuilder } from "discord.js";
+import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
 
 export default class ServerResponse{
 
@@ -61,26 +62,6 @@ export default class ServerResponse{
 
     }
 
-
-    getFlag(country){
-
-        if(country === undefined){
-            return ":video_game:";
-        }else{
-
-            let currentFlag = "";
-
-            currentFlag = `:flag_${country}:`;
-
-            if(country.toLowerCase() == "none"){
-                return ":video_game:";
-            }
-
-            return currentFlag;
-        }
-    }
-
-
     getSex(mesh){
 
         const femaleReg = /female/i;
@@ -117,7 +98,7 @@ export default class ServerResponse{
 
             const p = this.players[i];
 
-            let currentFlag = this.getFlag(p.country);
+            let currentFlag = getFlag(p.country);
 
             if(!bSpectator){
 
@@ -212,24 +193,6 @@ export default class ServerResponse{
         return fields;
     }
 
-    getMMSS(input){
-
-        let seconds = Math.floor(input % 60);
-        let minutes = Math.floor(input / 60);
-
-        if(seconds < 10){
-            seconds = "0"+seconds;
-        }
-
-        if(minutes < 10){
-            minutes = "0"+minutes;
-        }
-
-        return minutes+":"+seconds;
-        
-    }
-
-
     sortPlayersByScore(){
 
         this.players.sort((a, b) =>{
@@ -272,48 +235,41 @@ export default class ServerResponse{
         return country;
     }
 
-    async sendFullServerResponse(channels, servers,embedColor, Discord){
+    async sendFullServerResponse(channels, servers, embedColor){
 
         try{
+
             if(this.type != "full"){
                 return;
             }
 
-            if(this.bTimedOut){
+            if(this.bTimedOut && !this.bEdit){
 
-                if(!this.bEdit){
+                const autoChannelId = channels.getAutoQueryChannel();
 
-
-                    const autoChannelId = channels.getAutoQueryChannel();
-
-                    if(autoChannelId !== null){
-                        //stop bot posting timeouts in autochannel
-                        if(this.discordMessage.id === autoChannelId){
-                            this.bSentMessage = true;
-                            return;
-                        }
+                if(autoChannelId !== null){
+                    //stop bot posting timeouts in autochannel
+                    console.log(this.discordMessage.id, autoChannelId);
+                    if(this.discordMessage.id === autoChannelId){
+                        this.bSentMessage = true;
+                        return;
                     }
-
-                    let string = `:no_entry: **${this.ip}:${this.port}** has timed out!`;
-
-                    if(this.ip === undefined){
-                        string = `:no_entry: That ip does not exist!`;
-                    }
-
-                    this.bSentMessage = true;
-                    this.discordMessage.send(string);
-                    return;
                 }
-                
+
+                let string = `:no_entry: **${this.ip}:${this.port}** has timed out!`;
+
+                if(this.ip === undefined){
+                    string = `:no_entry: That ip does not exist!`;
+                }
 
                 this.bSentMessage = true;
+                this.discordMessage.send(string);
                 return;
             }
-
+    
             this.sortPlayersByScore();
 
             this.bReceivedFinal = true;
-
             
             let description = `:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}`;
             description += `:pushpin: ${this.gametype}`;
@@ -329,7 +285,7 @@ export default class ServerResponse{
             }
 
             if(this.remainingTime !== undefined){
-                description += `:stopwatch: Time Remaining **${this.getMMSS(this.remainingTime)} Minutes**
+                description += `:stopwatch: Time Remaining **${getMMSS(this.remainingTime)} Minutes**
                 `;
             }
 
@@ -391,6 +347,7 @@ export default class ServerResponse{
                     console.trace(err);
                 });
             }
+
         }catch(err){
             console.trace(err);
         }
@@ -409,7 +366,6 @@ export default class ServerResponse{
                 if(value.toLowerCase() == "spectator"){
                     this.spectators++;
                 }else{
-
                     this.totalPlayers++;
                 }
             }
@@ -423,49 +379,6 @@ export default class ServerResponse{
             {"id": id, "name": value.toString().replace(/`/ig,'') }
         );
     }
-
-    appendSpaces(value, targetLength){
-
-        value = value.toString();
-
-        if(value.length > targetLength){
-
-            return value.substring(0, targetLength)
-
-        }else{
-
-            while(value.length < targetLength){
-
-                value += " ";
-            }
-        }
-
-        return value;
-    }
-
-    prependSpaces(value, targetLength){
-
-        if(value === undefined){
-            value = 0;
-        }
-
-        value = value.toString();
-
-        if(value.length > targetLength){
-
-            return value.substring(0, targetLength)
-
-        }else{
-
-            while(value.length < targetLength){
-
-                value = ` ${value}`;
-            }
-        }
-
-        return value;
-    }
-
 
     getLongestDeaths(bAlt){
 
@@ -524,15 +437,15 @@ export default class ServerResponse{
 
         this.sortPlayersByScore();
         
-        const nameTitle = this.appendSpaces("Name", playerNameLength);
-        const sexTitle = this.appendSpaces("Model", 7);
-        const teamTitle = this.prependSpaces("Team", 9);
-        let deathsTitle = this.prependSpaces("Deaths", longestDeaths);
-        const fragsTitle = this.prependSpaces("Frags", longestFrags);
-        let timeTitle = this.prependSpaces("Time", 6);
-        const pingTitle = this.prependSpaces("Ping", 6);
-        let spreeTitle = this.prependSpaces("Spree", 5);
-        let healthTitle = this.prependSpaces("Health", 7);
+        const nameTitle = appendSpaces("Name", playerNameLength);
+        const sexTitle = appendSpaces("Model", 7);
+        const teamTitle = prependSpaces("Team", 9);
+        let deathsTitle = prependSpaces("Deaths", longestDeaths);
+        const fragsTitle = prependSpaces("Frags", longestFrags);
+        let timeTitle = prependSpaces("Time", 6);
+        const pingTitle = prependSpaces("Ping", 6);
+        let spreeTitle = prependSpaces("Spree", 5);
+        let healthTitle = prependSpaces("Health", 7);
 
         let bIgnoreDeaths = false;
         let bIgnoreTime = false;
@@ -585,84 +498,56 @@ export default class ServerResponse{
                 p.health = "";
             }
 
-            const name = this.appendSpaces(p.name, playerNameLength);
+            const name = appendSpaces(p.name, playerNameLength);
 
-            const flag = this.getFlag(p.country);
-            const sex = this.appendSpaces(this.getSex(p.mesh), 7);
+            const flag = getFlag(p.country);
+            const sex = appendSpaces(this.getSex(p.mesh), 7);
 
             let deaths = "";
 
             if(!bIgnoreDeaths){
-                deaths = this.prependSpaces(p.deaths, longestDeaths);
+                deaths = prependSpaces(p.deaths, longestDeaths);
             }
 
-            const frags = this.prependSpaces(p.frags, longestFrags);
+            const frags = prependSpaces(p.frags, longestFrags);
 
             let time = "";
 
             if(!bIgnoreTime){
-                time = this.prependSpaces(p.time, 6);
+                time = prependSpaces(p.time, 6);
             }
 
-            const ping = this.prependSpaces(p.ping, 6);  
+            const ping = prependSpaces(p.ping, 6);  
 
             let health = "";
 
             if(!bIgnoreHealth){
-                health = this.prependSpaces(p.health, 7);
+                health = prependSpaces(p.health, 7);
             }
 
             let spree = "";
 
             if(!bIgnoreSpree){
-                spree = this.prependSpaces(p.spree, 5);
+                spree = prependSpaces(p.spree, 5);
             }
 
-            let team = "";
-
-            if(p.team == '0'){
-                team = "Red";
-            }else if(p.team == '1'){
-                team = "Blue";
-            }else if(p.team == '2'){
-                team = "Green";
-            }else if(p.team == '3'){
-                team = "Yellow";
-            }else{
-                team = "None";
-            }
+            let team = getTeamName(p.team);
 
             if(p.mesh == "Spectator"){
                 team = "Spectator";
             }
 
-            team = this.prependSpaces(team, 9);
-            string += `${this.getFlag(p.country)} \`${name}${sex}${team}${ping}${time}${health} ${spree} ${deaths}${frags}\`\n`;
+            team = prependSpaces(team, 9);
+            string += `${getFlag(p.country)} \`${name}${sex}${team}${ping}${time}${health} ${spree} ${deaths}${frags}\`\n`;
         }
 
         if(this.players.length == 0){
-            string += `:zzz: **There are currently no players in the servers.**`
+            string += `:zzz: **There are currently no players in the servers.**`;
         }
 
         this.discordMessage.send(string);
 
         this.bSentMessage = true;
-    }
-
-    getTrueFalseIcon(value){
-
-        if(value === undefined) return;
-
-        value = value.toString().toUpperCase();
-
-        if(value == 'TRUE'){
-            return ':white_check_mark:';
-        }else if(value == 'FALSE'){
-            return ':x:';
-        }
-
-        return value;
-
     }
 
     sendExtendedResponse(){
@@ -676,11 +561,11 @@ export default class ServerResponse{
 
         const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
 
-        this.password = this.getTrueFalseIcon(this.password);
-        this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
-        this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
-        this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
-        this.tournament = this.getTrueFalseIcon(this.tournament);
+        this.password = getTrueFalseIcon(this.password);
+        this.balancedTeams = getTrueFalseIcon(this.balancedTeams);
+        this.playersBalanceTeams = getTrueFalseIcon(this.playersBalanceTeams);
+        this.changeLevels = getTrueFalseIcon(this.changeLevels);
+        this.tournament = getTrueFalseIcon(this.tournament);
 
         string += `**Address:** ${this.ip}:${this.port}\n`;
         string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName} **Email:** ${this.adminEmail}\n`;
@@ -720,19 +605,17 @@ export default class ServerResponse{
 
         const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
 
-        this.password = this.getTrueFalseIcon(this.password);
-        this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
-        this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
-        this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
-        this.tournament = this.getTrueFalseIcon(this.tournament);
+        this.password = getTrueFalseIcon(this.password);
+        this.balancedTeams = getTrueFalseIcon(this.balancedTeams);
+        this.playersBalanceTeams = getTrueFalseIcon(this.playersBalanceTeams);
+        this.changeLevels = getTrueFalseIcon(this.changeLevels);
+        this.tournament = getTrueFalseIcon(this.tournament);
 
         string += `**Address:** ${this.ip}:${this.port}\n`;
         string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName}\n`;
         string += `**Gametype:** ${this.gametype} `;
         string += `**Map:** ${this.mapName} `;
         string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
-        
-
         string += `**Mutators: **`;
 
         if(this.mutators.length == 0){

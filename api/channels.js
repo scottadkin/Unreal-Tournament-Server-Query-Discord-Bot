@@ -188,8 +188,8 @@ The server status posts will be updated every **${autoQueryInterval} seconds.**`
         for(let i = 0; i < currentServers.length; i++){
 
             const embed = new EmbedBuilder()
-                .setColor(embedColor)
-                .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
+            .setColor(embedColor)
+            .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
 
             message.channel.send({ "embeds": [embed] }).then((message) =>{
 
@@ -230,7 +230,7 @@ The server status posts will be updated every **${autoQueryInterval} seconds.**`
    
         this.deleteOldAutoMessageInfoId();
 
-        await this.insertAutoMessageInfoId(id);
+        this.insertAutoMessageInfoId(id);
 
         console.log(`New auto query message set. (${id})`);
 

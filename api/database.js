@@ -24,12 +24,16 @@ export function sqliteGet(query, vars){
 
 export function sqliteRun(query, vars){
 
-    const prepare = database.prepare(query);
+    try{
+        const prepare = database.prepare(query);
 
-    if(vars !== undefined){
-        return prepare.run(...vars);
-    }else{
-        return prepare.run();
+        if(vars !== undefined){
+            return prepare.run(...vars);
+        }else{
+            return prepare.run();
+        }
+    }catch(err){
+        console.trace(err);
     }
 }
 

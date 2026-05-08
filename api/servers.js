@@ -3,6 +3,7 @@ import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
 import dns from 'node:dns';
 import Channels from './channels.js';
 import { EmbedBuilder } from 'discord.js';
+import { getIP4Address } from './generic.js';
 
 export default class Servers{
 
@@ -26,17 +27,9 @@ export default class Servers{
 
         if(result[3] === undefined){
 
-            ip = dns.lookup(result[6], async (err, ipResult) =>{
+            try{
 
-                if(err){
-                    return message.channel.send(`${failIcon} There is no matching ip for that domain address.`);
-                }
-
-                /*if(ipResult === undefined){
-
-                    message.channel.send(`${failIcon} There is no matching ip for that domain address.`);
-                    return;
-                }*/
+                const address = await getIP4Address(result[6]);
 
                 if(result[8] !== undefined){
 
@@ -45,16 +38,20 @@ export default class Servers{
                     }
                 }
 
+                if(!this.bServerAdded(address, port)){
 
-                if(!this.bServerAdded(ipResult, port)){
-
-                    this.insertServer(result[6], ipResult, result[1], port);
+                    this.insertServer(result[6], address, result[1], port);
                     return message.channel.send(`${passIcon} Server added successfully.`);
 
                 }else{
                     return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
                 }
-            });   
+
+            }catch(err){
+                return message.channel.send(`${failIcon} ${err.message}`);
+            }
+
+ 
 
         }else{
 
@@ -110,7 +107,6 @@ export default class Servers{
 
         const query = "DELETE FROM servers WHERE id=?";
         return sqliteRun(query, [id]);
-
     }
 
 
@@ -147,12 +143,9 @@ export default class Servers{
 
             return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}removeserver, id must be a valid integer.`);
             
-
         }else if(id > servers.length || id < 1){
 
             return message.channel.send(`${failIcon} There are no servers with the id ${id}`);
-           
-
         }
 
         id = id - 1;
@@ -162,7 +155,6 @@ export default class Servers{
         this.deleteServer(s.id);
 
         return message.channel.send(`${passIcon} Deleted server successfully.`);        
-
     }
 
 
@@ -173,7 +165,6 @@ export default class Servers{
         let query = `UPDATE servers 
         SET name=?, country=?, players=?, max_players=?, gametype=?, map=?, modified=?
         WHERE real_ip=? AND port=?`;
-
 
         let vars = [];
         
@@ -199,6 +190,8 @@ export default class Servers{
             vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
         }
 
+        console.log(query);
+
         return sqliteRun(query, vars);
  
     }
@@ -207,12 +200,13 @@ export default class Servers{
 
         const bCountryOverride = this.bCountryOverride(data.ip, data.port);
 
+        console.log("updateInfo");
+
         if(!bCountryOverride){
             this.updateQuery(data);
         }else{
             this.updateQuery(data, true);
         }
-  
     }
 
 
@@ -260,7 +254,6 @@ export default class Servers{
             }else{
                 input = " "+input;
             }
-        
         }
 
         return input;

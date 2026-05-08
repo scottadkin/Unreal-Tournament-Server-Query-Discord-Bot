@@ -17,6 +17,8 @@ export default class UT99Query{
             this.bAuto = true;
         }
 
+        console.log(this.bAuto);
+
         this.createClient();
 
         this.servers = new Servers();
@@ -95,11 +97,12 @@ export default class UT99Query{
         this.deleteAllBasic();
 
         const servers = this.servers.getAllServers();
+
         
         for(let i = 0; i < servers.length; i++){
-
-            await this.getBasicServer(servers[i].ip, servers[i].port);       
+            this.getBasicServer(servers[i].ip, servers[i].port);       
         }
+
     }
 
 
@@ -126,7 +129,8 @@ export default class UT99Query{
        
             }else{
 
-                throw new Error("Autoquery message doesn't exist.");
+                
+                throw new Error(`Autoquery message doesn't exist. ${serverInfo.ip} ${serverInfo.port}`);
             }
 
         });
@@ -134,7 +138,7 @@ export default class UT99Query{
 
     startAutoQueryLoop(){
 
-        this.autoQueryLoop = setInterval(async () =>{
+        this.autoQueryLoop = setInterval(() =>{
 
             const queryChannelId = this.channels.getAutoQueryChannel();
 
@@ -157,20 +161,12 @@ export default class UT99Query{
     }
 
 
-    async initServerPingLoop(){
+    initServerPingLoop(){
 
-        try{
-
-            await this.pingAllServers();
-
-        }catch(err){
-            console.trace(err);
-        }
-
-        this.pingLoop = setInterval(async () =>{
+        this.pingLoop = setInterval(() =>{
 
             try{
-                await this.pingAllServers();
+                this.pingAllServers();
             }catch(err){
                 console.trace(err);
             }
@@ -189,7 +185,9 @@ export default class UT99Query{
 
                 const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
-                if(matchingResponse === null) return;
+                if(matchingResponse === null){
+                    return;
+                }
 
                 this.parsePacket(message, matchingResponse);
 
@@ -215,6 +213,7 @@ export default class UT99Query{
     }
 
     parsePacket(data, response){
+
 
         const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
 
@@ -242,26 +241,27 @@ export default class UT99Query{
 
         const finalReg = /\\final\\$/i;
 
+        if(response.type == "basic"){
+
+            response.bSentMessage = true;
+            
+            const potato = {
+                "name": response.name,
+                "currentPlayers": response.currentPlayers,
+                "maxPlayers": response.maxPlayers,
+                "gametype": response.gametype,
+                "mapName": response.mapName,
+                "ip": response.ip,
+                "port": response.port
+            };
+
+            this.servers.updateInfo(potato);
+        }
+
         //unreal queries don;t end with /final/ so we have to do different checks
         if(response.bUnreal){
 
-            if(response.type === 'basic'){
-
-                response.bSentMessage = true;
-
-                const potato = {
-                    "name": response.name,
-                    "currentPlayers": response.currentPlayers,
-                    "maxPlayers": response.maxPlayers,
-                    "gametype": response.gametype,
-                    "mapName": response.mapName,
-                    "ip": response.ip,
-                    "port": response.port
-                };
-
-                return this.servers.updateInfo(potato);
-
-            }else if(response.type === 'players'){
+            if(response.type === 'players'){
 
                 if(response.bFetchedAllPlayers()){
                     response.sendPlayersResponse();
@@ -285,39 +285,20 @@ export default class UT99Query{
             if(response.type == "full"){
 
                 response.sendFullServerResponse(this.channels, this.servers, embedColor);
-                return true;
-
-            }else if(response.type == "basic"){
-
-                response.bSentMessage = true;
-                
-                const potato = {
-                    "name": response.name,
-                    "currentPlayers": response.currentPlayers,
-                    "maxPlayers": response.maxPlayers,
-                    "gametype": response.gametype,
-                    "mapName": response.mapName,
-                    "ip": response.ip,
-                    "port": response.port
-                };
-
-                this.servers.updateInfo(potato);
-                
-                return true;
+      
 
             }else if(response.type == "players"){
 
                 response.sendPlayersResponse();
-                return true;
+         
 
             }else if(response.type == "extended"){
 
                 response.sendExtendedResponse();
-                return true;
+
             }
         }
 
-        return false;
 
     }
 
@@ -594,7 +575,7 @@ export default class UT99Query{
     udpSend(address, port, type, discordMessage, bEdit, messageId){
 
         return new Promise((resolve, reject) =>{
-            
+
             port = parseInt(port);
 
             if(!bValidPort(port)) return reject("Not a valid port");
@@ -610,7 +591,8 @@ export default class UT99Query{
             this.server.send(message, port, address, (err) =>{
 
                 if(err){
-                    return reject(err);
+                    reject(err);
+                    return;
                 }
 
                 resolve();

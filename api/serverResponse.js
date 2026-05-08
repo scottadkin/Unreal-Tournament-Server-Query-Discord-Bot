@@ -5,6 +5,8 @@ export default class ServerResponse{
 
     constructor(ip, port, type, discordMessage, bEdit, messageId){
 
+        console.log(`new response ${ip}:${[port]} ${type}`);
+
         this.ip = ip;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
@@ -249,7 +251,6 @@ export default class ServerResponse{
 
                 if(autoChannelId !== null){
                     //stop bot posting timeouts in autochannel
-                    console.log(this.discordMessage.id, autoChannelId);
                     if(this.discordMessage.id === autoChannelId){
                         this.bSentMessage = true;
                         return;
@@ -472,7 +473,7 @@ export default class ServerResponse{
             bIgnoreHealth = true;
         }    
 
-        string += `:rainbow_flag: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
+        string += `:flag_white: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
 
         for(let i = 0; i < this.players.length; i++){
 

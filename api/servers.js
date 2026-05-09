@@ -190,8 +190,6 @@ export default class Servers{
             vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
         }
 
-        console.log("UPDATEINFO", data.ip, data.port, new Date(Date.now()));
-
         return sqliteRun(query, vars);
  
     }

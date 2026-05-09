@@ -78,6 +78,7 @@ export default class UT99Query{
 
                 const age = now - r.timeStamp;
 
+
                 if(age > serverTimeout && !r.bSentMessage){
 
                     r.bReceivedFinal = true;
@@ -92,6 +93,11 @@ export default class UT99Query{
             }
 
             this.responses = this.responses.filter((a) =>{
+
+                //might actually want to delete the old responses if they timeout...
+                if(a.bTimedOut){
+                    return false;
+                }
 
                 if(!a.bSentMessage){
                     return true;
@@ -178,7 +184,9 @@ export default class UT99Query{
 
             const queryChannelId = this.channels.getAutoQueryChannel();
 
-            if(queryChannelId === null) return;
+            if(queryChannelId === null){
+                return;
+            }
 
             this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
 
@@ -200,8 +208,7 @@ export default class UT99Query{
     initServerPingLoop(){
 
         setTimeout(async () =>{
-
-            console.log("PING ALL SERVERS", this.responses.length);
+        
             await this.pingAllServers();
 
             this.initServerPingLoop();

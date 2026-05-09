@@ -4,6 +4,7 @@ import UT99Query from "./ut99query.js";
 import Servers from "./servers.js";
 import Channels from "./channels.js";
 import Roles from "./roles.js";
+import diagnosticsChannel from 'node:diagnostics_channel';
 
 const USER_COMMANDS = [
     {"name": `servers`, "content": `Lists all servers added to the database.`},
@@ -107,6 +108,12 @@ export default class Bot{
             }
             
         });
+
+
+        this.client.rest.on('rateLimited', (a) =>{
+            console.log(a);
+            console.log("I Have been rate LIMITED")
+        }); 
 
         this.client.login(token);
     }

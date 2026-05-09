@@ -29,6 +29,43 @@ export default class UT99Query{
 
     }
 
+    createClient(){
+
+        this.server = dgram.createSocket("udp4");
+
+        this.server.on('message', (message, rinfo) =>{
+
+            try{
+
+                const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
+
+                if(matchingResponse === null){
+                    return;
+                }
+
+                this.parsePacket(message, matchingResponse);
+
+            }catch(err){
+                console.trace(err);
+            }
+        });
+
+        this.server.on('listening', () =>{
+            const address = this.server.address();
+            console.log(`${this.bAuto ? "[Auto] ": ""}QueryPort listening on ${address.port}`);
+        });
+
+        this.server.on('error', (err) =>{
+            console.trace(err);
+        });
+
+        if(!this.bAuto){
+            this.server.bind(udpPort);
+        }else{
+            this.server.bind(udpPortAuto);
+        }
+    }
+
     init(){
 
         setInterval(() =>{
@@ -80,7 +117,6 @@ export default class UT99Query{
             const r = this.responses[i];
 
             if(r.type !== "basic"){
-
                 responses.push(r);
             }
         }
@@ -95,9 +131,14 @@ export default class UT99Query{
 
         const servers = this.servers.getAllServers();
 
+        const pings = [];
+
         for(let i = 0; i < servers.length; i++){
-            this.getBasicServer(servers[i].ip, servers[i].port);       
+                   
+            pings.push(this.getBasicServer(servers[i].ip, servers[i].port));
         }
+
+        return await Promise.all(pings);
 
     }
 
@@ -124,8 +165,7 @@ export default class UT99Query{
                 });
        
             }else{
-
-                
+    
                 throw new Error(`Autoquery message doesn't exist. ${serverInfo.ip} ${serverInfo.port}`);
             }
 
@@ -159,53 +199,16 @@ export default class UT99Query{
 
     initServerPingLoop(){
 
-        this.pingLoop = setInterval(() =>{
+        setTimeout(async () =>{
 
-            try{
-                this.pingAllServers();
-            }catch(err){
-                console.trace(err);
-            }
+            console.log("PING ALL SERVERS", this.responses.length);
+            await this.pingAllServers();
+
+            this.initServerPingLoop();
 
         }, serverInfoPingInterval * 1000);
 
-    }
 
-    createClient(){
-
-        this.server = dgram.createSocket("udp4");
-
-        this.server.on('message', (message, rinfo) =>{
-
-            try{
-
-                const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
-
-                if(matchingResponse === null){
-                    return;
-                }
-
-                this.parsePacket(message, matchingResponse);
-
-            }catch(err){
-                console.trace(err);
-            }
-        });
-
-        this.server.on('listening', () =>{
-            const address = this.server.address();
-            console.log(`${this.bAuto ? "[Auto] ": ""}QueryPort listening on ${address.port}`);
-        });
-
-        this.server.on('error', (err) =>{
-            console.trace(err);
-        });
-
-        if(!this.bAuto){
-            this.server.bind(udpPort);
-        }else{
-            this.server.bind(udpPortAuto);
-        }
     }
 
     parsePacket(data, response){
@@ -433,8 +436,6 @@ export default class UT99Query{
                 response.mutators.push(result[1]);
             }
         }
-
-        
     }
 
     parsePlayerData(data, response){
@@ -451,14 +452,11 @@ export default class UT99Query{
         const healthReg = /\\health_(\d+?)\\(.*?)\\/ig;
         const spreeReg = /\\spree_(\d+?)\\(.*?)\\/ig;
 
-        let result = "";
-        let currentMesh = "";
-
         while(true){
 
-            currentMesh = "";
+            let currentMesh = "";
 
-            result = nameReg.exec(data);
+            let result = nameReg.exec(data);
 
             if(result !== null){
                 response.updatePlayer(result[1], "name", result[2]);
@@ -593,6 +591,8 @@ export default class UT99Query{
     async getBasicServer(ip, port){
 
         try{
+
+            const started = new Date(Date.now());
 
             const address = await getIP4Address(ip);
 

@@ -12,6 +12,7 @@ export function createTable(query){
 
 export function sqliteGet(query, vars){
 
+
     const prepare = database.prepare(query);
 
     if(vars !== undefined){
@@ -19,22 +20,20 @@ export function sqliteGet(query, vars){
     }else{
         return prepare.get();
     }
+   
 }
 
 
 export function sqliteRun(query, vars){
 
-    try{
-        const prepare = database.prepare(query);
+    const prepare = database.prepare(query);
 
-        if(vars !== undefined){
-            return prepare.run(...vars);
-        }else{
-            return prepare.run();
-        }
-    }catch(err){
-        console.trace(err);
+    if(vars !== undefined){
+        return prepare.run(...vars);
+    }else{
+        return prepare.run();
     }
+
 }
 
 export function sqliteGetAll(query, vars){
@@ -50,4 +49,5 @@ export function sqliteGetAll(query, vars){
     }
 
     return result;
+  
 }

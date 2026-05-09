@@ -2,7 +2,7 @@ import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, ser
 import dgram from 'node:dgram';
 import ServerResponse from './serverResponse.js';
 import Servers from './servers.js';
-import Channels from './channels.js';
+import Channels, { getAutoQueryChannel } from './channels.js';
 import { bValidPort, getIP4Address } from './generic.js';
 
 export default class UT99Query{
@@ -151,6 +151,7 @@ export default class UT99Query{
 
     updateAutoQueryMessage(channel, messageId, serverInfo){
 
+        console.log("updateAutoQueryMessage", serverInfo.ip, serverInfo.port, messageId);
         return new Promise((resolve, reject) =>{
 
             if(messageId !== '-1'){
@@ -182,7 +183,7 @@ export default class UT99Query{
 
         this.autoQueryLoop = setInterval(() =>{
 
-            const queryChannelId = this.channels.getAutoQueryChannel();
+            const queryChannelId = getAutoQueryChannel();
 
             if(queryChannelId === null){
                 return;
@@ -190,7 +191,7 @@ export default class UT99Query{
 
             this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
 
-                const servers = await this.servers.getAllServers();  
+                const servers = this.servers.getAllServers();  
 
                 for(let i = 0; i < servers.length; i++){
 

@@ -153,19 +153,6 @@ export default class Channels{
 
     }
 
-
-    getAutoQueryChannel(){
-
-        const query = `SELECT id FROM auto_query`;
-
-        const result = sqliteGet(query);
-
-        if(result === undefined) return null;
-
-        return result.id;
-
-    }
-
     enableAutoQuery(message, servers){
 
         this.deleteAutoChannel();
@@ -184,6 +171,7 @@ The server status posts will be updated every **${autoQueryInterval} seconds.**`
         })
 
         const currentServers = servers.getAllServers();
+        
 
         for(let i = 0; i < currentServers.length; i++){
 
@@ -247,4 +235,17 @@ The server status posts will be updated every **${autoQueryInterval} seconds.**`
 
         return result.id;
     }
+}
+
+
+export function getAutoQueryChannel(){
+
+    const query = `SELECT id FROM auto_query`;
+
+    const result = sqliteGet(query);
+
+    if(result === undefined) return null;
+
+    return result.id;
+
 }

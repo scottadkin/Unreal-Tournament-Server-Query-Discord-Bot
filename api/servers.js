@@ -1,7 +1,7 @@
 import { passIcon, failIcon, commandPrefix, serverInfoPingInterval, embedColor, maxServersPerBlock } from '../config/config.js';
 import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
 import dns from 'node:dns';
-import Channels from './channels.js';
+import Channels, { getAutoQueryChannel } from './channels.js';
 import { EmbedBuilder } from 'discord.js';
 import { getIP4Address } from './generic.js';
 
@@ -151,6 +151,29 @@ export default class Servers{
         id = id - 1;
 
         const s = servers[id];
+
+        if(s.last_message !== "-1"){
+
+            const autoChannelId = getAutoQueryChannel();
+
+            if(autoChannelId !== null){
+
+                message.guild.channels.fetch(autoChannelId).then(async (autoChannel) =>{
+                    console.log(autoChannel);
+
+                    const autoMessage = await autoChannel.messages.fetch(s.last_message);
+
+                    autoMessage.delete();
+                    console.log(autoMessage);
+               
+                });
+            }
+             //message.channel.messages.fetch(s.last_message).then((m) =>{
+               // console.log(m);
+            // });
+        }
+
+        return;
 
         this.deleteServer(s.id);
 

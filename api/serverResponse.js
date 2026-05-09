@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
+import { getAutoQueryChannel } from "./channels.js";
 
 export default class ServerResponse{
 
@@ -245,7 +246,7 @@ export default class ServerResponse{
 
             if(this.bTimedOut && !this.bEdit){
 
-                const autoChannelId = channels.getAutoQueryChannel();
+                const autoChannelId = getAutoQueryChannel();
 
                 if(autoChannelId !== null){
                     //stop bot posting timeouts in autochannel
@@ -311,7 +312,7 @@ export default class ServerResponse{
 
                     try{
 
-                        const autoQueryChannelId = channels.getAutoQueryChannel();
+                        const autoQueryChannelId = getAutoQueryChannel();
 
                         if(autoQueryChannelId !== null){
 

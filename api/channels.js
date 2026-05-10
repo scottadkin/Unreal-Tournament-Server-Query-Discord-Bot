@@ -1,6 +1,7 @@
 import { failIcon, passIcon, embedColor, autoQueryInterval } from '../config/config.js';
 import { sqliteGet, sqliteRun, sqliteGetAll } from './database.js';
 import { EmbedBuilder } from 'discord.js';
+import { getAllServers } from './servers.js';
 
 export default class Channels{
 
@@ -170,7 +171,7 @@ The server status posts will be updated every **${autoQueryInterval} seconds.**`
 
         })
 
-        const currentServers = servers.getAllServers();
+        const currentServers = getAllServers();
         
 
         for(let i = 0; i < currentServers.length; i++){

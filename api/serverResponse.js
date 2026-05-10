@@ -1,19 +1,21 @@
 import { EmbedBuilder } from "discord.js";
 import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
 import { getAutoQueryChannel } from "./channels.js";
-import { EventEmitter } from 'node:events';
-
-
-class TestEventEmitter extends EventEmitter{}
-
 
 
 export default class ServerResponse{
 
-    constructor(ip, port, type, discordMessage, bEdit, messageId){
+    /**
+     * 
+     * @param {*} ip 
+     * @param {*} port 
+     * @param {*} type 
+     * @param {*} discordChannel only included in autoquery
+     * @param {*} bEdit only included in autoquery
+     * @param {*} discordMessage message ref to edit
+     */
+    constructor(ip, port, type, discordChannel, bEdit, discordMessage){
 
-
-        this.events = new TestEventEmitter();
 
         this.ip = ip;
         this.port = port - 1;
@@ -22,24 +24,20 @@ export default class ServerResponse{
         this.bReceivedFinal = false;
         this.bTimedOut = false;
         this.bSentMessage = false;
-        this.discordMessage = 0;
+        this.discordChannel = 0;
         this.bUnreal = false; //Unreal instead of UT
         this.bHaveUnrealBasic = false;
         this.bHaveUnrealMutators = false;
 
-        if(discordMessage !== undefined){
+        if(discordChannel !== undefined){
 
-            this.discordMessage = discordMessage;
+            this.discordChannel = discordChannel;
 
             this.bEdit = false;
-            this.messageId = -1;
+            this.discordMessage = discordMessage;
 
             if(bEdit !== undefined){
                 this.bEdit = true;
-            }
-
-            if(messageId !== undefined){
-                this.messageId = messageId;
             }
         }
 
@@ -260,7 +258,7 @@ export default class ServerResponse{
 
                 if(autoChannelId !== null){
                     //stop bot posting timeouts in autochannel
-                    if(this.discordMessage.id === autoChannelId){
+                    if(this.discordChannel.id === autoChannelId){
                         this.bSentMessage = true;
                         return;
                     }
@@ -273,7 +271,7 @@ export default class ServerResponse{
                 }
 
                 this.bSentMessage = true;
-                return await this.discordMessage.send(string);
+                return await this.discordChannel.send(string);
         
             }
     
@@ -318,7 +316,7 @@ export default class ServerResponse{
 
             if(!this.bEdit){
 
-                const m = await this.discordMessage.send({ embeds: [embed] });
+                const m = await this.discordChannel.send({ embeds: [embed] });
 
                 const autoQueryChannelId = getAutoQueryChannel();
 
@@ -334,18 +332,17 @@ export default class ServerResponse{
 
             }else{
 
-                console.log("FETCH DISCORD");
-                const messageToEdit = await this.discordMessage.messages.fetch(this.messageId)
+                //const messageToEdit = await this.discordChannel.messages.fetch(this.messageId)
                 embed.setTimestamp();
 
                 console.log("EDIT DISCORD");
 
 
-                //get around rate limit?
-                setTimeout(async () =>{
-                    await messageToEdit.edit({ embeds: [embed]});
+
+                    await this.discordMessage.edit({ embeds: [embed]});
+
                     this.bSentMessage = true;
-                }, 1500);
+            
                 
             }
 
@@ -546,7 +543,7 @@ export default class ServerResponse{
             string += `:zzz: **There are currently no players in the servers.**`;
         }
 
-        this.discordMessage.send(string);
+        this.discordChannel.send(string);
 
         this.bSentMessage = true;
     }
@@ -595,7 +592,7 @@ export default class ServerResponse{
             }
         }
 
-        this.discordMessage.send(string);
+        this.discordChannel.send(string);
         this.bSentMessage = true;
     }
 
@@ -636,7 +633,7 @@ export default class ServerResponse{
             }
         }
 
-        this.discordMessage.send(string);
+        this.discordChannel.send(string);
         this.bSentMessage = true;
     }
 

@@ -114,14 +114,6 @@ export default class Servers{
         return sqliteGetAll(`SELECT * FROM servers WHERE players>0 ORDER BY created ASC`);
     }
 
-    getAllServers(){
-
-        const query = "SELECT * FROM servers ORDER BY created ASC";
-
-        return sqliteGetAll(query);
-    }
-
-
 
     removeServer(message){
 
@@ -135,7 +127,7 @@ export default class Servers{
         }
 
       
-        const servers = this.getAllServers();
+        const servers = getAllServers();
 
         let id = parseInt(result[1]);
 
@@ -365,7 +357,7 @@ export default class Servers{
 
     async listServers(message, bOnlyActive){
 
-        const servers = (bOnlyActive) ? this.getAllActiveServers() : this.getAllServers();
+        const servers = (bOnlyActive) ? this.getAllActiveServers() : getAllServers();
 
         if(servers.length === 0){
             return this.sendNoServers(message, bOnlyActive);
@@ -423,7 +415,7 @@ export default class Servers{
 
         if(id < 0) throw new Error("Id must be a positive integer.");
 
-        const servers = this.getAllServers();
+        const servers = getAllServers();
 
         if(id < servers.length){
 
@@ -438,7 +430,7 @@ export default class Servers{
 
         if(this.bValidServerId(id)){
 
-            const servers = this.getAllServers();
+            const servers = getAllServers();
 
             id = parseInt(id);
 
@@ -482,4 +474,11 @@ export default class Servers{
         return result.override_country > 0;
 
     }
+}
+
+export function getAllServers(){
+
+    const query = "SELECT * FROM servers ORDER BY created ASC";
+
+    return sqliteGetAll(query);
 }

@@ -1,7 +1,7 @@
 import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serverInfoPingInterval } from '../config/config.js';
 import dgram from 'node:dgram';
 import ServerResponse from './serverResponse.js';
-import Servers from './servers.js';
+import Servers, { getAllServers } from './servers.js';
 import Channels, { getAutoQueryChannel } from './channels.js';
 import { bValidPort, getIP4Address } from './generic.js';
 
@@ -25,6 +25,8 @@ export default class UT99Query{
 
         this.bPreviousUpdateFinished = true;
         this.autoQueryLoop = null;
+
+        this.autoQueryDiscordMessages = [];
 
         this.init();
 
@@ -142,7 +144,7 @@ export default class UT99Query{
 
         this.deleteAllBasic();
 
-        const servers = this.servers.getAllServers();
+        const servers = getAllServers();
 
         const pings = [];
 
@@ -153,17 +155,13 @@ export default class UT99Query{
     }
 
 
-    async updateAutoQueryMessage(channel, messageId, serverInfo){
+    async updateAutoQueryMessage(channel, message, serverInfo){
 
        
-        if(messageId === "-1"){
-            throw new Error(`Autoquery message doesn't exist. ${serverInfo.ip} ${serverInfo.port}`);
-        }
-
         try{
 
-            await channel.messages.fetch(messageId);
-            await this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
+            //await channel.messages.fetch(messageId);
+            await this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, message);
 
         }catch(err){
             await this.getFullServer(serverInfo.ip, serverInfo.port, channel);
@@ -191,42 +189,36 @@ export default class UT99Query{
 
             console.log("autoQuery");
 
-            const queryChannelId = getAutoQueryChannel();
+            //const queryChannelId = getAutoQueryChannel();
 
-            if(queryChannelId === null){
-                return;
-            }
+            //if(queryChannelId === null){
+            //    return;
+            //}
 
-            const channel = await this.discord.channels.fetch(queryChannelId);
+           // const channel = await this.discord.channels.fetch(queryChannelId);
 
             
 
-            const servers = this.servers.getAllServers();  
+            const servers = getAllServers();  
 
             //discord rate limit of 5 edits per second
             const maxPerSecond = 2;
             //let now = Math.floor(Date.now() * 0.001);
-            let currentCount = 0;
-            let delay = 0;
 
             for(let i = 0; i < servers.length; i++){
 
-                if(delay === 0){
+                const s = servers[i];
+                const message = this.autoQueryDiscordMessages[s.last_message] ?? null;
 
-                    await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);  
+                if(message === null){
 
-                }else{
-
-                    await this.delayedUpdateMessage(delay * 1000, channel, servers[i]);
+                    console.log(`failed to find message in autoQueryDiscordMessages`);
+                    continue;
                 }
+         
+  
+                await this.updateAutoQueryMessage(this.autoChannel, message, s);  
 
-                currentCount++;
-                
-                if(currentCount >= maxPerSecond){
-                    currentCount = 0;
-                    delay++;
-                    console.log(currentCount, delay);
-                }
             }
 
         }catch(err){
@@ -238,7 +230,62 @@ export default class UT99Query{
 
     }
 
-    startAutoQueryLoop(){
+
+    async getAutoChannelMessages(messageIds){
+
+        const test = {};
+
+        this.autoQueryDiscordMessages = {};
+
+        for(let i = 0; i < messageIds.length; i++){
+
+            const id = messageIds[i];
+
+            try{
+                this.autoQueryDiscordMessages[id] = await this.autoChannel.messages.fetch(id);
+            }catch(err){
+                console.trace(err);
+
+                this.autoQueryDiscordMessages[id] = null;
+            }
+        }
+    }
+
+    async startAutoQueryLoop(){
+
+        try{
+
+            const autoQueryChannelId = getAutoQueryChannel();
+
+            if(autoQueryChannelId === null){
+                console.log("auto query not enabled");
+                return;
+            }
+            const servers = getAllServers();
+
+            const messageIds = [];
+
+            for(let i = 0; i < servers.length; i++){
+
+                console.log(servers[i]);
+
+                if(servers[i].last_message === "-1") continue;
+                messageIds.push(servers[i].last_message);
+            }
+
+            console.log(messageIds);
+
+            this.autoChannel = await this.discord.channels.fetch(autoQueryChannelId);
+
+            await this.getAutoChannelMessages(messageIds);
+            //await this.discord.g
+
+            //if messageIds dont exist create new posts
+
+        }catch(err){
+            console.trace(err);
+        }
+        
 
         console.log("startAutoQueryLoop");
 
@@ -247,7 +294,6 @@ export default class UT99Query{
             this.autoQuery();
 
         }, autoQueryInterval * 1000);
-
 
         
     }
@@ -603,7 +649,7 @@ export default class UT99Query{
         
     }
 
-    udpSend(address, port, type, discordMessage, bEdit, messageId){
+    udpSend(address, port, type, discordChannel, bEdit, discordMessage){
 
         return new Promise((resolve, reject) =>{
 
@@ -617,7 +663,7 @@ export default class UT99Query{
             
             const message = this.getQueryMessage(type);
             
-            this.responses.push(new ServerResponse(address, port, type, discordMessage, bEdit, messageId));
+            this.responses.push(new ServerResponse(address, port, type, discordChannel, bEdit, discordMessage));
 
             this.server.send(message, port, address, (err) =>{
 
@@ -631,12 +677,12 @@ export default class UT99Query{
         });
     }
 
-    async getFullServer(ip, port, discordMessage, bEdit, messageId){
+    async getFullServer(ip, port, discordChannel, bEdit, discordMessage){
 
         try{
             const address = await getIP4Address(ip);
 
-            await this.udpSend(address, port, "full", discordMessage, bEdit, messageId);
+            await this.udpSend(address, port, "full", discordChannel, bEdit, discordMessage);
         }catch(err){
             console.trace(err);
         }
@@ -675,6 +721,6 @@ export default class UT99Query{
 
         const address = await getIP4Address(ip);
 
-        await this.udpSend(address, port, "extended", discordMessage);;
+        await this.udpSend(address, port, "extended", discordMessage);
     }
 }

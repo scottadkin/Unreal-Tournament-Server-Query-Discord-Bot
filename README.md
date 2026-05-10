@@ -89,6 +89,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Help commands now use discord embeds.
 - Fixed pingAllServers skipping the next servers in the list if there is an error.
 - Replaced sqlite3 with nodejs native sqlite support.
+- Added delays to auto query channel updates to not exceed Discord's edit rate limit of 5 per second.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

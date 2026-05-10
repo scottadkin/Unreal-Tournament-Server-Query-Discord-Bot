@@ -23,6 +23,7 @@ export default class UT99Query{
         this.channels = new Channels();
         this.discord = discord;
 
+        this.bPreviousUpdateFinished = true;
         this.autoQueryLoop = null;
 
         this.init();
@@ -131,7 +132,7 @@ export default class UT99Query{
     }
 
 
-    async pingAllServers(){
+     pingAllServers(){
 
         this.deleteAllBasic();
 
@@ -141,78 +142,125 @@ export default class UT99Query{
 
         for(let i = 0; i < servers.length; i++){
                    
-            pings.push(this.getBasicServer(servers[i].ip, servers[i].port));
+            this.getBasicServer(servers[i].ip, servers[i].port);
         }
-
-        return await Promise.all(pings);
-
     }
 
 
     updateAutoQueryMessage(channel, messageId, serverInfo){
 
-        console.log("updateAutoQueryMessage", serverInfo.ip, serverInfo.port, messageId);
+        if(messageId === "-1"){
+            throw new Error(`Autoquery message doesn't exist. ${serverInfo.ip} ${serverInfo.port}`);
+        }
+
+        channel.messages.fetch(messageId).then(() =>{
+
+            this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
+
+        }).catch((err) =>{
+            
+            // console.log(`Message has been deleted ${err}`);
+            
+            this.getFullServer(serverInfo.ip, serverInfo.port, channel);
+        });
+       
+    }
+
+
+    delayedUpdateMessage(delay, channel, serverInfo){
+
         return new Promise((resolve, reject) =>{
 
-            if(messageId !== '-1'){
-
-                channel.messages.fetch(messageId).then(() =>{
-
-                    this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
-
-                    resolve();
-
-                }).catch((err) =>{
-                    
-                   // console.log(`Message has been deleted ${err}`);
-                    
-                    this.getFullServer(serverInfo.ip, serverInfo.port, channel);
-
-                    resolve();
-                });
-       
-            }else{
-    
-                throw new Error(`Autoquery message doesn't exist. ${serverInfo.ip} ${serverInfo.port}`);
-            }
-
+            setTimeout(async () =>{
+                console.log("delayed updateAutoQueryMessage");
+                this.updateAutoQueryMessage(channel, serverInfo.last_message, serverInfo);
+                resolve();
+            }, delay);
         });
     }
 
-    startAutoQueryLoop(){
+    //auto query message updating
+    async autoQuery(){
 
-        this.autoQueryLoop = setInterval(() =>{
+        try{
+
+            this.bPreviousUpdateFinished = false;
+            console.log("autoQuery");
 
             const queryChannelId = getAutoQueryChannel();
 
             if(queryChannelId === null){
+                this.bPreviousUpdateFinished = true;
                 return;
             }
 
-            this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
+            const channel = await this.discord.channels.fetch(queryChannelId);
 
-                const servers = this.servers.getAllServers();  
+            
 
-                for(let i = 0; i < servers.length; i++){
+            const servers = this.servers.getAllServers();  
 
-                    await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);               
+            //discord rate limit of 5 edits per second
+            const maxPerSecond = 5;
+            //let now = Math.floor(Date.now() * 0.001);
+            let currentCount = 0;
+            let delay = 0;
+
+            for(let i = 0; i < servers.length; i++){
+
+                if(delay === 0){
+
+                    this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);  
+
+                }else{
+
+                    await this.delayedUpdateMessage(delay * 1000, channel, servers[i]);
                 }
+
+                currentCount++;
                 
-            }).catch((err) =>{
-                console.trace(err);
-            });
+                if(currentCount >= maxPerSecond){
+                    currentCount = 0;
+                    delay++;
+                    console.log(currentCount, delay);
+                }
+            }
+
+        }catch(err){
+            console.trace(err);
+        }finally{
+
+            this.bPreviousUpdateFinished = true;
+            console.log("finished");
+        }
+
+    }
+
+    startAutoQueryLoop(){
+
+        console.log("startAutoQueryLoop");
+
+        this.autoQueryLoop = setInterval(() =>{
+
+            if(!this.bPreviousUpdateFinished){
+                console.log("previous update not finished skipping");
+                return;
+            }
+            
+            this.autoQuery();
 
         }, autoQueryInterval * 1000);
+
+
+        
     }
 
 
     initServerPingLoop(){
 
-        setTimeout(async () =>{
-        
-            await this.pingAllServers();
+        this.pingLoop = setInterval(() =>{
 
-            this.initServerPingLoop();
+            this.pingAllServers();
 
         }, serverInfoPingInterval * 1000);
 

@@ -301,7 +301,7 @@ export default class ServerResponse{
             const embed = new EmbedBuilder()
             .setTitle(`${country}${this.name}`)
             .setColor(embedColor)
-            .setDescription(`${description}`)
+            .setDescription(`${description} ${new Date(Date.now())}`)
             .addFields(fields)
             .setTimestamp();
 
@@ -333,6 +333,8 @@ export default class ServerResponse{
             }else{
 
                 this.discordMessage.messages.fetch(this.messageId).then((message) =>{
+
+                    embed.setTimestamp();
 
                     message.edit({ embeds: [embed]}).then(() =>{
 

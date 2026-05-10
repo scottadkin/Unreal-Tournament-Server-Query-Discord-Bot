@@ -154,7 +154,7 @@ export default class Servers{
 
         if(s.last_message !== "-1"){
 
-            const autoChannelId = getAutoQueryChannel();
+            /*const autoChannelId = getAutoQueryChannel();
 
             if(autoChannelId !== null){
 
@@ -167,13 +167,13 @@ export default class Servers{
                     console.log(autoMessage);
                
                 });
-            }
+            }*/
              //message.channel.messages.fetch(s.last_message).then((m) =>{
                // console.log(m);
             // });
         }
 
-        return;
+
 
         this.deleteServer(s.id);
 

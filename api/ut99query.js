@@ -72,6 +72,7 @@ export default class UT99Query{
         setInterval(() =>{
 
             const now = Math.floor(Date.now() * 0.001);
+            
 
             for(let i = 0; i < this.responses.length; i++){
 
@@ -79,30 +80,35 @@ export default class UT99Query{
 
                 const age = now - r.timeStamp;
 
+                if(r.bReceivedFinal && !r.bSentMessage && r.type === "full"){
+                    r.sendFullServerResponse(this.channels, this.servers, embedColor);
+                }
+
 
                 if(age > serverTimeout && !r.bSentMessage){
 
-                    r.bReceivedFinal = true;
+       
                     r.bTimedOut = true;
 
-                    if(r.type !== "basic"){
-                        r.sendFullServerResponse(this.channels, this.servers, embedColor);
-                    }else{
-                        r.bSentMessage = true;
-                    }
+             
+                    r.bSentMessage = true;
+                    
                 }
             }
 
             this.responses = this.responses.filter((a) =>{
 
-                //might actually want to delete the old responses if they timeout...
-                if(a.bTimedOut){
+                if(a.bTimedOut && a.type === "basic"){
+                    console.log("timedout", a.ip, a.port, a.type, a.timeStamp, Math.floor(Date.now() * 0.001));
                     return false;
                 }
 
-                if(!a.bSentMessage){
-                    return true;
+                if(a.bSentMessage){
+                    return false;
                 }
+
+                return true;
+
             });
 
         }, 1000);
@@ -147,22 +153,22 @@ export default class UT99Query{
     }
 
 
-    updateAutoQueryMessage(channel, messageId, serverInfo){
+    async updateAutoQueryMessage(channel, messageId, serverInfo){
 
+       
         if(messageId === "-1"){
             throw new Error(`Autoquery message doesn't exist. ${serverInfo.ip} ${serverInfo.port}`);
         }
 
-        channel.messages.fetch(messageId).then(() =>{
+        try{
 
-            this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
+            await channel.messages.fetch(messageId);
+            await this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
 
-        }).catch((err) =>{
-            
-            // console.log(`Message has been deleted ${err}`);
-            
-            this.getFullServer(serverInfo.ip, serverInfo.port, channel);
-        });
+        }catch(err){
+            await this.getFullServer(serverInfo.ip, serverInfo.port, channel);
+        }
+
        
     }
 
@@ -172,8 +178,7 @@ export default class UT99Query{
         return new Promise((resolve, reject) =>{
 
             setTimeout(async () =>{
-                console.log("delayed updateAutoQueryMessage");
-                this.updateAutoQueryMessage(channel, serverInfo.last_message, serverInfo);
+                await this.updateAutoQueryMessage(channel, serverInfo.last_message, serverInfo);
                 resolve();
             }, delay);
         });
@@ -184,13 +189,11 @@ export default class UT99Query{
 
         try{
 
-            this.bPreviousUpdateFinished = false;
             console.log("autoQuery");
 
             const queryChannelId = getAutoQueryChannel();
 
             if(queryChannelId === null){
-                this.bPreviousUpdateFinished = true;
                 return;
             }
 
@@ -201,7 +204,7 @@ export default class UT99Query{
             const servers = this.servers.getAllServers();  
 
             //discord rate limit of 5 edits per second
-            const maxPerSecond = 5;
+            const maxPerSecond = 2;
             //let now = Math.floor(Date.now() * 0.001);
             let currentCount = 0;
             let delay = 0;
@@ -210,7 +213,7 @@ export default class UT99Query{
 
                 if(delay === 0){
 
-                    this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);  
+                    await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);  
 
                 }else{
 
@@ -230,7 +233,6 @@ export default class UT99Query{
             console.trace(err);
         }finally{
 
-            this.bPreviousUpdateFinished = true;
             console.log("finished");
         }
 
@@ -241,11 +243,6 @@ export default class UT99Query{
         console.log("startAutoQueryLoop");
 
         this.autoQueryLoop = setInterval(() =>{
-
-            if(!this.bPreviousUpdateFinished){
-                console.log("previous update not finished skipping");
-                return;
-            }
             
             this.autoQuery();
 
@@ -310,6 +307,7 @@ export default class UT99Query{
             };
 
             this.servers.updateInfo(potato);
+            return;
         }
 
         //unreal queries don;t end with /final/ so we have to do different checks
@@ -334,7 +332,9 @@ export default class UT99Query{
             return;
         }
 
-        if(!finalReg.test(data)) return;
+        if(!finalReg.test(data)){
+            return;
+        }
 
         if(response.type == "full"){
             response.sendFullServerResponse(this.channels, this.servers, embedColor);

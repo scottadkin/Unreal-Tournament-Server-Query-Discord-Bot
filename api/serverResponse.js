@@ -1,10 +1,19 @@
 import { EmbedBuilder } from "discord.js";
 import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
 import { getAutoQueryChannel } from "./channels.js";
+import { EventEmitter } from 'node:events';
+
+
+class TestEventEmitter extends EventEmitter{}
+
+
 
 export default class ServerResponse{
 
     constructor(ip, port, type, discordMessage, bEdit, messageId){
+
+
+        this.events = new TestEventEmitter();
 
         this.ip = ip;
         this.port = port - 1;
@@ -240,6 +249,7 @@ export default class ServerResponse{
 
         try{
 
+
             if(this.type != "full"){
                 return;
             }
@@ -263,8 +273,8 @@ export default class ServerResponse{
                 }
 
                 this.bSentMessage = true;
-                this.discordMessage.send(string);
-                return;
+                return await this.discordMessage.send(string);
+        
             }
     
             this.sortPlayersByScore();
@@ -308,46 +318,35 @@ export default class ServerResponse{
 
             if(!this.bEdit){
 
-                this.discordMessage.send({ embeds: [embed] }).then(async (m) =>{
+                const m = await this.discordMessage.send({ embeds: [embed] });
 
-                    try{
+                const autoQueryChannelId = getAutoQueryChannel();
 
-                        const autoQueryChannelId = getAutoQueryChannel();
+                if(autoQueryChannelId !== null){
 
-                        if(autoQueryChannelId !== null){
+                    if(autoQueryChannelId === m.channel.id){
+                        
+                        servers.setLastMessageId(this.ip, this.port, m.id);
+                    }
+                }
 
-                            if(autoQueryChannelId === m.channel.id){
-                                
-                                servers.setLastMessageId(this.ip, this.port, m.id);
-
-                            }
-                        }
-
-                        this.bSentMessage = true;
-
-                    }catch(err){
-                        console.trace(err);
-                    }    
-                });
+                this.bSentMessage = true;
 
             }else{
 
-                this.discordMessage.messages.fetch(this.messageId).then((message) =>{
+                console.log("FETCH DISCORD");
+                const messageToEdit = await this.discordMessage.messages.fetch(this.messageId)
+                embed.setTimestamp();
 
-                    embed.setTimestamp();
+                console.log("EDIT DISCORD");
 
-                    message.edit({ embeds: [embed]}).then(() =>{
 
-                        this.bSentMessage = true;
-
-                    }).catch((err) =>{
-                        console.trace(err);
-                    });
-
-                }).catch((err) =>{
-
-                    console.trace(err);
-                });
+                //get around rate limit?
+                setTimeout(async () =>{
+                    await messageToEdit.edit({ embeds: [embed]});
+                    this.bSentMessage = true;
+                }, 1500);
+                
             }
 
         }catch(err){

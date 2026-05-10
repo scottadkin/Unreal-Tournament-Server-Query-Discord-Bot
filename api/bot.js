@@ -81,7 +81,7 @@ export default class Bot{
 
         this.client.on('clientReady', () =>{
 
-            this.query = new UT99Query(this.client);
+            this.query = new UT99Query(this.client, false);
             this.queryAuto = new UT99Query(this.client, true);
             console.log(`I'm in the discord server...`);
        

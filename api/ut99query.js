@@ -13,9 +13,8 @@ export default class UT99Query{
         this.responses = [];
         this.bAuto = false;
 
-        if(bAuto !== undefined){
-            this.bAuto = true;
-        }
+        this.bAuto = bAuto;
+        
 
         this.createClient();
 
@@ -75,27 +74,36 @@ export default class UT99Query{
 
             const now = Math.floor(Date.now() * 0.001);
             
+            console.log(this.responses.length, this.bAuto);
 
             for(let i = 0; i < this.responses.length; i++){
 
                 const r = this.responses[i];
 
                 const age = now - r.timeStamp;
-
-                if(r.bReceivedFinal && !r.bSentMessage && r.type === "full"){
-                    r.sendFullServerResponse(this.channels, this.servers, embedColor);
-                }
-
-
+                
                 if(age > serverTimeout && !r.bSentMessage){
 
-       
                     r.bTimedOut = true;
-
-             
                     r.bSentMessage = true;
+
+                    //send server timedout message to no autoquery channels
+                    if(!this.bAuto && r.type === "full"){
+                        r.sendFullServerResponse(this.channels, this.servers, embedColor);
+                    }
                     
                 }
+
+
+               /* if(r.bReceivedFinal && !r.bSentMessage && r.type === "full"){
+                    //we dont want to send auto query messages from here
+                    if(!this.bAuto){
+                        r.sendFullServerResponse(this.channels, this.servers, embedColor);
+                    }
+                }*/
+
+
+                
             }
 
             this.responses = this.responses.filter((a) =>{
@@ -113,7 +121,7 @@ export default class UT99Query{
 
             });
 
-        }, 1000);
+        }, 1000 * serverInfoPingInterval);
 
 
         if(!this.bAuto) return
@@ -216,7 +224,7 @@ export default class UT99Query{
                     continue;
                 }
          
-  
+                console.log(`update server ${i+1} of ${servers.length}`);
                 await this.updateAutoQueryMessage(this.autoChannel, message, s);  
 
             }

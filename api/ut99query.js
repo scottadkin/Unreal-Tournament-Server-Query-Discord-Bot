@@ -122,16 +122,13 @@ export default class UT99Query{
 
     async updateAutoQueryMessage(channel, message, serverInfo){
 
-       
         try{
 
             await this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, message);
 
         }catch(err){
             await this.getFullServer(serverInfo.ip, serverInfo.port, channel);
-        }
-
-       
+        } 
     }
 
 
@@ -142,8 +139,9 @@ export default class UT99Query{
             setTimeout(async () =>{
 
                 await this.updateAutoQueryMessage(channel, discordMessage, serverInfo);
+             
                 resolve();
-            }, delay);
+            }, delay * 1000);
         });
     }
 
@@ -155,7 +153,7 @@ export default class UT99Query{
 
         const servers = getAllServers();  
 
-        //discord rate limit of 5 edits per second
+        //discord rate limit of 5 edits per 5 seconds
         // const maxPerSecond = 2;
 
         for(let i = 0; i < servers.length; i++){
@@ -178,7 +176,7 @@ export default class UT99Query{
                 if(i === 0){
                     await this.updateAutoQueryMessage(this.autoChannel, message, s); 
                 }else{
-                    await this.delayedUpdateMessage(1000, this.autoChannel, message, s);
+                    await this.delayedUpdateMessage(3, this.autoChannel, message, s);
                 } 
 
             }catch(err){
@@ -186,6 +184,8 @@ export default class UT99Query{
             }
 
         }
+
+        console.log("DONE");
         this.bPreviousAutoUpdateFinished = true;
     }
 
@@ -210,6 +210,17 @@ export default class UT99Query{
         }
     }
 
+    async restartAutoQueryLoop(){
+
+        console.log("restarting autoquery loop");
+        clearInterval(this.autoQueryLoop);
+        this.bPreviousAutoUpdateFinished = true;
+
+        this.responses = [];
+
+        await this.startAutoQueryLoop();
+    }
+
     async startAutoQueryLoop(){
 
         console.log("START AUTO QUERY");
@@ -228,20 +239,13 @@ export default class UT99Query{
 
             for(let i = 0; i < servers.length; i++){
 
-                console.log(servers[i]);
-
                 if(servers[i].last_message === "-1") continue;
                 messageIds.push(servers[i].last_message);
             }
 
-            console.log(messageIds);
-
             this.autoChannel = await this.discord.channels.fetch(autoQueryChannelId);
 
             await this.getAutoChannelMessages(messageIds);
-            //await this.discord.g
-
-            //if messageIds dont exist create new posts
 
         }catch(err){
             console.trace(err);
@@ -694,5 +698,18 @@ export default class UT99Query{
         const address = await getIP4Address(ip);
 
         await this.udpSend(address, port, "extended", discordMessage);
+    }
+
+    //create new message in the auto query channel when a server is added
+    async addServerToAutoQuery(address, realIp, port){
+
+        try{
+
+            return await this.autoChannel.send(`Waiting for data from recently added server ${realIp}:${port}`);
+            
+        }catch(err){
+            console.trace(err);
+            return null;
+        }
     }
 }

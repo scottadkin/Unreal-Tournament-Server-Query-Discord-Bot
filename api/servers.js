@@ -12,7 +12,7 @@ export default class Servers{
         this.channels = new Channels();
     }
 
-    async addServer(message){
+    async addServer(message, ut99AutoQuery){
 
         const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
 
@@ -41,7 +41,12 @@ export default class Servers{
                 if(!this.bServerAdded(address, port)){
 
                     this.insertServer(result[6], address, result[1], port);
-                    return message.channel.send(`${passIcon} Server added successfully.`);
+                    await message.channel.send(`${passIcon} Server added successfully.`);
+
+                    const newMessage = await ut99AutoQuery.addServerToAutoQuery(result[6], address, port);
+
+                    this.setLastMessageId(address, port, newMessage.id);
+                    ut99AutoQuery.restartAutoQueryLoop();
 
                 }else{
                     return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
@@ -64,7 +69,12 @@ export default class Servers{
             if(!this.bServerAdded(ip, port)){
 
                 this.insertServer(ip, ip, result[1], port);
-                return message.channel.send(`${passIcon} Server added successfully.`);
+                await message.channel.send(`${passIcon} Server added successfully.`);
+
+                const newMessage = await ut99AutoQuery.addServerToAutoQuery(ip, ip, port);
+
+                this.setLastMessageId(ip, port, newMessage.id);
+                ut99AutoQuery.restartAutoQueryLoop();
 
             }else{
                 return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);

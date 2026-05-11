@@ -302,11 +302,11 @@ export default class Bot{
 
         }else if(m.startsWith(commands[6])){
 
-            this.servers.addServer(message);
+            this.servers.addServer(message, this.queryAuto);
 
         }else if(m.startsWith(commands[7])){
 
-            this.servers.removeServer(message);
+            this.servers.removeServer(message, this.queryAuto);
 
         }else if(m.startsWith(commands[8])){
 

@@ -1,6 +1,10 @@
 import { EmbedBuilder } from "discord.js";
 import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
 import { getAutoQueryChannel } from "./channels.js";
+import { EventEmitter } from "node:events";
+import { serverTimeout } from "../config/config.js";
+
+class ServerResponseEmitter extends EventEmitter {}
 
 
 export default class ServerResponse{
@@ -21,13 +25,31 @@ export default class ServerResponse{
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
         this.type = type;
-        this.bReceivedFinal = false;
         this.bTimedOut = false;
+        //used for full server query to prevent bot editing same message twice if edit is taking a long time
         this.bSentMessage = false;
         this.discordChannel = 0;
         this.bUnreal = false; //Unreal instead of UT
         this.bHaveUnrealBasic = false;
         this.bHaveUnrealMutators = false;
+
+        this.bDelete = false;
+
+        this.events = new ServerResponseEmitter(); 
+
+        this.events.once("timeout", () =>{
+
+            this.bTimedOut = true;
+            //process.exit();
+        });
+        
+        setTimeout(() =>{
+
+            this.events.emit("timeout");
+
+        }, serverTimeout * 1000);
+   
+        
 
         if(discordChannel !== undefined){
 
@@ -246,11 +268,15 @@ export default class ServerResponse{
     async sendFullServerResponse(channels, servers, embedColor){
 
         try{
-
+                
 
             if(this.type != "full"){
+
                 return;
             }
+
+            //prevent bot trying to edit the same message twice
+            this.bSentMessage = true;
 
             if(this.bTimedOut && !this.bEdit){
 
@@ -259,7 +285,7 @@ export default class ServerResponse{
                 if(autoChannelId !== null){
                     //stop bot posting timeouts in autochannel
                     if(this.discordChannel.id === autoChannelId){
-                        this.bSentMessage = true;
+                        this.bDelete = true;
                         return;
                     }
                 }
@@ -270,14 +296,14 @@ export default class ServerResponse{
                     string = `:no_entry: That ip does not exist!`;
                 }
 
-                this.bSentMessage = true;
-                return await this.discordChannel.send(string);
+                
+                await this.discordChannel.send(string);
+                this.bDelete = true;
+                return;
         
             }
     
             this.sortPlayersByScore();
-
-            this.bReceivedFinal = true;
             
             let description = `:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}`;
             description += `:pushpin: ${this.gametype}`;
@@ -328,20 +354,20 @@ export default class ServerResponse{
                     }
                 }
 
-                this.bSentMessage = true;
+                this.bDelete = true;
 
             }else{
 
                 //const messageToEdit = await this.discordChannel.messages.fetch(this.messageId)
                 embed.setTimestamp();
 
-                console.log("EDIT DISCORD");
+                console.log("EDIT DISCORD", this.ip, this.port);
 
 
 
-                    await this.discordMessage.edit({ embeds: [embed]});
+                await this.discordMessage.edit({ embeds: [embed]});
 
-                    this.bSentMessage = true;
+                this.bDelete = true;
             
                 
             }
@@ -545,7 +571,7 @@ export default class ServerResponse{
 
         this.discordChannel.send(string);
 
-        this.bSentMessage = true;
+        this.bDelete = true;
     }
 
     sendExtendedResponse(){
@@ -593,7 +619,7 @@ export default class ServerResponse{
         }
 
         this.discordChannel.send(string);
-        this.bSentMessage = true;
+        this.bDelete = true;
     }
 
 
@@ -634,7 +660,7 @@ export default class ServerResponse{
         }
 
         this.discordChannel.send(string);
-        this.bSentMessage = true;
+        this.bDelete = true;
     }
 
     //used to check unreal player count

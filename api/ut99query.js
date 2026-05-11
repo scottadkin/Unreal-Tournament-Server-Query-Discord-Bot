@@ -70,41 +70,23 @@ export default class UT99Query{
 
     init(){
 
+
         setInterval(() =>{
 
+            this.responses = this.responses.filter((r) =>{
+
+                return !r.bDelete;
+            });
+
+            console.log(this.responses.length);
+
+        }, 1000);
+
+        
+
+        /*setInterval(() =>{
+
             const now = Math.floor(Date.now() * 0.001);
-            
-            console.log(this.responses.length, this.bAuto);
-
-            for(let i = 0; i < this.responses.length; i++){
-
-                const r = this.responses[i];
-
-                const age = now - r.timeStamp;
-                
-                if(age > serverTimeout && !r.bSentMessage){
-
-                    r.bTimedOut = true;
-                    r.bSentMessage = true;
-
-                    //send server timedout message to no autoquery channels
-                    if(!this.bAuto && r.type === "full"){
-                        r.sendFullServerResponse(this.channels, this.servers, embedColor);
-                    }
-                    
-                }
-
-
-               /* if(r.bReceivedFinal && !r.bSentMessage && r.type === "full"){
-                    //we dont want to send auto query messages from here
-                    if(!this.bAuto){
-                        r.sendFullServerResponse(this.channels, this.servers, embedColor);
-                    }
-                }*/
-
-
-                
-            }
 
             this.responses = this.responses.filter((a) =>{
 
@@ -121,7 +103,7 @@ export default class UT99Query{
 
             });
 
-        }, 1000 * serverInfoPingInterval);
+        }, 1000 * serverInfoPingInterval);*/
 
 
         if(!this.bAuto) return
@@ -320,6 +302,11 @@ export default class UT99Query{
 
     parsePacket(data, response){
 
+        if(response.bDelete){
+            console.log(`Response already finished, why am i getting called again`);
+            return;
+        }
+
         const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
 
         if(unrealCheckReg.test(data)){
@@ -337,18 +324,9 @@ export default class UT99Query{
 
         this.parseMapData(data, response);
 
-        if(response.type !== "basic"){
+         if(response.type === "basic"){
 
-            this.parseTeamData(data, response);
-            this.parseMutators(data, response);
-            this.parsePlayerData(data, response);
-        }
-
-        const finalReg = /\\final\\$/i;
-
-        if(response.type == "basic"){
-
-            response.bSentMessage = true;
+            response.bDelete = true;
             
             const potato = {
                 "name": response.name,
@@ -363,6 +341,17 @@ export default class UT99Query{
             this.servers.updateInfo(potato);
             return;
         }
+
+        //if(response.type !== "basic"){
+
+            this.parseTeamData(data, response);
+            this.parseMutators(data, response);
+            this.parsePlayerData(data, response);
+        //}
+
+        const finalReg = /\\final\\$/i;
+
+       
 
         //unreal queries don;t end with /final/ so we have to do different checks
         if(response.bUnreal){
@@ -627,7 +616,7 @@ export default class UT99Query{
 
             const r = this.responses[i];
 
-            if(r.ip == ip && r.port == port && !r.bSentMessage){
+            if(r.ip == ip && r.port == port && !r.bDelete && !r.bSentMessage){
 
                 return r;
             }

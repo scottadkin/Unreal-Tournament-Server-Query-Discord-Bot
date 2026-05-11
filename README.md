@@ -89,7 +89,9 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Help commands now use discord embeds.
 - Fixed pingAllServers skipping the next servers in the list if there is an error.
 - Replaced sqlite3 with nodejs native sqlite support.
-- Added delays to auto query channel updates to not exceed Discord's edit rate limit of 5 per second.
+- Fetch discord message for autoquery at start of loop instead of on every edit to prevent exceeding discord rate limit.
+- ServerResponses now handle their own timeouts instead of ut99query.
+- Only edit one autoquery message per second to prevent discord rate limit issues, instead of all at once.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

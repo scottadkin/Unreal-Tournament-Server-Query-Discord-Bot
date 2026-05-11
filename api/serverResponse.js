@@ -358,12 +358,7 @@ export default class ServerResponse{
 
             }else{
 
-                //const messageToEdit = await this.discordChannel.messages.fetch(this.messageId)
                 embed.setTimestamp();
-
-                console.log("EDIT DISCORD", this.ip, this.port);
-
-
 
                 await this.discordMessage.edit({ embeds: [embed]});
 

@@ -22,7 +22,7 @@ export default class UT99Query{
         this.channels = new Channels();
         this.discord = discord;
 
-        this.bPreviousUpdateFinished = true;
+        this.bPreviousAutoUpdateFinished = true;
         this.autoQueryLoop = null;
 
         this.autoQueryDiscordMessages = [];
@@ -78,32 +78,7 @@ export default class UT99Query{
                 return !r.bDelete;
             });
 
-            console.log(this.responses.length);
-
         }, 1000);
-
-        
-
-        /*setInterval(() =>{
-
-            const now = Math.floor(Date.now() * 0.001);
-
-            this.responses = this.responses.filter((a) =>{
-
-                if(a.bTimedOut && a.type === "basic"){
-                    console.log("timedout", a.ip, a.port, a.type, a.timeStamp, Math.floor(Date.now() * 0.001));
-                    return false;
-                }
-
-                if(a.bSentMessage){
-                    return false;
-                }
-
-                return true;
-
-            });
-
-        }, 1000 * serverInfoPingInterval);*/
 
 
         if(!this.bAuto) return
@@ -150,7 +125,6 @@ export default class UT99Query{
        
         try{
 
-            //await channel.messages.fetch(messageId);
             await this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, message);
 
         }catch(err){
@@ -161,12 +135,13 @@ export default class UT99Query{
     }
 
 
-    delayedUpdateMessage(delay, channel, serverInfo){
+    delayedUpdateMessage(delay, channel, discordMessage, serverInfo){
 
         return new Promise((resolve, reject) =>{
 
             setTimeout(async () =>{
-                await this.updateAutoQueryMessage(channel, serverInfo.last_message, serverInfo);
+
+                await this.updateAutoQueryMessage(channel, discordMessage, serverInfo);
                 resolve();
             }, delay);
         });
@@ -175,27 +150,17 @@ export default class UT99Query{
     //auto query message updating
     async autoQuery(){
 
-        try{
 
-            console.log("autoQuery");
+        this.bPreviousAutoUpdateFinished = false;
 
-            //const queryChannelId = getAutoQueryChannel();
+        const servers = getAllServers();  
 
-            //if(queryChannelId === null){
-            //    return;
-            //}
+        //discord rate limit of 5 edits per second
+        // const maxPerSecond = 2;
 
-           // const channel = await this.discord.channels.fetch(queryChannelId);
+        for(let i = 0; i < servers.length; i++){
 
-            
-
-            const servers = getAllServers();  
-
-            //discord rate limit of 5 edits per second
-            const maxPerSecond = 2;
-            //let now = Math.floor(Date.now() * 0.001);
-
-            for(let i = 0; i < servers.length; i++){
+            try{
 
                 const s = servers[i];
                 const message = this.autoQueryDiscordMessages[s.last_message] ?? null;
@@ -205,19 +170,23 @@ export default class UT99Query{
                     console.log(`failed to find message in autoQueryDiscordMessages`);
                     continue;
                 }
-         
+        
                 console.log(`update server ${i+1} of ${servers.length}`);
-                await this.updateAutoQueryMessage(this.autoChannel, message, s);  
 
+                
+
+                if(i === 0){
+                    await this.updateAutoQueryMessage(this.autoChannel, message, s); 
+                }else{
+                    await this.delayedUpdateMessage(1000, this.autoChannel, message, s);
+                } 
+
+            }catch(err){
+                console.trace(err);
             }
 
-        }catch(err){
-            console.trace(err);
-        }finally{
-
-            console.log("finished");
         }
-
+        this.bPreviousAutoUpdateFinished = true;
     }
 
 
@@ -281,7 +250,11 @@ export default class UT99Query{
 
         this.autoQueryLoop = setInterval(() =>{
             
-            this.autoQuery();
+            if(this.bPreviousAutoUpdateFinished){
+                this.autoQuery();
+            }else{
+                console.log(`previous auto update not finished, skipping.`);
+            }
 
         }, autoQueryInterval * 1000);
 

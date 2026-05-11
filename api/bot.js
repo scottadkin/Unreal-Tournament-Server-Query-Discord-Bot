@@ -310,11 +310,11 @@ export default class Bot{
 
         }else if(m.startsWith(commands[8])){
 
-            this.channels.enableAutoQuery(message, this.servers);
+            this.channels.enableAutoQuery(message, this.servers, this.queryAuto);
 
         }else if(m.startsWith(commands[9])){
 
-            this.channels.disableAutoQuery(message, this.servers);
+            this.channels.disableAutoQuery(message, this.servers, this.queryAuto);
 
         }else if(m.startsWith(commands[10])){
 

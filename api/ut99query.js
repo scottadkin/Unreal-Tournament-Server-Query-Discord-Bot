@@ -167,7 +167,7 @@ export default class UT99Query{
 
                 if(message === null){
 
-                    console.log(`failed to find message in autoQueryDiscordMessages`);
+                    //console.log(`failed to find message in autoQueryDiscordMessages`);
                     continue;
                 }
         
@@ -211,6 +211,8 @@ export default class UT99Query{
     }
 
     async startAutoQueryLoop(){
+
+        console.log("START AUTO QUERY");
 
         try{
 

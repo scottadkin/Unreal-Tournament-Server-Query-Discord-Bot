@@ -154,45 +154,73 @@ export default class Channels{
 
     }
 
-    enableAutoQuery(message, servers){
 
-        this.deleteAutoChannel();
+    async delayedCreateMessage(delay, realIp, port, channel, embed, servers){
 
-        servers.resetLastMessages();
+        return new Promise((resolve, reject) =>{
 
-        this.setAutoChannel(message);
-        let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
-The server status posts will be updated every **${autoQueryInterval} seconds.**`;
+            setTimeout(async () =>{
+               
+                    try{
+                        const currentMessage = await channel.send({ "embeds": [embed] });
+                        servers.setLastMessageId(realIp, port, currentMessage.id);
+                    
+                        resolve();
+                        
+                    }catch(err){
+                        console.log(`Failed to create message`);
+                        reject(err);
+                    }
+              
+            }, delay * 1000);
 
-
-        message.channel.send(string).then((message) =>{
-
-            this.setAutoQueryMessageInfoId(message.id);
-
-        })
-
-        const currentServers = getAllServers();
-        
-
-        for(let i = 0; i < currentServers.length; i++){
-
-            const embed = new EmbedBuilder()
-            .setColor(embedColor)
-            .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
-
-            message.channel.send({ "embeds": [embed] }).then((message) =>{
-
-                servers.setLastMessageId(currentServers[i].real_ip, currentServers[i].port, message.id);
-            });
-
-        }
-
+        });
 
     }
 
-    disableAutoQuery(message, servers){
+    async enableAutoQuery(message, servers, ut99AutoQuery){
+
+        try{
+
+
+            clearInterval(ut99AutoQuery.autoQueryLoop);
+            this.deleteAutoChannel();
+
+            servers.resetLastMessages();
+
+            this.setAutoChannel(message);
+            let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
+    The server status posts will be updated every **${autoQueryInterval} seconds.**`;
+
+            const autoQueryMessage = await message.channel.send(string);
+            this.setAutoQueryMessageInfoId(autoQueryMessage.id);
+
+            const currentServers = getAllServers();       
+
+            for(let i = 0; i < currentServers.length; i++){
+
+                const embed = new EmbedBuilder()
+                .setColor(embedColor)
+                .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
+
+                await this.delayedCreateMessage(1, currentServers[i].real_ip, currentServers[i].port, message.channel, embed, servers);
+                //const currentMessage = await message.channel.send({ "embeds": [embed] });
+                //servers.setLastMessageId(currentServers[i].real_ip, currentServers[i].port, currentMessage.id);
+
+            }
+
+
+            ut99AutoQuery.startAutoQueryLoop();
+
+        }catch(err){
+            console.trace(err);
+        }
+    }
+
+    disableAutoQuery(message, servers, ut99AutoQuery){
 
      
+        clearInterval(ut99AutoQuery.autoQueryLoop);
         this.deleteAutoChannel();
 
         servers.resetLastMessages();

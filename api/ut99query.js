@@ -25,6 +25,8 @@ export default class UT99Query{
         this.bPreviousAutoUpdateFinished = true;
         this.autoQueryLoop = null;
 
+        this.bPreviousPingLoopFinished = true;
+
         this.autoQueryDiscordMessages = [];
 
         this.init();
@@ -106,8 +108,6 @@ export default class UT99Query{
 
 
      pingAllServers(){
-
-        this.deleteAllBasic();
 
         const servers = getAllServers();
 
@@ -238,7 +238,6 @@ export default class UT99Query{
 
         console.log("START AUTO QUERY");
 
-    
         const autoQueryChannelId = getAutoQueryChannel();
 
         if(autoQueryChannelId === null){
@@ -284,7 +283,7 @@ export default class UT99Query{
             if(this.bPreviousAutoUpdateFinished){
 
                 this.autoQuery();
-                
+
             }else{
                 console.log(`previous auto update not finished, skipping.`);
             }
@@ -299,7 +298,33 @@ export default class UT99Query{
 
         this.pingLoop = setInterval(() =>{
 
-            this.pingAllServers();
+            let total = 0;
+
+            for(let i = 0; i < this.responses.length; i++){
+
+                const r = this.responses[i];
+
+                if(r.type === "basic" && !r.bDelete && !r.bTimedOut){
+                    total++;
+                }
+            }
+
+            if(total > 0){
+
+                console.log(`${total} basic responses left`);
+
+                this.bPreviousPingLoopFinished = false;
+
+            }else{
+                this.bPreviousPingLoopFinished = true;
+            }
+
+            
+            if(this.bPreviousPingLoopFinished){
+
+                this.deleteAllBasic();
+                this.pingAllServers();
+            }
 
         }, serverInfoPingInterval * 1000);
 
@@ -325,15 +350,13 @@ export default class UT99Query{
             
             response.bUnreal = true;
         }
-""
+        
         this.parseServerInfoData(data, response);
 
         this.parseMapData(data, response);
 
          if(response.type === "basic"){
 
-            response.bDelete = true;
-            
             const potato = {
                 "name": response.name,
                 "currentPlayers": response.currentPlayers,
@@ -345,6 +368,8 @@ export default class UT99Query{
             };
 
             this.servers.updateInfo(potato);
+            response.bSentMessage = true;
+            response.bDelete = true;
             return;
         }
 

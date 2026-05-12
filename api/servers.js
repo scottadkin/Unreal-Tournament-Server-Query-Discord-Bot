@@ -221,6 +221,7 @@ export default class Servers{
 
     updateInfo(data){
 
+
         const bCountryOverride = this.bCountryOverride(data.ip, data.port);
 
         if(!bCountryOverride){

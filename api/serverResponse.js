@@ -39,6 +39,8 @@ export default class ServerResponse{
 
         this.events.once("timeout", () =>{
 
+            if(this.bSentMessage || this.bDelete) return;
+            console.log(`THIS ${this.type} ${this.ip} ${this.port} has timed out`);
             this.bTimedOut = true;
             //process.exit();
         });

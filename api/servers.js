@@ -477,7 +477,7 @@ export default class Servers{
         const result = sqliteGet(query, [ip, port]);
         
         if(result === undefined){
-            console.log(`TODO: Need to add support so domain names can get the correct country`);
+            //console.log(`TODO: Need to add support so domain names can get the correct country`);
             return false;
         }
 

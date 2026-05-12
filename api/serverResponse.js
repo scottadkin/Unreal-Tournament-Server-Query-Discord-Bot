@@ -335,9 +335,9 @@ export default class ServerResponse{
             const embed = new EmbedBuilder()
             .setTitle(`${country}${this.name}`)
             .setColor(embedColor)
-            .setDescription(`${description}`)
+            .setDescription(`${description} ${new Date(Date.now())}`)
             .addFields(fields)
-            .setTimestamp();
+            .setTimestamp(new Date(Date.now()));
 
 
             if(!this.bEdit){
@@ -358,9 +358,9 @@ export default class ServerResponse{
 
             }else{
 
-                embed.setTimestamp();
+                embed.setTimestamp(new Date(Date.now()));
 
-                console.log("edit discord message");
+                console.log("edit discord message", this.ip, this.port, this.timeStamp);
                 await this.discordMessage.edit({ embeds: [embed]});
 
                 this.bDelete = true;

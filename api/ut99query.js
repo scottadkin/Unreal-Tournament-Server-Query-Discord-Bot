@@ -4,6 +4,7 @@ import ServerResponse from './serverResponse.js';
 import Servers, { getAllServers } from './servers.js';
 import Channels, { getAutoQueryChannel } from './channels.js';
 import { bValidPort, getIP4Address } from './generic.js';
+import { EmbedBuilder } from 'discord.js';
 
 export default class UT99Query{
 
@@ -14,7 +15,7 @@ export default class UT99Query{
         this.bAuto = false;
 
         this.bAuto = bAuto;
-        
+        this.totalAutoQueryLoops = 0;
 
         this.createClient();
 
@@ -149,7 +150,9 @@ export default class UT99Query{
     async autoQuery(){
 
 
-        this.bPreviousAutoUpdateFinished = false;
+        this.totalAutoQueryLoops++;
+        console.log("auto query loop", this.totalAutoQueryLoops);
+
 
         const servers = getAllServers();  
 
@@ -169,14 +172,15 @@ export default class UT99Query{
                     continue;
                 }
         
-                console.log(`update server ${i+1} of ${servers.length}`);
+                console.log(`update server ${i+1} of ${servers.length} ${this.totalAutoQueryLoops} ${s.ip} ${s.real_ip}:${s.port}`);
 
                 
 
                 if(i === 0){
                     await this.updateAutoQueryMessage(this.autoChannel, message, s); 
                 }else{
-                    await this.delayedUpdateMessage(3, this.autoChannel, message, s);
+                    //wait 1 second before starting update for next server to avoid edit rate limit
+                    await this.delayedUpdateMessage(1, this.autoChannel, message, s);
                 } 
 
             }catch(err){
@@ -184,11 +188,26 @@ export default class UT99Query{
             }
 
         }
-
-        console.log("DONE");
-        this.bPreviousAutoUpdateFinished = true;
     }
 
+
+    async delayedGetAutoChannelMessageById(id, delay){
+
+        return new Promise((resolve, reject) =>{
+
+            setTimeout(async () =>{
+
+                try{
+                    const message = await this.autoChannel.messages.fetch(id);
+
+                    resolve(message);
+                }catch(err){
+                    reject(err)
+                }
+
+            }, delay * 1000);
+        });
+    }
 
     async getAutoChannelMessages(messageIds){
 
@@ -201,7 +220,7 @@ export default class UT99Query{
             const id = messageIds[i];
 
             try{
-                this.autoQueryDiscordMessages[id] = await this.autoChannel.messages.fetch(id);
+                this.autoQueryDiscordMessages[id] = await this.delayedGetAutoChannelMessageById(id, 1)//this.autoChannel.messages.fetch(id);
             }catch(err){
                 console.trace(err);
 
@@ -223,40 +242,63 @@ export default class UT99Query{
 
     async startAutoQueryLoop(){
 
+        if(!this.bAuto) return;
+
         console.log("START AUTO QUERY");
 
-        try{
+    
+        const autoQueryChannelId = getAutoQueryChannel();
 
-            const autoQueryChannelId = getAutoQueryChannel();
-
-            if(autoQueryChannelId === null){
-                console.log("auto query not enabled");
-                return;
-            }
-            const servers = getAllServers();
-
-            const messageIds = [];
-
-            for(let i = 0; i < servers.length; i++){
-
-                if(servers[i].last_message === "-1") continue;
-                messageIds.push(servers[i].last_message);
-            }
-
-            this.autoChannel = await this.discord.channels.fetch(autoQueryChannelId);
-
-            await this.getAutoChannelMessages(messageIds);
-
-        }catch(err){
-            console.trace(err);
+        if(autoQueryChannelId === null){
+            console.log("auto query not enabled");
+            return;
         }
+        const servers = getAllServers();
+
+        const messageIds = [];
+
+        for(let i = 0; i < servers.length; i++){
+
+            if(servers[i].last_message === "-1") continue;
+            messageIds.push(servers[i].last_message);
+        }
+
+        this.autoChannel = await this.discord.channels.fetch(autoQueryChannelId);
+
+        await this.getAutoChannelMessages(messageIds);
+
         
 
         console.log("startAutoQueryLoop");
 
         this.autoQueryLoop = setInterval(() =>{
+
+         
+
+            let total = 0;
+
+            for(let i = 0; i < this.responses.length; i++){
+
+                const r = this.responses[i];
+                if(r.type === "full"){
+                    total++;
+                }
+            }
+
+            if(total > 0){
+                console.log("somes till left not finished");
+                this.bPreviousAutoUpdateFinished = false;
+            }else{
+                this.bPreviousAutoUpdateFinished = true;
+            }
+
+            console.log(`${total} auto query responses not sent, out of possible ${servers.length}`);
+        
             
             if(this.bPreviousAutoUpdateFinished){
+
+                this.bPreviousAutoUpdateFinished = true;
+
                 this.autoQuery();
             }else{
                 console.log(`previous auto update not finished, skipping.`);
@@ -298,7 +340,7 @@ export default class UT99Query{
             
             response.bUnreal = true;
         }
-
+""
         this.parseServerInfoData(data, response);
 
         this.parseMapData(data, response);
@@ -705,7 +747,9 @@ export default class UT99Query{
 
         try{
 
-            return await this.autoChannel.send(`Waiting for data from recently added server ${realIp}:${port}`);
+            const embed = new EmbedBuilder().setColor(embedColor).setDescription(`Waiting for data from recently added server ${realIp}:${port}`);
+
+            return await this.autoChannel.send({"embeds": [embed]});
             
         }catch(err){
             console.trace(err);

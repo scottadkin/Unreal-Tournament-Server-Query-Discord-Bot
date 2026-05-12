@@ -15,7 +15,6 @@ export default class UT99Query{
         this.bAuto = false;
 
         this.bAuto = bAuto;
-        this.totalAutoQueryLoops = 0;
 
         this.createClient();
 
@@ -150,9 +149,6 @@ export default class UT99Query{
     async autoQuery(){
 
 
-        this.totalAutoQueryLoops++;
-        console.log("auto query loop", this.totalAutoQueryLoops);
-
 
         const servers = getAllServers();  
 
@@ -171,10 +167,6 @@ export default class UT99Query{
                     //console.log(`failed to find message in autoQueryDiscordMessages`);
                     continue;
                 }
-        
-                console.log(`update server ${i+1} of ${servers.length} ${this.totalAutoQueryLoops} ${s.ip} ${s.real_ip}:${s.port}`);
-
-                
 
                 if(i === 0){
                     await this.updateAutoQueryMessage(this.autoChannel, message, s); 
@@ -267,13 +259,9 @@ export default class UT99Query{
 
         await this.getAutoChannelMessages(messageIds);
 
-        
-
-        console.log("startAutoQueryLoop");
+    
 
         this.autoQueryLoop = setInterval(() =>{
-
-         
 
             let total = 0;
 
@@ -286,20 +274,17 @@ export default class UT99Query{
             }
 
             if(total > 0){
-                console.log("somes till left not finished");
                 this.bPreviousAutoUpdateFinished = false;
+                console.log(`${total} auto query messaged not updated, out of possible ${servers.length}`);
             }else{
                 this.bPreviousAutoUpdateFinished = true;
             }
-
-            console.log(`${total} auto query responses not sent, out of possible ${servers.length}`);
         
             
             if(this.bPreviousAutoUpdateFinished){
 
-                this.bPreviousAutoUpdateFinished = true;
-
                 this.autoQuery();
+                
             }else{
                 console.log(`previous auto update not finished, skipping.`);
             }

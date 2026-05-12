@@ -158,3 +158,24 @@ export function getFlag(country){
         return currentFlag;
     }
 }
+
+export function forceStringLength(input, limit, bSpecial){
+
+    input = input.toString();
+
+    if(input.length > limit){
+        input = input.substring(0, limit);
+    }
+
+    while(input.length < limit){
+
+        if(bSpecial === undefined){
+            input += " ";
+        }else{
+            input = " "+input;
+        }
+    }
+
+    return input;
+
+}

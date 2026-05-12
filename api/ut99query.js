@@ -1,10 +1,87 @@
 import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serverInfoPingInterval } from '../config/config.js';
 import dgram from 'node:dgram';
 import ServerResponse from './serverResponse.js';
-import Servers, { getAllServers } from './servers.js';
+import Servers, { createServerListParts, getAllServers } from './servers.js';
 import Channels, { getAutoQueryChannel } from './channels.js';
 import { bValidPort, getIP4Address } from './generic.js';
 import { EmbedBuilder } from 'discord.js';
+import { EventEmitter } from "node:events";
+
+class ServersCommandEmitter extends EventEmitter {}
+
+class ServersCommand{
+
+    constructor(servers){
+
+        this.servers = servers;
+        this.created = new Date(Date.now());
+        this.responses = [];
+        this.discordMessage = null;
+        
+
+        this.events = new ServersCommandEmitter();
+
+        setTimeout(() =>{
+
+            this.updateMessage();
+            this.events.emit("timeout");
+        }, serverTimeout * 1000);
+    }
+
+    addResponse(response){
+
+        this.responses.push(response);
+
+        for(let i = 0; i < this.servers.length; i++){
+
+            const s = this.servers[i];
+
+            if(s.real_ip === response.ip && s.port === response.port){
+                console.log("MATCH");
+                s.totalPlayers = response.totalPlayers;
+                s.maxPlayers = response.maxPlayers;
+                s.gametype = response.gametype;
+                s.mapName = response.mapName;
+                console.log(s);
+            }
+        }
+
+        if(this.responses.length === this.servers.length){
+            this.events.emit("responses-created");
+        }
+    }
+
+    updateMessage(){
+
+        let totalFinished = 0;
+
+        for(let i = 0; i < this.responses.length; i++){
+            const r = this.responses[i];
+
+            if(r.bDelete || r.bSentMessage) totalFinished++;
+        }
+
+        console.log(totalFinished);
+
+        const serverParts = createServerListParts(this.servers);
+
+        const embed = new EmbedBuilder().setColor(embedColor).setTitle("edit test").setDescription(serverParts[0]);
+
+        this.discordMessage.edit({"embeds": [embed]});
+    }
+
+    getMatchingResponse(ip, port){
+
+        for(let i = 0; i < this.responses.length; i++){
+
+            const r = this.responses[i];
+
+            if(r.ip === ip && r.port === port) return r;
+        }
+
+        return null;
+    }
+}
 
 export default class UT99Query{
 
@@ -13,6 +90,8 @@ export default class UT99Query{
         this.server = null;
         this.responses = [];
         this.bAuto = false;
+
+        this.serverListCommand = null;
 
         this.bAuto = bAuto;
 
@@ -41,10 +120,19 @@ export default class UT99Query{
 
             try{
 
-                const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
+
+                let matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
                 if(matchingResponse === null){
-                    return;
+
+                    if(this.bAuto && this.serverListCommand !== null){
+
+                        matchingResponse = this.serverListCommand.getMatchingResponse(rinfo.address, rinfo.port - 1);
+                        if(matchingResponse === null) return;
+
+                    }else{
+                        return;
+                    }
                 }
 
                 this.parsePacket(message, matchingResponse);
@@ -72,7 +160,6 @@ export default class UT99Query{
 
     init(){
 
-
         setInterval(() =>{
 
             this.responses = this.responses.filter((r) =>{
@@ -85,8 +172,45 @@ export default class UT99Query{
 
         if(!this.bAuto) return
         this.startAutoQueryLoop();   
-        this.initServerPingLoop();
+        //this.initServerPingLoop();     
+    }
+
+    async createServersRequest(message){
+
+
+        if(this.serverListCommand !== null){
+
+            return await message.channel.send("Previous command still being processed.");
+        }
+
+        const servers = getAllServers();
+        this.serverListCommand = new ServersCommand(servers);
+        this.pingAllServers();
+
+        for(let i = 0; i < this.responses.length; i++){
+            const r = this.responses[i];
+            //if(r.type === "basic") console.log(r);
+            console.log(r);
+        }
+
         
+
+
+        console.log(this.serverListCommand.responses);
+
+        this.serverListCommand.events.once("timeout", () =>{
+
+            //edit message with timeout for missing servers
+        })
+
+        this.serverListCommand.events.once("responses-created", async () =>{
+            console.log("ALL RESPOSNES CREATED");
+
+            const embed = new EmbedBuilder().setColor(embedColor).setTitle("UT Server List").setTimestamp();
+
+            this.serverListCommand.discordMessage = await message.channel.send({"embeds": [embed]});
+        });
+
     }
 
 
@@ -690,8 +814,16 @@ export default class UT99Query{
             if(type === undefined) return reject("Message type is required");
             
             const message = this.getQueryMessage(type);
+
+            const response = new ServerResponse(address, port, type, discordChannel, bEdit, discordMessage);
             
-            this.responses.push(new ServerResponse(address, port, type, discordChannel, bEdit, discordMessage));
+            if(this.bAuto && type === "basic"){
+                //do .servers on autoquery port instead of main
+                this.serverListCommand.addResponse(response);
+                //this.serverListCommand.responses.push(response);
+            }else{
+                this.responses.push(response);
+            }
 
             this.server.send(message, port, address, (err) =>{
 

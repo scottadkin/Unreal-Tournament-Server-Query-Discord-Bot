@@ -3,7 +3,7 @@ import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
 import dns from 'node:dns';
 import Channels, { getAutoQueryChannel } from './channels.js';
 import { EmbedBuilder } from 'discord.js';
-import { getIP4Address } from './generic.js';
+import { getIP4Address, forceStringLength } from './generic.js';
 
 export default class Servers{
 
@@ -261,120 +261,18 @@ export default class Servers{
         
     }
 
-    forceStringLength(input, limit, bSpecial){
-
-        input = input.toString();
-
-        if(input.length > limit){
-            input = input.substring(0, limit);
-        }
-
-        while(input.length < limit){
-
-            if(bSpecial === undefined){
-                input += " ";
-            }else{
-                input = " "+input;
-            }
-        }
-
-        return input;
-
-    }
-
-    createServerString(id, server){
-
-        const idLength = 2;
-        const aliasLength = 25;
-        const mapLength = 25;
-        const playersLength = 7;
-
-        const now = Math.floor(Date.now() * 0.001);
-        const diff = now - server.modified;
-
-        const serverId = this.forceStringLength(id, idLength);
-        const alias = this.forceStringLength(server.alias, aliasLength);
-        
-        let playerString = "";
-
-        if(server.max_players == "ers"){
-            playerString = "Players";
-        }else{
-            playerString = server.players+"/"+server.max_players;
-        }
-
-        if(diff >= serverInfoPingInterval * 2 && server.modified !== undefined){
-            server.map = "Timed Out!";
-            playerString = "N/A";
-        }
-
-        const map = this.forceStringLength(server.map, mapLength)+" ";
-      
-        const players = this.forceStringLength(playerString, playersLength, true);
-
-        return `\`${serverId} - ${alias} ${map} ${players}\``;
-
-    }
-
-    sendNoServers(message, bOnlyActive){
-
-        const title =  "Unreal Tournament Server List";
-
-        const desc = (bOnlyActive) ? `There are currently no active servers.` : "There aren't any servers added to the bot.";
-
-        const embed = new EmbedBuilder()
-        .setColor(embedColor)
-        .setTitle(`${(bOnlyActive) ? "Active" : ""} ${title}`)
-        .setDescription(desc)
-        .setTimestamp();
-
-        return message.channel.send({"embeds": [embed]});
-    }
 
 
-    createServerListParts(servers){
-
-        const parts = [];
-
-        let desc = this.createServerString("ID", {"alias": "Alias", "map": "Map", "players": 0, "max_players": "ers"}, );
-        desc += `\n`;
-
-        let currentCount = 0;
-
-        for(let i = 0; i < servers.length; i++){
-
-            const s = servers[i];
-
-            desc += this.createServerString(i + 1, s);
-            if(i < servers.length - 1) desc += `\n`;
-
-            currentCount++;
-
-            if(currentCount >= maxServersPerBlock){
-                currentCount = 0;
-                parts.push(desc);
-                desc = ``;
-            }
-        }
-
-        if(parts.length === 0){
-            parts.push(desc);
-        }else if(desc !== ""){
-            parts.push(desc);
-        }
-
-        return parts;
-    }
 
     async listServers(message, bOnlyActive){
 
         const servers = (bOnlyActive) ? this.getAllActiveServers() : getAllServers();
 
         if(servers.length === 0){
-            return this.sendNoServers(message, bOnlyActive);
+            return sendNoServers(message, bOnlyActive);
         }
 
-        const parts = this.createServerListParts(servers);
+        const parts = createServerListParts(servers);
 
         const infoField = {
             "name": "Shorter server query command",
@@ -492,4 +390,88 @@ export function getAllServers(){
     const query = "SELECT * FROM servers ORDER BY created ASC";
 
     return sqliteGetAll(query);
+}
+
+export function createServerString(id, server){
+
+    const idLength = 2;
+    const aliasLength = 25;
+    const mapLength = 25;
+    const playersLength = 7;
+
+    const now = Math.floor(Date.now() * 0.001);
+    //const diff = now - server.modified;
+
+    const serverId = forceStringLength(id, idLength);
+    const alias = forceStringLength(server.alias, aliasLength);
+    
+    let playerString = "";
+
+    if(server.max_players == "ers"){
+        playerString = "Players";
+    }else{
+        playerString = server.players+"/"+server.max_players;
+    }
+
+    /*if(diff >= serverInfoPingInterval * 2 && server.modified !== undefined){
+        server.map = "Timed Out!";
+        playerString = "N/A";
+    }*/
+
+    const map = forceStringLength(server.map, mapLength)+" ";
+    
+    const players = forceStringLength(playerString, playersLength, true);
+
+    return `\`${serverId} - ${alias} ${map} ${players}\``;
+
+}
+
+export function sendNoServers(message, bOnlyActive){
+
+    const title =  "Unreal Tournament Server List";
+
+    const desc = (bOnlyActive) ? `There are currently no active servers.` : "There aren't any servers added to the bot.";
+
+    const embed = new EmbedBuilder()
+    .setColor(embedColor)
+    .setTitle(`${(bOnlyActive) ? "Active" : ""} ${title}`)
+    .setDescription(desc)
+    .setTimestamp();
+
+    return message.channel.send({"embeds": [embed]});
+}
+
+
+export function createServerListParts(servers){
+
+    const parts = [];
+
+    let desc = createServerString("ID", {"alias": "Alias", "map": "Map", "players": 0, "max_players": "ers"}, );
+    desc += `\n`;
+
+    let currentCount = 0;
+
+    for(let i = 0; i < servers.length; i++){
+
+        const s = servers[i];
+
+        desc += createServerString(i + 1, s);
+        if(i < servers.length - 1) desc += `\n`;
+
+        currentCount++;
+
+        if(currentCount >= maxServersPerBlock){
+            currentCount = 0;
+            parts.push(desc);
+            desc = ``;
+        }
+    }
+
+    if(parts.length === 0){
+        parts.push(desc);
+    }else if(desc !== ""){
+        parts.push(desc);
+    }
+
+    return parts;
 }

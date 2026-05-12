@@ -182,11 +182,12 @@ export default class Bot{
 
         }else if(listReg.test(message.content)){
         
-            this.servers.listServers(message);
+            this.queryAuto.createServersRequest(message);
+            //this.servers.listServers(message);
 
         }else if(activeReg.test(message.content)){
            
-            this.servers.listServers(message, true);
+            //this.servers.listServers(message, true);
 
         }else if(ipReg.test(message.content)){
       

@@ -1,87 +1,11 @@
 import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serverInfoPingInterval } from '../config/config.js';
 import dgram from 'node:dgram';
 import ServerResponse from './serverResponse.js';
-import Servers, { createServerListParts, getAllServers } from './servers.js';
+import Servers, {getAllServers} from './servers.js';
 import Channels, { getAutoQueryChannel } from './channels.js';
 import { bValidPort, getIP4Address } from './generic.js';
 import { EmbedBuilder } from 'discord.js';
-import { EventEmitter } from "node:events";
-
-class ServersCommandEmitter extends EventEmitter {}
-
-class ServersCommand{
-
-    constructor(servers){
-
-        this.servers = servers;
-        this.created = new Date(Date.now());
-        this.responses = [];
-        this.discordMessage = null;
-        
-
-        this.events = new ServersCommandEmitter();
-
-        setTimeout(() =>{
-
-            this.updateMessage();
-            this.events.emit("timeout");
-        }, serverTimeout * 1000);
-    }
-
-    addResponse(response){
-
-        this.responses.push(response);
-
-        for(let i = 0; i < this.servers.length; i++){
-
-            const s = this.servers[i];
-
-            if(s.real_ip === response.ip && s.port === response.port){
-                console.log("MATCH");
-                s.totalPlayers = response.totalPlayers;
-                s.maxPlayers = response.maxPlayers;
-                s.gametype = response.gametype;
-                s.mapName = response.mapName;
-                console.log(s);
-            }
-        }
-
-        if(this.responses.length === this.servers.length){
-            this.events.emit("responses-created");
-        }
-    }
-
-    updateMessage(){
-
-        let totalFinished = 0;
-
-        for(let i = 0; i < this.responses.length; i++){
-            const r = this.responses[i];
-
-            if(r.bDelete || r.bSentMessage) totalFinished++;
-        }
-
-        console.log(totalFinished);
-
-        const serverParts = createServerListParts(this.servers);
-
-        const embed = new EmbedBuilder().setColor(embedColor).setTitle("edit test").setDescription(serverParts[0]);
-
-        this.discordMessage.edit({"embeds": [embed]});
-    }
-
-    getMatchingResponse(ip, port){
-
-        for(let i = 0; i < this.responses.length; i++){
-
-            const r = this.responses[i];
-
-            if(r.ip === ip && r.port === port) return r;
-        }
-
-        return null;
-    }
-}
+import ServersCommand from './serversCommand.js';
 
 export default class UT99Query{
 
@@ -184,32 +108,15 @@ export default class UT99Query{
         }
 
         const servers = getAllServers();
-        this.serverListCommand = new ServersCommand(servers);
+        this.serverListCommand = new ServersCommand(message.channel, servers);
         this.pingAllServers();
 
-        for(let i = 0; i < this.responses.length; i++){
-            const r = this.responses[i];
-            //if(r.type === "basic") console.log(r);
-            console.log(r);
-        }
+        this.serverListCommand.events.once("delete", () =>{
 
-        
-
-
-        console.log(this.serverListCommand.responses);
-
-        this.serverListCommand.events.once("timeout", () =>{
-
-            //edit message with timeout for missing servers
-        })
-
-        this.serverListCommand.events.once("responses-created", async () =>{
-            console.log("ALL RESPOSNES CREATED");
-
-            const embed = new EmbedBuilder().setColor(embedColor).setTitle("UT Server List").setTimestamp();
-
-            this.serverListCommand.discordMessage = await message.channel.send({"embeds": [embed]});
+            console.log("serverCommand done");
+            this.serverListCommand = null;
         });
+
 
     }
 

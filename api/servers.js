@@ -45,7 +45,7 @@ export default class Servers{
 
                     const newMessage = await ut99AutoQuery.addServerToAutoQuery(result[6], address, port);
 
-                    this.setLastMessageId(address, port, newMessage.id);
+                    setServerLastMessageId(address, port, newMessage.id);
                     ut99AutoQuery.restartAutoQueryLoop();
 
                 }else{
@@ -73,7 +73,7 @@ export default class Servers{
 
                 const newMessage = await ut99AutoQuery.addServerToAutoQuery(ip, ip, port);
 
-                this.setLastMessageId(ip, port, newMessage.id);
+                setServerLastMessageId(ip, port, newMessage.id);
                 ut99AutoQuery.restartAutoQueryLoop();
 
             }else{
@@ -299,14 +299,6 @@ export default class Servers{
         }
     }
 
-
-    setLastMessageId(ip, port, id){
-
-        const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
-        return sqliteRun(query, [id, ip, port]);
-    }
-
-
     resetLastMessages(){
 
         const query = "UPDATE servers SET last_message=-1";
@@ -398,4 +390,10 @@ export function getAllServers(){
     }
 
     return result;
+}
+
+export function setServerLastMessageId(ip, port, id){
+
+    const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
+    return sqliteRun(query, [id, ip, port]);
 }

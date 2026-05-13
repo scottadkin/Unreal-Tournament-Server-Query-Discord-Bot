@@ -2,7 +2,8 @@ import { EmbedBuilder } from "discord.js";
 import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
 import { getAutoQueryChannel } from "./channels.js";
 import { EventEmitter } from "node:events";
-import { serverTimeout } from "../config/config.js";
+import { serverTimeout, embedColor } from "../config/config.js";
+import { setServerLastMessageId } from "./servers.js";
 
 class ServerResponseEmitter extends EventEmitter {}
 
@@ -43,6 +44,7 @@ export default class ServerResponse{
             if(this.bSentMessage || this.bDelete) return;
             console.log(`THIS ${this.type} ${this.ip} ${this.port} has timed out`);
             this.bTimedOut = true;
+            this.sendFullServerResponse();
             //process.exit();
         });
         
@@ -138,6 +140,7 @@ export default class ServerResponse{
             const p = this.players[i];
 
             let currentFlag = getFlag(p.country);
+
 
             if(!bSpectator){
 
@@ -274,7 +277,7 @@ export default class ServerResponse{
         return country;
     }
 
-    async sendFullServerResponse(channels, servers, embedColor){
+    async sendFullServerResponse(){
 
         try{
                 
@@ -359,7 +362,7 @@ export default class ServerResponse{
 
                     if(autoQueryChannelId === m.channel.id){
                         
-                        servers.setLastMessageId(this.ip, this.port, m.id);
+                        setServerLastMessageId(this.ip, this.port, m.id);
                     }
                 }
 
@@ -378,6 +381,8 @@ export default class ServerResponse{
 
         }catch(err){
             console.trace(err);
+            
+            this.bDelete = true;
         }
     }
 

@@ -405,16 +405,12 @@ export default class UT99Query{
             return;
         }
 
-        //if(response.type !== "basic"){
-
-            this.parseTeamData(data, response);
-            this.parseMutators(data, response);
-            this.parsePlayerData(data, response);
-        //}
+        this.parseTeamData(data, response);
+        this.parseMutators(data, response);
+        this.parsePlayerData(data, response);
+   
 
         const finalReg = /\\final\\$/i;
-
-       
 
         //unreal queries don;t end with /final/ so we have to do different checks
         if(response.bUnreal){
@@ -432,7 +428,7 @@ export default class UT99Query{
 
             }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
 
-                response.sendFullServerResponse(this.channels, this.servers, embedColor);       
+                response.sendFullServerResponse();       
             }
 
             return;
@@ -443,7 +439,7 @@ export default class UT99Query{
         }
 
         if(response.type == "full"){
-            response.sendFullServerResponse(this.channels, this.servers, embedColor);
+            response.sendFullServerResponse();
         }else if(response.type == "players"){
             response.sendPlayersResponse();
         }else if(response.type == "extended"){

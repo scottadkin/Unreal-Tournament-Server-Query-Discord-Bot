@@ -1,7 +1,7 @@
 import { failIcon, passIcon, embedColor, autoQueryInterval } from '../config/config.js';
 import { sqliteGet, sqliteRun, sqliteGetAll } from './database.js';
 import { EmbedBuilder } from 'discord.js';
-import { getAllServers } from './servers.js';
+import { getAllServers, setServerLastMessageId } from './servers.js';
 
 export default class Channels{
 
@@ -163,7 +163,7 @@ export default class Channels{
                
                     try{
                         const currentMessage = await channel.send({ "embeds": [embed] });
-                        servers.setLastMessageId(realIp, port, currentMessage.id);
+                        setServerLastMessageId(realIp, port, currentMessage.id);
                     
                         resolve();
                         

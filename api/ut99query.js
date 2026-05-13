@@ -44,7 +44,6 @@ export default class UT99Query{
 
             try{
 
-
                 let matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
                 if(matchingResponse === null){
@@ -95,11 +94,10 @@ export default class UT99Query{
 
 
         if(!this.bAuto) return
-        this.startAutoQueryLoop();   
-        //this.initServerPingLoop();     
+        this.startAutoQueryLoop();       
     }
 
-    async createServersRequest(message){
+    async createServersRequest(message, bOnlyActive){
 
 
         if(this.serverListCommand !== null){
@@ -108,35 +106,16 @@ export default class UT99Query{
         }
 
         const servers = getAllServers();
-        this.serverListCommand = new ServersCommand(message.channel, servers);
+        this.serverListCommand = new ServersCommand(message.channel, servers, bOnlyActive);
         this.pingAllServers();
 
         this.serverListCommand.events.once("delete", () =>{
 
-            console.log("serverCommand done");
+            console.log(this.serverListCommand.responses.length);
+
             this.serverListCommand = null;
         });
-
-
     }
-
-
-    deleteAllBasic(){
-
-        const responses = [];
-
-        for(let i = 0; i < this.responses.length; i++){
-
-            const r = this.responses[i];
-
-            if(r.type !== "basic"){
-                responses.push(r);
-            }
-        }
-
-        this.responses = responses;
-    }
-
 
      pingAllServers(){
 
@@ -324,43 +303,6 @@ export default class UT99Query{
         
     }
 
-
-    initServerPingLoop(){
-
-        this.pingLoop = setInterval(() =>{
-
-            let total = 0;
-
-            for(let i = 0; i < this.responses.length; i++){
-
-                const r = this.responses[i];
-
-                if(r.type === "basic" && !r.bDelete && !r.bTimedOut){
-                    total++;
-                }
-            }
-
-            if(total > 0){
-
-                console.log(`${total} basic responses left`);
-
-                this.bPreviousPingLoopFinished = false;
-
-            }else{
-                this.bPreviousPingLoopFinished = true;
-            }
-
-            
-            if(this.bPreviousPingLoopFinished){
-
-                this.deleteAllBasic();
-                this.pingAllServers();
-            }
-
-        }, serverInfoPingInterval * 1000);
-
-
-    }
 
     parsePacket(data, response){
 

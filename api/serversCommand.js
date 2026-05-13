@@ -16,10 +16,11 @@ const INFO_FIELD = {
 
 export default class ServersCommand{
 
-    constructor(discordChannel, servers){
+    constructor(discordChannel, servers, bOnlyActive){
 
         this.discordChannel = discordChannel;
         this.servers = servers;
+        this.bOnlyActive = bOnlyActive;
         this.created = new Date(Date.now());
         this.responses = [];
         this.discordMessage = null;
@@ -74,24 +75,25 @@ export default class ServersCommand{
 
                 response.serverIndex = s.current_index;
                 response.alias = s.alias;
+          
+
+                response.events.once("loaded-data", () =>{
+
+                    this.responsesCompleted++;
+
+                    if(this.responsesCompleted === this.servers.length){
+                        this.updateMessage();
+                        return;
+                    }
+
+                    const now = Math.floor(Date.now() * 0.001);
+                    const diff = now - this.lastEditTime;
+
+                    if(diff > 1){
+                        this.updateMessage();
+                    }
+                });
             }
-
-            response.events.once("loaded-data", () =>{
-
-                this.responsesCompleted++;
-
-                if(this.responsesCompleted === this.servers.length){
-                    this.updateMessage();
-                    return;
-                }
-
-                const now = Math.floor(Date.now() * 0.001);
-                const diff = now - this.lastEditTime;
-
-                if(diff > 1){
-                    this.updateMessage();
-                }
-            });
         }
 
         this.responses.push(response);
@@ -234,7 +236,7 @@ export default class ServersCommand{
 
             const response = this.responses[i];
 
-            if(response.serverIndex === undefined){
+            if(this.bOnlyActive && response.totalPlayers === 0){
                 continue;
             }
 

@@ -559,10 +559,6 @@ export default class Bot{
                 return await message.channel.send(`${failIcon} ${err}`);
             }
 
-            //if(!bIP4Address(currentValue)){
-            //    return await message.channel.send(`${failIcon} Server ip `);
-            //}
-
         }else if(editType === 'port'){
 
             currentValue = currentValue.replace(/\D/ig, '');
@@ -574,9 +570,7 @@ export default class Bot{
 
         this.servers.editServerValue(server.ip, server.port, editType, currentValue);
 
-        return await message.channel.send(`${passIcon} Server **${serverId}** updated, **${editType}** changed to **${currentValue}**.`);
-            
-       
+        return await message.channel.send(`${passIcon} Server **${serverId}** updated, **${editType}** changed to **${currentValue}**.`);    
     }
     
 }

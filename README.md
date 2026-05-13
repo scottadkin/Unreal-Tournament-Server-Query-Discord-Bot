@@ -57,21 +57,19 @@ export const token = "";
 export const defaultAdminRole = "Toilet Brush";
 //The character the bot will look for at the start of messages
 export const commandPrefix = ".";
-export const databaseFile = "./db/data.db";
+export const databaseFile = "./db/data_test.db";
 //how long to wait until giving up and showing server timed out message
 export const serverTimeout = 2;
 //                          R,G,B
 export const embedColor = [255,0,0];
-//how often the bot pings(in seconds) all servers to get basic info like player count and map
-export const serverInfoPingInterval = 20;
 export const failIcon = ":no_entry:";
 export const passIcon = ":white_check_mark:";
 //how often the bot will update the posts in the auto query channel if enabled.(seconds)
+//this will be the minimum amount of time between an edit loop, 
+//if you have many servers in your list the edits to existing posts may take longer and will skip a ping cycle until all post are edited
 export const autoQueryInterval = 30;
 //set to false to make the bot stop posting the not enabled message.
 export const bDisplayNotEnabledMessage = true;
-//max amount of servers to list in each discord embed
-export const maxServersPerBlock = 10;
 //Only display admin help commands to admins
 export const bSkipAdminHelpToNonAdmins = true;
 ```
@@ -95,7 +93,10 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Only edit one autoquery message per second to prevent discord rate limit issues, instead of all at once.
 - When .setauto has been called it will no longer fetch all discord messages at the same time to prevent discord rate limit issues.
 - When .setauto has been called the new messages to be edited will no longer be posted all at once to prevent discord rate limit issues.
+- Removed serverInfoPingInterval from config file.
 - Changing a servers address with .editserver id ip www.example.com now correctly sets the real_ip value to the correct value.
+- Fixed editing a servers address to one that already exists with the same port from being allowed, you now get an error message saying what the duplicate server is.
+- Removed **maxServersPerBlock** from config file, the bot now checks automatically if a .servers response is going to exceed discords max string length for a single post and will split the post into multiple parts.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

@@ -1,4 +1,4 @@
-import { serverTimeout, embedColor, maxServersPerBlock, commandPrefix } from "../config/config.js";
+import { serverTimeout, embedColor, commandPrefix } from "../config/config.js";
 import { EventEmitter } from "node:events";
 import { EmbedBuilder } from "discord.js";
 import { forceStringLength } from "./generic.js";
@@ -47,7 +47,6 @@ export default class ServersCommand{
 
             //edit message with timeout for missing servers
 
-            console.log(`sdgjms djg opxc jghopsd jopgjsdopg jksdopgjsdopgjdsopdgj`);
             this.updateMessage();
 
             this.events.emit("delete");
@@ -109,15 +108,9 @@ export default class ServersCommand{
     updateMessage(){
 
 
-        //if responses .length < servers.length add missing servers to .server and not .active command
-
-        console.log("--------", this.responses.length, this.servers.length);
-
         for(let i = 0; i < this.responses.length; i++){
 
             const r = this.responses[i];
-
-            console.log(i, r.bSentMessage, r.bDelete, r.bTimedOut);
         }
 
         if(this.discordMessage === null){
@@ -129,16 +122,27 @@ export default class ServersCommand{
 
         const serverParts = this.createServerListParts(this.responses);
 
-        const embed = new EmbedBuilder()
-        .setColor(embedColor)
-        .setTitle(SERVERS_TITLE)
-        .setDescription(serverParts[0]);
+        const embeds = [];
 
-        
+        for(let i = 0; i < serverParts.length; i++){
 
-        embed.setFields([INFO_FIELD]);
+            const embed = new EmbedBuilder()
+            .setColor(embedColor);
 
-        this.discordMessage.edit({"embeds": [embed]});
+            if(i === 0){
+                embed.setTitle(SERVERS_TITLE)
+            }
+
+            embed.setDescription(serverParts[i]);
+
+            if(i === serverParts.length - 1){
+                embed.setFields([INFO_FIELD]);
+            }
+
+            embeds.push(embed);
+        }
+
+        this.discordMessage.edit({"embeds": embeds});
     }
 
     getMatchingResponse(ip, port){
@@ -222,6 +226,8 @@ export default class ServersCommand{
 
     createServerListParts(servers){
 
+        const maxCharsPerDesc = 4096;
+
         const parts = [];
 
         let desc = this.createServerString({
@@ -234,7 +240,6 @@ export default class ServersCommand{
 
         desc += `\n`;
 
-        let currentCount = 0;
 
         this.sortResponsesByIndex();
 
@@ -248,7 +253,7 @@ export default class ServersCommand{
 
             if(response.serverIndex === undefined) continue;
 
-            desc += this.createServerString({
+            const currentString = this.createServerString({
                 "serverIndex": response.serverIndex,
                 "alias": response.alias,
                 "map": response.mapName,
@@ -256,15 +261,17 @@ export default class ServersCommand{
                 "maxPlayers": response.maxPlayers
             });
 
-            if(i < servers.length - 1) desc += `\n`;
-
-            currentCount++;
-
-            if(currentCount >= maxServersPerBlock){
-                currentCount = 0;
+            if(desc.length + currentString.length >= maxCharsPerDesc){
+            
                 parts.push(desc);
-                desc = ``;
+                desc = currentString;
+            }else{
+
+                desc += currentString;
             }
+
+            if(i < servers.length - 1) desc += `\n`;
+ 
         }
 
         if(parts.length === 0){

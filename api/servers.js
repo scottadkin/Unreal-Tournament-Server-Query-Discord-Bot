@@ -1,4 +1,4 @@
-import { passIcon, failIcon, commandPrefix, embedColor, maxServersPerBlock } from '../config/config.js';
+import { passIcon, failIcon, commandPrefix, embedColor } from '../config/config.js';
 import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
 import dns from 'node:dns';
 import Channels, { getAutoQueryChannel } from './channels.js';

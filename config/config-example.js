@@ -17,10 +17,8 @@ export const passIcon = ":white_check_mark:";
 //how often the bot will update the posts in the auto query channel if enabled.(seconds)
 //this will be the minimum amount of time between an edit loop, 
 //if you have many servers in your list the edits to existing posts may take longer and will skip a ping cycle until all post are edited
-export const autoQueryInterval = 20;
+export const autoQueryInterval = 30;
 //set to false to make the bot stop posting the not enabled message.
 export const bDisplayNotEnabledMessage = true;
-//max amount of servers to list in each discord embed
-export const maxServersPerBlock = 10;
 //Only display admin help commands to admins
 export const bSkipAdminHelpToNonAdmins = true;

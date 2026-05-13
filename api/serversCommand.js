@@ -34,7 +34,7 @@ export default class ServersCommand{
 
         setTimeout(() =>{
 
-            if(this.responsesCompleted === this.servers.length) return;
+            //if(this.responsesCompleted === this.servers.length) return;
             
             this.events.emit("timeout");
         }, serverTimeout * 1000);
@@ -56,7 +56,7 @@ export default class ServersCommand{
 
             const embed = new EmbedBuilder()
             .setColor(embedColor)
-            .setTitle(SERVERS_TITLE)
+            .setTitle((this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE)
             .setDescription("Pinging servers...")
             .setFields([INFO_FIELD])
             .setTimestamp();
@@ -108,11 +108,6 @@ export default class ServersCommand{
     updateMessage(){
 
 
-        for(let i = 0; i < this.responses.length; i++){
-
-            const r = this.responses[i];
-        }
-
         if(this.discordMessage === null){
             //cant edit the message if it hasn't been created yet
             return;
@@ -122,6 +117,10 @@ export default class ServersCommand{
 
         const serverParts = this.createServerListParts(this.responses);
 
+        if(serverParts === null){
+            return this.sendNoServers();
+        }
+
         const embeds = [];
 
         for(let i = 0; i < serverParts.length; i++){
@@ -130,10 +129,12 @@ export default class ServersCommand{
             .setColor(embedColor);
 
             if(i === 0){
-                embed.setTitle(SERVERS_TITLE)
+                embed.setTitle((this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE)
             }
 
+       
             embed.setDescription(serverParts[i]);
+            
 
             if(i === serverParts.length - 1){
                 embed.setFields([INFO_FIELD]);
@@ -191,15 +192,15 @@ export default class ServersCommand{
 
     }
 
-    sendNoServers(bOnlyActive){
+    sendNoServers(){
 
-        const title =  SERVERS_TITLE;
+        const title =  (this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE;
 
-        const desc = (bOnlyActive) ? `There are currently no active servers.` : "There aren't any servers added to the bot.";
+        const desc = (this.bOnlyActive) ? `There are currently no active servers.` : "There aren't any servers added to the bot.";
 
         const embed = new EmbedBuilder()
         .setColor(embedColor)
-        .setTitle(`${(bOnlyActive) ? "Active" : ""} ${title}`)
+        .setTitle(`${(this.bOnlyActive) ? "Active" : ""} ${title}`)
         .setDescription(desc)
         .setTimestamp();
 
@@ -243,6 +244,8 @@ export default class ServersCommand{
 
         this.sortResponsesByIndex();
 
+        let totalServers = 0;
+
         for(let i = 0; i < this.responses.length; i++){
 
             const response = this.responses[i];
@@ -252,6 +255,8 @@ export default class ServersCommand{
             }
 
             if(response.serverIndex === undefined) continue;
+
+            totalServers++;
 
             const currentString = this.createServerString({
                 "serverIndex": response.serverIndex,
@@ -279,6 +284,8 @@ export default class ServersCommand{
         }else if(desc !== ""){
             parts.push(desc);
         }
+
+        if(totalServers === 0) return null;
 
         return parts;
     }

@@ -28,8 +28,6 @@ export default class UT99Query{
         this.bPreviousAutoUpdateFinished = true;
         this.autoQueryLoop = null;
 
-        this.bPreviousPingLoopFinished = true;
-
         this.autoQueryDiscordMessages = [];
 
         this.init();
@@ -107,13 +105,14 @@ export default class UT99Query{
 
         const servers = getAllServers();
 
+        if(servers.length === 0){
+            return await message.channel.send("You have no servers added to your database.");
+        }
 
         this.serverListCommand = new ServersCommand(message.channel, servers, bOnlyActive);
         this.pingAllServers();
 
         this.serverListCommand.events.once("delete", () =>{
-
-            console.log(this.serverListCommand.responses.length);
 
             this.serverListCommand = null;
         });
@@ -237,6 +236,7 @@ export default class UT99Query{
 
         console.log("restarting autoquery loop");
         clearInterval(this.autoQueryLoop);
+        this.autoQueryLoop = null;
         this.bPreviousAutoUpdateFinished = true;
 
         this.responses = [];

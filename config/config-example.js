@@ -7,7 +7,7 @@ export const token = "";
 export const defaultAdminRole = "Toilet Brush";
 //The character the bot will look for at the start of messages
 export const commandPrefix = ".";
-export const databaseFile = "./db/data_test.db";
+export const databaseFile = "./db/data.db";
 //how long to wait until giving up and showing server timed out message
 export const serverTimeout = 2;
 //                          R,G,B

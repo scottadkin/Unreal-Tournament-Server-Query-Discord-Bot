@@ -43,10 +43,13 @@ export default class Servers{
                     this.insertServer(result[6], address, result[1], port);
                     await message.channel.send(`${passIcon} Server added successfully.`);
 
-                    const newMessage = await ut99AutoQuery.addServerToAutoQuery(result[6], address, port);
+                    if(ut99AutoQuery.autoQueryLoop !== null){
 
-                    setServerLastMessageId(address, port, newMessage.id);
-                    ut99AutoQuery.restartAutoQueryLoop();
+                        const newMessage = await ut99AutoQuery.addServerToAutoQuery(result[6], address, port);
+
+                        setServerLastMessageId(address, port, newMessage.id);
+                        ut99AutoQuery.restartAutoQueryLoop();
+                    }
 
                 }else{
                     return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
@@ -71,10 +74,13 @@ export default class Servers{
                 this.insertServer(ip, ip, result[1], port);
                 await message.channel.send(`${passIcon} Server added successfully.`);
 
-                const newMessage = await ut99AutoQuery.addServerToAutoQuery(ip, ip, port);
+                if(ut99AutoQuery.autoQueryLoop !== null){
+                    
+                    const newMessage = await ut99AutoQuery.addServerToAutoQuery(ip, ip, port);
 
-                setServerLastMessageId(ip, port, newMessage.id);
-                ut99AutoQuery.restartAutoQueryLoop();
+                    setServerLastMessageId(ip, port, newMessage.id);
+                    ut99AutoQuery.restartAutoQueryLoop();
+                }
 
             }else{
                 return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
@@ -125,7 +131,7 @@ export default class Servers{
     }
 
 
-    removeServer(message){
+    async removeServer(message, ut99AutoQuery){
 
         const reg = /^.removeserver (\d+)$/i;
 
@@ -156,28 +162,22 @@ export default class Servers{
 
         if(s.last_message !== "-1"){
 
-            /*const autoChannelId = getAutoQueryChannel();
+            try{
 
-            if(autoChannelId !== null){
+                const autoMessage = await ut99AutoQuery.autoChannel.messages.fetch(s.last_message);
 
-                message.guild.channels.fetch(autoChannelId).then(async (autoChannel) =>{
-                    console.log(autoChannel);
+                await autoMessage.delete();
 
-                    const autoMessage = await autoChannel.messages.fetch(s.last_message);
+            }catch(err){
+                //post may have been deleted by someone else or doesn't exist in the current channel
+                console.trace(err);
+            }
 
-                    autoMessage.delete();
-                    console.log(autoMessage);
-               
-                });
-            }*/
-             //message.channel.messages.fetch(s.last_message).then((m) =>{
-               // console.log(m);
-            // });
         }
 
-
-
         this.deleteServer(s.id);
+
+        ut99AutoQuery.restartAutoQueryLoop();
 
         return message.channel.send(`${passIcon} Deleted server successfully.`);        
     }

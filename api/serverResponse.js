@@ -42,7 +42,6 @@ export default class ServerResponse{
         this.events.once("timeout", () =>{
 
             if(this.bSentMessage || this.bDelete) return;
-            console.log(`THIS ${this.type} ${this.ip} ${this.port} has timed out`);
             this.bTimedOut = true;
             this.sendFullServerResponse();
             //process.exit();
@@ -98,7 +97,6 @@ export default class ServerResponse{
 
     triggerFinished(){
 
-        console.log(this.ip, this.port, "FINISHED");
         this.bSentMessage = true;
         this.bDelete = true;
         this.events.emit("loaded-data");

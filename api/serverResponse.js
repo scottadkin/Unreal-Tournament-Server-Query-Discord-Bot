@@ -98,6 +98,7 @@ export default class ServerResponse{
 
     triggerFinished(){
 
+        console.log(this.ip, this.port, "FINISHED");
         this.bSentMessage = true;
         this.bDelete = true;
         this.events.emit("loaded-data");

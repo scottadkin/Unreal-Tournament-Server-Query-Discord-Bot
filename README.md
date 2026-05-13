@@ -95,6 +95,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Only edit one autoquery message per second to prevent discord rate limit issues, instead of all at once.
 - When .setauto has been called it will no longer fetch all discord messages at the same time to prevent discord rate limit issues.
 - When .setauto has been called the new messages to be edited will no longer be posted all at once to prevent discord rate limit issues.
+- Changing a servers address with .editserver id ip www.example.com now correctly sets the real_ip value to the correct value.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

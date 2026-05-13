@@ -35,8 +35,7 @@ export default class ServersCommand{
         setTimeout(() =>{
 
             if(this.responsesCompleted === this.servers.length) return;
-
-            this.updateMessage();
+            
             this.events.emit("timeout");
         }, serverTimeout * 1000);
     }
@@ -47,6 +46,9 @@ export default class ServersCommand{
         this.events.once("timeout", () =>{
 
             //edit message with timeout for missing servers
+
+            console.log(`sdgjms djg opxc jghopsd jopgjsdopg jksdopgjsdopgjdsopdgj`);
+            this.updateMessage();
 
             this.events.emit("delete");
         })
@@ -106,20 +108,24 @@ export default class ServersCommand{
 
     updateMessage(){
 
+
+        //if responses .length < servers.length add missing servers to .server and not .active command
+
+        console.log("--------", this.responses.length, this.servers.length);
+
+        for(let i = 0; i < this.responses.length; i++){
+
+            const r = this.responses[i];
+
+            console.log(i, r.bSentMessage, r.bDelete, r.bTimedOut);
+        }
+
         if(this.discordMessage === null){
             //cant edit the message if it hasn't been created yet
             return;
         }
 
         this.lastEditTime = Math.floor(Date.now() * 0.001);
-
-        let totalFinished = 0;
-
-        for(let i = 0; i < this.responses.length; i++){
-            const r = this.responses[i];
-
-            if(r.bDelete || r.bSentMessage) totalFinished++;
-        }
 
         const serverParts = this.createServerListParts(this.responses);
 
@@ -239,6 +245,8 @@ export default class ServersCommand{
             if(this.bOnlyActive && (response.currentPlayers === "0" || response.mapName === "DM-MapName")){
                 continue;
             }
+
+            if(response.serverIndex === undefined) continue;
 
             desc += this.createServerString({
                 "serverIndex": response.serverIndex,

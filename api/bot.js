@@ -5,6 +5,7 @@ import Servers from "./servers.js";
 import Channels from "./channels.js";
 import Roles from "./roles.js";
 import diagnosticsChannel from 'node:diagnostics_channel';
+import { bIP4Address, getIP4Address } from "./generic.js";
 
 const USER_COMMANDS = [
     {"name": `servers`, "content": `Lists all servers added to the database.`},
@@ -508,7 +509,7 @@ export default class Bot{
         }
     }
 
-    editServer(message){
+    async editServer(message){
 
         const editReg = /^.editserver (\d+) (.+?) (.+)$/i;
         
@@ -518,47 +519,64 @@ export default class Bot{
             return message.channel.send(`${failIcon} Incorrect syntax for edit server.`);
         }
 
+        let currentValue = result[3];
+
         const serverId = parseInt(result[1]);
 
         const server = this.servers.getServerById(serverId); 
         
         if(server === null){
-            return message.channel.send(`${failIcon} A server with id ${serverId} does not exist.`);
+            return await message.channel.send(`${failIcon} A server with id ${serverId} does not exist.`);
         }
 
         const editType = result[2].toLowerCase();
 
-        if(editType == 'country'){
+        if(this.validEdits.indexOf(editType) === -1){
 
-            if(result[3].length !== 2){
-                return message.channel.send(`${failIcon} Server country code must be 2 characters long.`);      
+            return await message.channel.send(`${failIcon} **${editType}** is not a valid edit type for servers.`);
+        }
+
+        if(editType === 'country'){
+
+            if(currentValue.length !== 2){
+                return await message.channel.send(`${failIcon} Server country code must be 2 characters long.`);      
             }
 
-        }else if(editType == 'ip'){
+        }else if(editType === 'ip'){
             
-            if(result[3].includes(':')){
-                return message.channel.send(`${failIcon} Server ip can not include the port.`);     
+            if(currentValue.includes(':')){
+                return await message.channel.send(`${failIcon} Server ip can not include the port.`);     
             }
 
-        }else if(editType == 'port'){
+            try{
 
-            result[3] = result[3].replace(/\D/ig, '');
+                const realIp = await getIP4Address(currentValue);
+
+                this.servers.changeServerAddress(server.id, currentValue, realIp, server.port);
+
+            }catch(err){
+
+                return await message.channel.send(`${failIcon} ${err}`);
+            }
+
+            //if(!bIP4Address(currentValue)){
+            //    return await message.channel.send(`${failIcon} Server ip `);
+            //}
+
+        }else if(editType === 'port'){
+
+            currentValue = currentValue.replace(/\D/ig, '');
             
-            if(result[3] < 1 || result[3] > 65535){
-                return message.channel.send(`${failIcon} Server port must be a interger between 1 and 65535`);             
+            if(currentValue < 1 || currentValue > 65535){
+                return await message.channel.send(`${failIcon} Server port must be a interger between 1 and 65535`);             
             }     
         }
 
+        this.servers.editServerValue(server.ip, server.port, editType, currentValue);
 
-        if(this.validEdits.indexOf(editType) !== -1){
-
-            this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
-
-            message.channel.send(`${passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
+        return await message.channel.send(`${passIcon} Server **${serverId}** updated, **${editType}** changed to **${currentValue}**.`);
             
-        }else{
-            message.channel.send(`${failIcon} **${result[2]}** is not a valid edit type for servers.`);
-        }
+       
     }
     
 }

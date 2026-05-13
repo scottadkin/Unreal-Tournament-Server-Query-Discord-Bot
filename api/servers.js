@@ -1,4 +1,4 @@
-import { passIcon, failIcon, commandPrefix, serverInfoPingInterval, embedColor, maxServersPerBlock } from '../config/config.js';
+import { passIcon, failIcon, commandPrefix, embedColor, maxServersPerBlock } from '../config/config.js';
 import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
 import dns from 'node:dns';
 import Channels, { getAutoQueryChannel } from './channels.js';
@@ -307,22 +307,59 @@ export default class Servers{
         }
     }
 
-    editServerValue(ip, port, key, value){
+    editServerValue(ip, port, type, value){
         
-        const query = `UPDATE servers SET ${key}=? WHERE ip=? AND port=?`;
 
-        if(key === 'country' && value === 'uk'){
+        type = type.toLowerCase();
+
+
+        const query = `UPDATE servers SET ${type}=? WHERE ip=? AND port=?`;
+
+        if(type === 'country' && value === 'uk'){
             value = 'gb';
         }
 
         sqliteRun(query, [value, ip, port]);
 
-        if(key !== 'country') return;
+        if(type !== 'country') return;
 
         const countryQuery = `UPDATE servers SET override_country=1 WHERE ip=? AND port=?`;
 
         sqliteRun(countryQuery, [ip, port]);
     }
+
+    getServerByRealIpPort(realIp, port){
+
+
+        const result = sqliteGet(`SELECT name,ip,real_ip,port,alias FROM servers WHERE real_ip=? AND port=?`, [realIp, port]);
+
+        if(result === undefined){
+            throw new Error("There was an issue getting server information by realIp and port");
+        }
+
+        return result;
+    }
+
+    changeServerAddress(serverRowId, newAddress, newRealIp, currentPort){
+
+        const query = `UPDATE servers SET ip=?, real_ip=? WHERE id=?`;
+
+        //need top check if same address and port already used
+
+        if(this.bServerAdded(newRealIp, currentPort)){
+
+            const duplicateServer = this.getServerByRealIpPort(newRealIp, currentPort);
+
+            let errorMessage = `A server with that ip and port already exists as: `;
+
+            errorMessage += `**${duplicateServer.alias}** ${duplicateServer.ip}:${duplicateServer.port}(${duplicateServer.real_ip})`;
+
+            throw new Error(errorMessage);
+        }
+
+        sqliteRun(query, [newAddress, newRealIp, serverRowId]);
+    }
+
 
     bCountryOverride(ip, port){
 

@@ -1,4 +1,4 @@
-import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serverInfoPingInterval } from '../config/config.js';
+import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval } from '../config/config.js';
 import dgram from 'node:dgram';
 import ServerResponse from './serverResponse.js';
 import Servers, {getAllServers} from './servers.js';
@@ -106,6 +106,8 @@ export default class UT99Query{
         }
 
         const servers = getAllServers();
+
+
         this.serverListCommand = new ServersCommand(message.channel, servers, bOnlyActive);
         this.pingAllServers();
 
@@ -328,7 +330,7 @@ export default class UT99Query{
 
         this.parseMapData(data, response);
 
-         if(response.type === "basic"){
+        if(response.type === "basic"){
 
             const potato = {
                 "name": response.name,

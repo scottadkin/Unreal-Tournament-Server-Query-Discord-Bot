@@ -236,7 +236,7 @@ export default class ServersCommand{
 
             const response = this.responses[i];
 
-            if(this.bOnlyActive && response.totalPlayers === 0){
+            if(this.bOnlyActive && (response.currentPlayers === "0" || response.mapName === "DM-MapName")){
                 continue;
             }
 
@@ -244,9 +244,10 @@ export default class ServersCommand{
                 "serverIndex": response.serverIndex,
                 "alias": response.alias,
                 "map": response.mapName,
-                "totalPlayers": response.totalPlayers,
+                "totalPlayers": response.currentPlayers,
                 "maxPlayers": response.maxPlayers
             });
+
             if(i < servers.length - 1) desc += `\n`;
 
             currentCount++;

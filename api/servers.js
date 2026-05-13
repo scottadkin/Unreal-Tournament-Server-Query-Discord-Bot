@@ -262,43 +262,6 @@ export default class Servers{
     }
 
 
-
-
-    async listServers(message, bOnlyActive){
-
-        const servers = (bOnlyActive) ? this.getAllActiveServers() : getAllServers();
-
-        if(servers.length === 0){
-            return sendNoServers(message, bOnlyActive);
-        }
-
-        const parts = createServerListParts(servers);
-
-        const infoField = {
-            "name": "Shorter server query command",
-            "value": `Type **${commandPrefix}q id** to query a server instead of ip:port.`,
-            "inline": false
-        };
-
-        for(let i = 0; i < parts.length; i++){
-
-            const embed = new EmbedBuilder().setColor(embedColor);
-
-            if(i === 0){
-                embed.setTitle(`:desktop: ${(bOnlyActive) ? "Active" : ""} UT Servers List`);
-            }
-
-            embed.setDescription(parts[i]);
-
-            if(i === parts.length - 1){
-
-                embed.addFields([infoField]).setTimestamp();
-            }
-
-            message.channel.send({embeds: [embed]});
-        }
-    }
-
     resetLastMessages(){
 
         const query = "UPDATE servers SET last_message=-1";

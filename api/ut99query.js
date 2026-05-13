@@ -399,8 +399,9 @@ export default class UT99Query{
             };
 
             this.servers.updateInfo(potato);
-            response.bSentMessage = true;
-            response.bDelete = true;
+
+            response.triggerFinished();
+            
             return;
         }
 

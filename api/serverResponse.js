@@ -37,6 +37,7 @@ export default class ServerResponse{
 
         this.events = new ServerResponseEmitter(); 
 
+
         this.events.once("timeout", () =>{
 
             if(this.bSentMessage || this.bDelete) return;
@@ -91,7 +92,13 @@ export default class ServerResponse{
             {"score": 0, "size": 0},
             {"score": 0, "size": 0}
         ];
+    }
 
+    triggerFinished(){
+
+        this.bSentMessage = true;
+        this.bDelete = true;
+        this.events.emit("loaded-data");
     }
 
     getSex(mesh){

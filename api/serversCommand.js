@@ -1,10 +1,18 @@
-import { serverTimeout, embedColor, maxServersPerBlock } from "../config/config.js";
+import { serverTimeout, embedColor, maxServersPerBlock, commandPrefix } from "../config/config.js";
 import { EventEmitter } from "node:events";
 import { EmbedBuilder } from "discord.js";
 import { forceStringLength } from "./generic.js";
 import { getAllServers } from "./servers.js";
 
 class ServersCommandEmitter extends EventEmitter {}
+
+const SERVERS_TITLE = ":desktop: UT Server List";
+const ACTIVE_SERVERS_TITLE = ":desktop: Active UT Server List";
+const INFO_FIELD = {
+    "name": "Shorter server query command",
+    "value": `Type **${commandPrefix}q id** to query a server instead of ip:port.`,
+    "inline": false
+};
 
 export default class ServersCommand{
 
@@ -15,12 +23,17 @@ export default class ServersCommand{
         this.created = new Date(Date.now());
         this.responses = [];
         this.discordMessage = null;
+        this.lastEditTime = 0;
+        
+        this.responsesCompleted = 0;
         
         this.events = new ServersCommandEmitter();
 
         this.createEvents();
 
         setTimeout(() =>{
+
+            if(this.responsesCompleted === this.servers.length) return;
 
             this.updateMessage();
             this.events.emit("timeout");
@@ -39,7 +52,12 @@ export default class ServersCommand{
 
         this.events.once("responses-created", async () =>{
 
-            const embed = new EmbedBuilder().setColor(embedColor).setTitle("UT Server List").setTimestamp();
+            const embed = new EmbedBuilder()
+            .setColor(embedColor)
+            .setTitle(SERVERS_TITLE)
+            .setDescription("Pinging servers...")
+            .setFields([INFO_FIELD])
+            .setTimestamp();
 
             this.discordMessage = await this.discordChannel.send({"embeds": [embed]});
         });
@@ -47,7 +65,7 @@ export default class ServersCommand{
 
     addResponse(response){
 
-        
+
         for(let i = 0; i < this.servers.length; i++){
 
             const s = this.servers[i];
@@ -57,9 +75,27 @@ export default class ServersCommand{
                 response.serverIndex = s.current_index;
                 response.alias = s.alias;
             }
+
+            response.events.once("loaded-data", () =>{
+
+                this.responsesCompleted++;
+
+                if(this.responsesCompleted === this.servers.length){
+                    this.updateMessage();
+                    return;
+                }
+
+                const now = Math.floor(Date.now() * 0.001);
+                const diff = now - this.lastEditTime;
+
+                if(diff > 1){
+                    this.updateMessage();
+                }
+            });
         }
 
         this.responses.push(response);
+        
 
         if(this.responses.length === this.servers.length){
             this.events.emit("responses-created");
@@ -67,6 +103,13 @@ export default class ServersCommand{
     }
 
     updateMessage(){
+
+        if(this.discordMessage === null){
+            //cant edit the message if it hasn't been created yet
+            return;
+        }
+
+        this.lastEditTime = Math.floor(Date.now() * 0.001);
 
         let totalFinished = 0;
 
@@ -78,7 +121,14 @@ export default class ServersCommand{
 
         const serverParts = this.createServerListParts(this.responses);
 
-        const embed = new EmbedBuilder().setColor(embedColor).setTitle("edit test").setDescription(serverParts[0]);
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(SERVERS_TITLE)
+        .setDescription(serverParts[0]);
+
+        
+
+        embed.setFields([INFO_FIELD]);
 
         this.discordMessage.edit({"embeds": [embed]});
     }
@@ -102,8 +152,17 @@ export default class ServersCommand{
         const mapLength = 25;
         const playersLength = 7;
 
-        const serverId = forceStringLength(server.serverIndex, idLength);
         const alias = forceStringLength(server.alias, aliasLength);
+        const serverId = forceStringLength(server.serverIndex, idLength);
+
+        if(server.map === "DM-MapName"){
+
+            const mapFailed = forceStringLength("Server Timed Out!", mapLength)+" "; 
+            const playersFailed = forceStringLength("N/A", playersLength, true);
+
+            return `\`${serverId} - ${alias} ${mapFailed} ${playersFailed}\``;
+        }
+
         
         let playerString = "";
 
@@ -122,7 +181,7 @@ export default class ServersCommand{
 
     sendNoServers(bOnlyActive){
 
-        const title =  "Unreal Tournament Server List";
+        const title =  SERVERS_TITLE;
 
         const desc = (bOnlyActive) ? `There are currently no active servers.` : "There aren't any servers added to the bot.";
 

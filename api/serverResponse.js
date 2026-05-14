@@ -689,41 +689,56 @@ export default class ServerResponse{
 
     sendUnrealExtendedResponse(){
 
-        let string = `${this.getServerCountry()}**${this.name}**\n`;
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${this.getServerCountry()} ${this.name}`);
 
-        const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
+        const fields = [];
 
-        this.password = getTrueFalseIcon(this.password);
-        this.balancedTeams = getTrueFalseIcon(this.balancedTeams);
-        this.playersBalanceTeams = getTrueFalseIcon(this.playersBalanceTeams);
-        this.changeLevels = getTrueFalseIcon(this.changeLevels);
-        this.tournament = getTrueFalseIcon(this.tournament);
+        fields.push({"name": "Address", "value": `${this.ip}:${this.port}`, "inline": false});
+        fields.push({
+            "name": "Patch Info", 
+            "value": `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName}`,
+            "inline": false
+        });
+        fields.push({
+            "name": "Current Match", 
+            "value": 
+                `**Gametype:** ${this.gametype}
+                **Map:** ${this.mapName}
+                **Players:** ${this.currentPlayers}/${this.maxPlayers}`, 
+            "inline": false
+        });
 
-        string += `**Address:** ${this.ip}:${this.port}\n`;
-        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName}\n`;
-        string += `**Gametype:** ${this.gametype} `;
-        string += `**Map:** ${this.mapName} `;
-        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
-        string += `**Mutators: **`;
+        let mutatorString = "";
 
         if(this.mutators.length == 0){
-            string += `None publicly listed.`;
+            mutatorString += `None publicly listed.`;
         }
 
         for(let i = 0; i < this.mutators.length; i++){
 
             const m = this.mutators[i];
 
-            string += `${m}`;
+            mutatorString += `${m}`;
 
             if(i < this.mutators.length - 1){
-                string += ', ';
+                mutatorString += ', ';
             }else{
-                string += '.';
+                mutatorString += '.';
             }
         }
 
-        this.discordChannel.send(string);
+        fields.push({
+            "name": "Mutators", 
+            "value": mutatorString,
+            "inline": false
+        });
+
+
+        embed.setFields(fields);
+
+        this.discordChannel.send({"embeds": [embed]});
         this.bDelete = true;
     }
 

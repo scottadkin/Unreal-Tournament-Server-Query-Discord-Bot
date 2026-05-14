@@ -88,7 +88,7 @@ export default class UT99Query{
                 return !r.bDelete;
             });
 
-            console.log(this.responses.length);
+            console.log(this.responses.length, this.bAuto);
 
         }, 1000);
 

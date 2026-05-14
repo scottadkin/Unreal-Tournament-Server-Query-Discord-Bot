@@ -101,6 +101,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Autoquery channel will now delete and create new messages for servers added to the list while running.
 - .ip<id> command now displays the domain address and the ip address if a server's address was set to a domain name.
 - Changed .ip to a discordEmbed message.
+- .players now displays timeouts or errors instead of failing silently
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

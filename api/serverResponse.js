@@ -47,6 +47,10 @@ export default class ServerResponse{
 
                 this.sendPlayersResponse();
                 //this.bDelete = true;
+            }else if(this.type === "extended"){
+                
+               // process.exit();
+               this.sendExtendedResponse();
             }else{
                 this.sendFullServerResponse();
             }
@@ -87,9 +91,9 @@ export default class ServerResponse{
         this.adminName = "N/A";
         this.adminEmail = "N/A";
         this.friendlyFire = "0%";
-        this.changeLevels = "N/A";
-        this.balancedTeams = "N/A";
-        this.playersBalanceTeams = "N/A";
+        this.changeLevels = false;
+        this.balancedTeams = false;
+        this.playersBalanceTeams = false;
         this.maxTeams = "N/A";
 
 
@@ -612,7 +616,11 @@ export default class ServerResponse{
             return;
         }
 
-        let string = `${this.getServerCountry()}**${this.name}**\n`;
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${this.getServerCountry()} ${this.name}`);
+
+        const fields = [];
 
         const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
 
@@ -622,34 +630,59 @@ export default class ServerResponse{
         this.changeLevels = getTrueFalseIcon(this.changeLevels);
         this.tournament = getTrueFalseIcon(this.tournament);
 
-        string += `**Address:** ${this.ip}:${this.port}\n`;
-        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName} **Email:** ${this.adminEmail}\n`;
-        string += `**Server Type:** ${dedicated} **Password Protected:** ${this.password} **Change Levels:** ${this.changeLevels}\n`;
-        string += `**Balance Teams:** ${this.balancedTeams} **Players Balance Teams:** ${this.playersBalanceTeams} **Max Teams:** ${this.maxTeams}\n`;
-        string += `**FriendlyFire:** ${this.friendlyFire} **Tournament Mode:** ${this.tournament} **Gamestyle:** ${this.gamestyle}\n`;
-        string += `**Gametype:** ${this.gametype} `;
-        string += `**Map:** ${this.mapName} `;
-        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;   
-        string += `**Mutators: **`;
+        fields.push({"name": "Address", "value": `${this.ip}:${this.port}`, "inline": false});
+        fields.push({"name": "Admin Info", "value": `**Admin:** ${this.adminName} **Email:** ${this.adminEmail}`, "inline": false});
+        fields.push({"name": "Patch Info", "value": `**Server Version: ** ${this.serverVersion}, **Min Compatible Client: **${this.minClientVersion} `, "inline": false});
+        fields.push({
+            "name": "Server Settings", 
+            "value": 
+                `**Server Type:** ${dedicated}
+                **Password Protected:** ${this.password}
+                **Change Levels:** ${this.changeLevels}
+                **Balance Teams:** ${this.balancedTeams}
+                **Players Balance Teams:** ${this.playersBalanceTeams}
+                **Max Teams:** ${this.maxTeams}
+                **FriendlyFire:** ${this.friendlyFire}
+                **Tournament Mode:** ${this.tournament}
+                **Gamestyle:** ${this.gamestyle}`, 
+            "inline": false
+        });
 
-        if(this.mutators.length == 0){
-            string += `None publicly listed.`;
+        fields.push({
+            "name": "Current Match",
+            "inline": false,
+            "value": `**Gametype:** ${this.gametype}
+                **Map:** ${this.mapName}
+                **Players:** ${this.currentPlayers}/${this.maxPlayers}`
+        });
+
+        let mutatorString = "";
+
+        if(this.mutators.length === 0 || (this.mutators.length === 1 && this.mutators[0] === " ")){
+            mutatorString += `None publicly listed.`;
+            this.mutators = [];
+
         }
+
 
         for(let i = 0; i < this.mutators.length; i++){
 
             const m = this.mutators[i];
 
-            string += `${m}`;
+            mutatorString += `${m}`;
 
             if(i < this.mutators.length - 1){
-                string += ', ';
+                mutatorString += ', ';
             }else{
-                string += '.';
+                mutatorString += '.';
             }
         }
 
-        this.discordChannel.send(string);
+        fields.push({"name": "Mutators", "value": mutatorString, "inline": false});
+
+        embed.addFields(fields);
+        this.discordChannel.send({"embeds": [embed]});
+        //this.discordChannel.send(string);
         this.bDelete = true;
     }
 

@@ -396,7 +396,7 @@ export default class Bot{
         const result = reg.exec(message.content);
 
         if(result === null){
-            return message.channel.send(`${failIcon} There is no server with that id.`);
+            return message.channel.send(`${failIcon} Not valid syntax for ${commandPrefix}extended`);
         }
 
         const server = this.servers.getServerById(result[1]);
@@ -473,7 +473,6 @@ export default class Bot{
 
     queryPlayersAlt(message){
         
-        console.log("players alt");
 
         const reg = /^.players ((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(:\d+|)|(.+?)(:\d+|))$/i;
 
@@ -483,7 +482,6 @@ export default class Bot{
             return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}players command.`);
         }
 
-        console.log(result[1], parseInt(result[1]));
         let ip = "";
         let port = 7777;
 

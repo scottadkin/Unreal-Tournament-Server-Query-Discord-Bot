@@ -26,11 +26,13 @@ export default class ServersCommand{
         this.discordMessage = null;
         this.lastEditTime = 0;
         this.bFinalEdit = false;
+        this.bTimedOut = false;
 
         this.bFinalUpdateComplete = false;
         
         
         this.responsesCompleted = 0;
+        this.lastResponsesCompleted = 0;
         
         this.events = new ServersCommandEmitter();
         
@@ -46,12 +48,23 @@ export default class ServersCommand{
         .setFields([INFO_FIELD])
         .setTimestamp();
 
+        this.lastEditTime = Date.now();
         this.discordMessage = await this.discordChannel.send({"embeds": [embed]});
 
         this.createEvents();
 
+        this.checkLoop = setInterval(() =>{
+
+            const now = Date.now();
+            const diff = now - this.lastEditTime;
+            if(diff > 1000){
+                this.updateMessage();
+            }
+        }, 100);
+
         setTimeout(() =>{
 
+            clearInterval(this.checkLoop);
             this.events.emit("timeout");
             
         }, serversCommandTimeout * 1000);
@@ -65,7 +78,7 @@ export default class ServersCommand{
             if(this.bFinalUpdateComplete) return;
             //edit message with timeout for missing servers
 
-
+            this.bTimedOut = true;
             this.updateMessage();
 
         })
@@ -95,10 +108,10 @@ export default class ServersCommand{
                     return;
                 }
 
-                const now = Math.floor(Date.now() * 0.001);
+                const now = Date.now();
                 const diff = now - this.lastEditTime;
 
-                if(diff > 1){
+                if(diff > 1000){
                     this.updateMessage();
                 }
             });
@@ -115,12 +128,20 @@ export default class ServersCommand{
 
     updateMessage(){
 
+
+        //don't want to edit the message with the exact same content
+        if(!this.bTimedOut && this.lastResponsesCompleted === this.responsesCompleted){
+            return;
+        }
+
+        this.lastResponsesCompleted = this.responsesCompleted;
+
         if(this.bFinalEdit){
             //console.log("dont update again");
             return;
         }
 
-        this.lastEditTime = Math.floor(Date.now() * 0.001);
+        this.lastEditTime = Date.now();
 
         const serverParts = this.createServerListParts(this.responses);
 
@@ -185,7 +206,14 @@ export default class ServersCommand{
         const alias = forceStringLength(server.alias, aliasLength);
         const serverId = forceStringLength(server.serverIndex, idLength);
 
-        if(server.map === "DM-MapName"){
+        if(server.map === "DM-MapName" && !this.bTimedOut){
+
+            const mapFailed = forceStringLength("Ping in progress...", mapLength)+" "; 
+            const playersFailed = forceStringLength("...", playersLength, true);
+
+            return `\`${serverId} - ${alias} ${mapFailed} ${playersFailed}\``;
+
+        }else if(server.map === "DM-MapName" && this.bTimedOut){
 
             const mapFailed = forceStringLength("Server Timed Out!", mapLength)+" "; 
             const playersFailed = forceStringLength("N/A", playersLength, true);

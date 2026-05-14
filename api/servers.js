@@ -256,9 +256,30 @@ export default class Servers{
             flag = `:flag_${flag.toLowerCase()}:`;
         }
 
-        let string = `${flag} **${server.name}**\n**unreal://${server.ip}:${server.port}**`;
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${flag} ${server.name}`);
 
-        return message.channel.send(string);
+        const fields = [];
+
+        if(server.ip !== server.real_ip){
+
+            fields.push({
+                "name": "Domain Address",
+                "value": `${server.ip}:${server.port}`,
+                "inline": false
+            });
+        }
+
+        fields.push({
+                "name": "IP Address",
+                "value": `${server.real_ip}:${server.port}`,
+                "inline": false
+            });
+
+        embed.addFields(fields)
+
+        return message.channel.send({"embeds": [embed]});
         
     }
 

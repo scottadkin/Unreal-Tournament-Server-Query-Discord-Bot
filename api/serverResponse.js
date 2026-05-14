@@ -43,7 +43,13 @@ export default class ServerResponse{
 
             if(this.bSentMessage || this.bDelete) return;
             this.bTimedOut = true;
-            this.sendFullServerResponse();
+            if(this.type === "players"){
+
+                this.sendPlayersResponse();
+                //this.bDelete = true;
+            }else{
+                this.sendFullServerResponse();
+            }
             //process.exit();
         });
         
@@ -447,7 +453,12 @@ export default class ServerResponse{
 
     sendPlayersResponse(){
 
-        let string = `${this.getServerCountry()}**${this.name}**\n`;
+        if(this.mapName === "DM-MapName"){
+
+            this.discordChannel.send("```Failed to get data from server.```");
+            this.bDelete = true;
+            return;
+        }
 
         let playerNameLength = this.getMaxPlayerNameLength() + 1;
 
@@ -503,7 +514,18 @@ export default class ServerResponse{
             bIgnoreHealth = true;
         }    
 
-        string += `:flag_white: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
+
+        let string = "";
+
+        if(this.players.length > 0){
+
+            string = `:flag_white: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
+        }
+
+
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${this.getServerCountry()} ${this.name}`);
 
         for(let i = 0; i < this.players.length; i++){
 
@@ -573,10 +595,12 @@ export default class ServerResponse{
         }
 
         if(this.players.length == 0){
-            string += `:zzz: **There are currently no players in the servers.**`;
+            string += `:zzz: **There are currently no players in the server.**`;
         }
 
-        this.discordChannel.send(string);
+        embed.setDescription(string)
+
+        this.discordChannel.send({"embeds": [embed]});
 
         this.bDelete = true;
     }

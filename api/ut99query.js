@@ -88,6 +88,8 @@ export default class UT99Query{
                 return !r.bDelete;
             });
 
+            console.log(this.responses.length);
+
         }, 1000);
 
 
@@ -731,14 +733,15 @@ export default class UT99Query{
 
     }
 
-    async getPlayers(ip, port, discordMessage){
+    async getPlayers(ip, port, discordChannel){
 
         try{
             const address = await getIP4Address(ip);
 
-            await this.udpSend(address, port, "players", discordMessage);
+            await this.udpSend(address, port, "players", discordChannel);
         }catch(err){
             console.trace(err);
+            discordChannel.send(`\`\`\`${err.message}\`\`\``); 
         }
     }
 

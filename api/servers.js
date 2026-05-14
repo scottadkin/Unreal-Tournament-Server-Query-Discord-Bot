@@ -291,42 +291,20 @@ export default class Servers{
         return sqliteRun(query);
     }
 
-    async bValidServerId(id){
+    getServerById(id){
 
-        id = parseInt(id);
-
-        if(id !== id) throw new Error("Id must be a valid integer.");
-
-        id--;
-
-        if(id < 0) throw new Error("Id must be a positive integer.");
 
         const servers = getAllServers();
 
-        if(id < servers.length){
+        id = parseInt(id);
 
-            return true;
-        }
+        id--;
 
-        return false;
+        if(servers[id] === undefined) return null;
 
-    }
-
-    getServerById(id){
-
-        if(this.bValidServerId(id)){
-
-            const servers = getAllServers();
-
-            id = parseInt(id);
-
-            id--;
-
-            return servers[id];
+        return servers[id];
             
-        }else{
-            return null;
-        }
+       
     }
 
     editServerValue(ip, port, type, value){

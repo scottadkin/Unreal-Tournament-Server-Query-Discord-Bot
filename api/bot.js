@@ -167,7 +167,7 @@ export default class Bot{
         const extendedReg = /^.extended \d+$/i;
         const altExtendedReg = /^.extended .+$/i;
         const playersReg = /^.players \d+$/i;
-        const altPlayersReg = /^.players .+/i;
+        const altPlayersReg = /^.players .+\..+/i;
 
         if(helpReg.test(message.content)){
 
@@ -460,6 +460,7 @@ export default class Bot{
 
         const server = this.servers.getServerById(result[1]);
 
+
         if(server !== null){
 
             this.query.getPlayers(server.ip, server.port, message.channel);
@@ -471,6 +472,8 @@ export default class Bot{
     }
 
     queryPlayersAlt(message){
+        
+        console.log("players alt");
 
         const reg = /^.players ((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(:\d+|)|(.+?)(:\d+|))$/i;
 
@@ -480,6 +483,7 @@ export default class Bot{
             return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}players command.`);
         }
 
+        console.log(result[1], parseInt(result[1]));
         let ip = "";
         let port = 7777;
 

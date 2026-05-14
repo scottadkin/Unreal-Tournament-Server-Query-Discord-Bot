@@ -99,6 +99,8 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Fixed editing a servers address to one that already exists with the same port from being allowed, you now get an error message saying what the duplicate server is.
 - Removed **maxServersPerBlock** from config file, the bot now checks automatically if a .servers response is going to exceed discords max string length for a single post and will split the post into multiple parts.
 - Autoquery channel will now delete and create new messages for servers added to the list while running.
+- .ip<id> command now displays the domain address and the ip address if a server's address was set to a domain name.
+- Changed .ip to a discordEmbed message.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

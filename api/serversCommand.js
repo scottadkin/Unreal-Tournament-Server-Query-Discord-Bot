@@ -1,4 +1,4 @@
-import { serverTimeout, embedColor, commandPrefix } from "../config/config.js";
+import { embedColor, commandPrefix, serversCommandTimeout } from "../config/config.js";
 import { EventEmitter } from "node:events";
 import { EmbedBuilder } from "discord.js";
 import { forceStringLength } from "./generic.js";
@@ -21,23 +21,40 @@ export default class ServersCommand{
         this.discordChannel = discordChannel;
         this.servers = servers;
         this.bOnlyActive = bOnlyActive;
-        this.created = new Date(Date.now());
+        this.created = Math.floor(Date.now() * 0.001);
         this.responses = [];
         this.discordMessage = null;
         this.lastEditTime = 0;
+        this.bFinalEdit = false;
+
+        this.bFinalUpdateComplete = false;
+        
         
         this.responsesCompleted = 0;
         
         this.events = new ServersCommandEmitter();
+        
+        
+    }
+
+    async createMessage(){
+
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle((this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE)
+        .setDescription("Pinging servers...")
+        .setFields([INFO_FIELD])
+        .setTimestamp();
+
+        this.discordMessage = await this.discordChannel.send({"embeds": [embed]});
 
         this.createEvents();
 
         setTimeout(() =>{
 
-            //if(this.responsesCompleted === this.servers.length) return;
-            
             this.events.emit("timeout");
-        }, serverTimeout * 1000);
+            
+        }, serversCommandTimeout * 1000);
     }
 
 
@@ -45,24 +62,13 @@ export default class ServersCommand{
 
         this.events.once("timeout", () =>{
 
+            if(this.bFinalUpdateComplete) return;
             //edit message with timeout for missing servers
+
 
             this.updateMessage();
 
-            this.events.emit("delete");
         })
-
-        this.events.once("responses-created", async () =>{
-
-            const embed = new EmbedBuilder()
-            .setColor(embedColor)
-            .setTitle((this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE)
-            .setDescription("Pinging servers...")
-            .setFields([INFO_FIELD])
-            .setTimestamp();
-
-            this.discordMessage = await this.discordChannel.send({"embeds": [embed]});
-        });
     }
 
     addResponse(response){
@@ -72,29 +78,31 @@ export default class ServersCommand{
 
             const s = this.servers[i];
 
-            if(s.real_ip === response.ip && s.port === response.port){
-
-                response.serverIndex = s.current_index;
-                response.alias = s.alias;
-          
-
-                response.events.once("loaded-data", () =>{
-
-                    this.responsesCompleted++;
-
-                    if(this.responsesCompleted === this.servers.length){
-                        this.updateMessage();
-                        return;
-                    }
-
-                    const now = Math.floor(Date.now() * 0.001);
-                    const diff = now - this.lastEditTime;
-
-                    if(diff > 1){
-                        this.updateMessage();
-                    }
-                });
+            if(s.real_ip !== response.ip || s.port !== response.port){
+                continue;
             }
+
+            response.serverIndex = s.current_index;
+            response.alias = s.alias;
+
+            response.events.once("loaded-data", () =>{
+
+
+                this.responsesCompleted++;
+
+                if(this.responsesCompleted === this.servers.length){
+                    this.updateMessage();
+                    return;
+                }
+
+                const now = Math.floor(Date.now() * 0.001);
+                const diff = now - this.lastEditTime;
+
+                if(diff > 1){
+                    this.updateMessage();
+                }
+            });
+            
         }
 
         this.responses.push(response);
@@ -107,9 +115,8 @@ export default class ServersCommand{
 
     updateMessage(){
 
-
-        if(this.discordMessage === null){
-            //cant edit the message if it hasn't been created yet
+        if(this.bFinalEdit){
+            //console.log("dont update again");
             return;
         }
 
@@ -140,10 +147,22 @@ export default class ServersCommand{
                 embed.setFields([INFO_FIELD]);
             }
 
+            embed.setFooter({"text": new Date(Date.now()).toISOString()});
+
             embeds.push(embed);
         }
 
-        this.discordMessage.edit({"embeds": embeds});
+
+        if(this.responsesCompleted === this.responses.length){
+            this.bFinalEdit = true;
+        }
+
+        this.discordMessage.edit({"embeds": embeds}).then(() =>{
+
+            if(!this.bFinalEdit) return;
+
+            this.bFinalUpdateComplete = true;
+        });
     }
 
     getMatchingResponse(ip, port){

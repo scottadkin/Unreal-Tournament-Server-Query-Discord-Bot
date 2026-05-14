@@ -246,6 +246,11 @@ export default class UT99Query{
 
     async restartAutoQueryLoop(){
 
+        //loop not active
+        if(this.autoQueryLoop === null){
+            return;
+        }
+
         console.log("restarting autoquery loop");
         clearInterval(this.autoQueryLoop);
         this.autoQueryLoop = null;

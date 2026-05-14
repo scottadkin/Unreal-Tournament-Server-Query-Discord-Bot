@@ -119,7 +119,7 @@ export default class Servers{
         return sqliteRun(query, vars);
     }
 
-    deleteServer(id){
+    deleteServerFromDatabase(id){
 
         const query = "DELETE FROM servers WHERE id=?";
         return sqliteRun(query, [id]);
@@ -131,15 +131,16 @@ export default class Servers{
     }
 
 
-    async removeServer(message, ut99AutoQuery){
+    async deleteServer(message, ut99AutoQuery){
 
-        const reg = /^.removeserver (\d+)$/i;
+        const reg = /^.deleteserver (\d+)$/i;
 
         const result = reg.exec(message.content);
 
         if(result === null){
 
-            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}removeserver.`);
+
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}deleteserver.`);
         }
 
       
@@ -149,7 +150,7 @@ export default class Servers{
 
         if(id !== id){
 
-            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}removeserver, id must be a valid integer.`);
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}deleteserver, id must be a valid integer.`);
             
         }else if(id > servers.length || id < 1){
 
@@ -175,7 +176,7 @@ export default class Servers{
 
         }
 
-        this.deleteServer(s.id);
+        this.deleteServerFromDatabase(s.id);
 
         ut99AutoQuery.restartAutoQueryLoop();
 

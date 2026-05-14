@@ -147,8 +147,6 @@ export default class ServersCommand{
                 embed.setFields([INFO_FIELD]);
             }
 
-            embed.setFooter({"text": new Date(Date.now()).toISOString()});
-
             embeds.push(embed);
         }
 

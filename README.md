@@ -82,6 +82,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 # Release Log
 ## 2026-xx-xx
 - **Breaking Change:** config file is now a .js file instead of a json file.
+- .removeserver has been changed to .deleteserver.
 - Added bSkipAdminHelpToNonAdmins to config.js, setting this value to false will hide the admin help commands to users that don’t have admin roles.
 - .servers & .active no longer pings in certain intervals, now it only pings servers once the command is used.
 - Removed the now unsupported clickable like in .ip commands.

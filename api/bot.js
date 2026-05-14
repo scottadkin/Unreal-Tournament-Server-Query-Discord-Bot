@@ -33,7 +33,7 @@ const ADMIN_COMMANDS = [
     {"name": `removerole role`, "content": `Stops users with specified role being able to use admin bot commands.`},
     {"name": `listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
     {"name": `addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
-    {"name": `removeserver serverID`, "content": `Removes the specified server from the database.`},
+    {"name": `deleteserver serverID`, "content": `Removes the specified server from the database.`},
     {"name": `setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server.`},
     {"name": `stopauto`, "content": `Disables autoquery channel from updating.`},
     {"name": `editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country,port)**`}
@@ -260,7 +260,7 @@ export default class Bot{
             `${p}blockchannel`,
             `${p}listchannels`,
             `${p}addserver`,
-            `${p}removeserver`,
+            `${p}deleteserver`,
             `${p}setauto`,
             `${p}stopauto`,
             `${p}editserver`
@@ -308,7 +308,7 @@ export default class Bot{
 
         }else if(m.startsWith(commands[7])){
 
-            this.servers.removeServer(message, this.queryAuto);
+            this.servers.deleteServer(message, this.queryAuto);
 
         }else if(m.startsWith(commands[8])){
 

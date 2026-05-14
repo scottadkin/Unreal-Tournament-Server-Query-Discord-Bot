@@ -205,24 +205,22 @@ export default class ServerResponse{
 
         this.maxTeams = parseInt(this.maxTeams);
 
-        if(this.maxTeams === this.maxTeams){
+        if(this.maxTeams !== this.maxTeams){
 
-            for(let i = 0; i < this.maxTeams; i++){
-
-                if(this.totalPlayers > 0) {
-
-                    fields.push(
-                        {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
-                    );
-
-                }
-            }
-
-        }else{
             fields.push(
                 {"name": "Players", "value":this.createPlayersString(-99, false), "inline": false}
             );
+
+        }else if(this.totalPlayers > 0){
+
+            for(let i = 0; i < this.maxTeams; i++){
+
+                fields.push(
+                    {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
+                );
+            }
         }
+
         if(this.spectators > 0) {
 
             fields.push({
@@ -316,9 +314,10 @@ export default class ServerResponse{
     
             this.sortPlayersByScore();
             
-            let description = `:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}`;
-            description += `:pushpin: ${this.gametype}`;
+            let description = `:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}\n`;
+            description += `:pushpin: ${this.gametype}\n`;
             description += `:map: ${this.mapName}**\n`;
+
             
             if(!this.bUnreal){
                 description += `:goal: Target Score **${this.goalscore}**\n`;
@@ -341,7 +340,7 @@ export default class ServerResponse{
             const country = this.getServerCountry();
 
             let fields = this.createPlayerFields()
-            fields.push({"name": "Join Server", "value": `unreal://${this.ip}:${this.port}`, "inline": false});
+            fields.push({"name": "Server Address", "value": `unreal://${this.ip}:${this.port}`, "inline": false});
                 
             const embed = new EmbedBuilder()
             .setTitle(`${country}${this.name}`)

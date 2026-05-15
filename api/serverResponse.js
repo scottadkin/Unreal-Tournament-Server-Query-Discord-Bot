@@ -2,7 +2,7 @@ import { EmbedBuilder } from "discord.js";
 import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
 import { getAutoQueryChannel } from "./channels.js";
 import { EventEmitter } from "node:events";
-import { serverTimeout, embedColor } from "../config/config.js";
+import { serverTimeout, embedColor, commandPrefix } from "../config/config.js";
 import { setServerLastMessageId } from "./servers.js";
 
 class ServerResponseEmitter extends EventEmitter {}
@@ -619,6 +619,15 @@ export default class ServerResponse{
         const embed = new EmbedBuilder()
         .setColor(embedColor)
         .setTitle(`${this.getServerCountry()} ${this.name}`);
+
+        if(this.serverVersion === undefined){
+
+            embed.setDescription("Failed to fetch data.")
+            .setTitle(`${commandPrefix}extended ${this.ip}:${this.port}`);
+            this.discordChannel.send({"embeds": [embed]});
+            this.bDelete = true;
+            return;
+        }
 
         const fields = [];
 

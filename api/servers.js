@@ -198,10 +198,14 @@ export default class Servers{
 
         const result = reg.exec(message.content);
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Delete Server");
+
         if(result === null){
 
-
-            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}deleteserver.`);
+            embed.setDescription(`${failIcon} Incorrect syntax for ${commandPrefix}deleteserver.`);
+            return await message.channel.send({"embeds": [embed]});
         }
 
       
@@ -209,13 +213,21 @@ export default class Servers{
 
         let id = parseInt(result[1]);
 
+        let desc = "";
+
         if(id !== id){
 
-            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}deleteserver, id must be a valid integer.`);
+            desc = `${failIcon} Incorrect syntax for ${commandPrefix}deleteserver, id must be a valid integer.`;
             
         }else if(id > servers.length || id < 1){
 
-            return message.channel.send(`${failIcon} There are no servers with the id ${id}`);
+            desc = `${failIcon} There are no servers with the id ${id}`
+        }
+
+        if(desc !== ""){
+
+            embed.setDescription(desc);
+            return await message.channel.send({"embeds": [embed]});
         }
 
         id = id - 1;
@@ -231,6 +243,8 @@ export default class Servers{
                 await autoMessage.delete();
 
             }catch(err){
+
+                await message.channel.send(`${failIcon} There was an issue deleting the server's autoquery channel message.`);
                 //post may have been deleted by someone else or doesn't exist in the current channel
                 console.trace(err);
             }
@@ -241,7 +255,9 @@ export default class Servers{
 
         ut99AutoQuery.restartAutoQueryLoop();
 
-        return message.channel.send(`${passIcon} Deleted server successfully.`);        
+        embed.setDescription(`${passIcon} Deleted server successfully.`);
+
+        return message.channel.send({"embeds": [embed]});        
     }
 
 

@@ -1,4 +1,5 @@
-import { passIcon, failIcon, defaultAdminRole } from '../config/config.js';
+import { EmbedBuilder } from 'discord.js';
+import { passIcon, failIcon, defaultAdminRole, embedColor } from '../config/config.js';
 import { sqliteGet, sqliteRun , sqliteGetAll} from './database.js';
 
 export default class Roles{
@@ -87,15 +88,13 @@ export default class Roles{
 
     }
 
-    insertRole(role, message, roleName){
+    insertRole(role, roleName){
 
         const query = "INSERT INTO roles VALUES(?,?)";
 
         const now = Math.floor(Date.now() * 0.001);
 
-        const result = sqliteRun(query, [role, now]);
-
-        message.channel.send(`${passIcon} User with the role **${roleName}** can now use admin commands.`);
+        return sqliteRun(query, [role, now]);
 
     }
 
@@ -115,10 +114,16 @@ export default class Roles{
 
     addRole(role, message){
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Allow Role");
+
         const roleData = this.getRole(role, message);
 
         if(roleData === null){
-            return message.channel.send(`${failIcon} Failed to get role data.`);
+
+            embed.setDescription(`${failIcon} Failed to get role data.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
 
@@ -126,23 +131,31 @@ export default class Roles{
 
         if(!bRoleAdded){
 
-            this.insertRole(roleData.id, message, roleData.name);
+            this.insertRole(roleData.id, roleData.name);
 
+            embed.setDescription(`${passIcon} User with the role **${roleData.name}** can now use admin commands.`);
+            return message.channel.send({"embeds": [embed]});
         }else{
-            message.channel.send(`${failIcon} **${role.name}** has already been allowed to use the bots admin commands.`);
+
+            embed.setDescription(`${failIcon} **${role}** has already been allowed to use the bots admin commands.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
     }
 
     allowRole(message){
 
+        
         const reg = /^.allowrole (.+)$/i;
 
         const result = reg.exec(message.content);
 
         if(result === null){
-            message.channel.send(`${failIcon} Wrong syntax for allowrole command.`);
-            return;
+
+            const embed = new EmbedBuilder().setColor(embedColor).setTitle("Allow Role");
+            embed.setDescription(`${failIcon} Wrong syntax for allowrole command.`);
+            return message.channel.send({"embeds": [embed]});
+            
         }
 
         const channelRoles = message.channel.guild.roles.cache;
@@ -162,7 +175,10 @@ export default class Roles{
         }
 
         if(!bFound){
-            message.channel.send(`${failIcon} There is no role called **${result[1]}** in this channel.`);
+
+            const embed = new EmbedBuilder().setColor(embedColor).setTitle("Allow Role");
+            embed.setDescription(`${failIcon} There is no role called **${result[1]}** in this channel.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
     }
@@ -176,14 +192,20 @@ export default class Roles{
 
     listRoles(message){
 
-
         const roles = this.getAllAddedRoles();
 
         const discordRoles = message.guild.roles.cache;
 
-        let string = ``;
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Roles that have access to admin commands.");
 
+        const fields = [
+            {"name": "Default Admin Role(config.js)", "value": defaultAdminRole, "inline": false}
+        ];
 
+        let addedString = "";
+        
         for(let i = 0; i < roles.length; i++){
 
             const r = roles[i];
@@ -193,21 +215,22 @@ export default class Roles{
             const currentRole = discordRoles.get(r.id);
 
             if(currentRole !== undefined){
-                string += `:small_blue_diamond: **${currentRole.name}** Added ${added}\n`;
+                addedString += `:small_blue_diamond: **${currentRole.name}** Added ${added}\n`;
             }else{
-                string += `:no_entry: This role no longer exists in this server, removing it from database.\n`;
+                addedString += `:no_entry: This role no longer exists in this server, removing it from database.\n`;
 
                 this.deleteRole(r.id, message, "DELETED");
             }
         }
 
-        if(string == ""){
-            string = "There are currently no roles allowed to use the bots admin commands.";
+        if(addedString === ""){
+            addedString = "There are currently no discord roles allowed to use the bots admin commands.";
         }
-        
-        string = `:large_orange_diamond: **User roles that have admin privileges**\n`+string;
 
-        message.channel.send(string);
+        fields.push({"name": "Added Discord Roles", "value": addedString, "inline": false})
+        embed.setFields(fields);
+
+        message.channel.send({"embeds": [embed]});
  
     }
 }

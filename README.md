@@ -106,6 +106,9 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .allowrole is now a discordEmbed message.
 - .blockrole is now a discordEmbed message.
 - .listchannels is now a discordEmbed message.
+- .listroles is now a discordEmbed message.
+- Fixed .allowrole displaying "undefined has already been allowed to use the bots admin commands".
+- Allow role is now a discordEmbed message.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

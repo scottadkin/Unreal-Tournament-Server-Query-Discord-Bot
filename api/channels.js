@@ -144,7 +144,7 @@ export default class Channels{
             if(currentChannel !== undefined){
 
                 fields.push({
-                    "name": currentChannel.name, 
+                    "name": `:small_blue_diamond: ${currentChannel.name}`, 
                     "value": `Enabled at ${added.toString()}`, 
                     "inline": false
                 });

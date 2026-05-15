@@ -115,6 +115,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .addserver will now display example commands if there is a syntax error in a command.
 - .addserver is now a discordEmbed message.
 - .deleteserver is now a discordEmbed message.
+- .setauto response is now a discordEmbed message.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

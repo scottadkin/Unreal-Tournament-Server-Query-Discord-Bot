@@ -34,7 +34,13 @@ const ADMIN_COMMANDS = [
     {"name": `listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
     {"name": `addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
     {"name": `deleteserver serverID`, "content": `Removes the specified server from the database.`},
-    {"name": `setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server.`},
+    {
+        "name": `setauto`, 
+        "content": 
+            "- Sets the current channel as the auto query channel.\n"+
+            "- The bot will post a message for each server added in the database, and the messages will be updated periodically with the current server info.\n"+
+            "- If a server is added, edited or deleted after this has started the bot will update the messages accordingly."
+    },
     {"name": `stopauto`, "content": `Disables autoquery channel from updating.`},
     {"name": `editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country,port)**`}
 

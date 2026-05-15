@@ -219,17 +219,22 @@ export default class Channels{
 
         try{
 
+            if(ut99AutoQuery.autoQueryInterval !== null){
+                clearInterval(ut99AutoQuery.autoQueryLoop);
+            }
 
-            clearInterval(ut99AutoQuery.autoQueryLoop);
             this.deleteAutoChannel();
 
             servers.resetLastMessages();
 
             this.setAutoChannel(message);
-            let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
-    The server status posts will be updated every **${autoQueryInterval} seconds.**`;
 
-            const autoQueryMessage = await message.channel.send(string);
+            const embed = new EmbedBuilder()
+            .setColor(embedColor)
+            .setTitle(`This channel is the autoquery channel`)
+            .setDescription(`The server status posts below will be updated periodically.`);
+
+            const autoQueryMessage = await message.channel.send({"embeds": [embed]});
             this.setAutoQueryMessageInfoId(autoQueryMessage.id);
 
             const currentServers = getAllServers();       
@@ -241,11 +246,7 @@ export default class Channels{
                 .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
 
                 await this.delayedCreateMessage(1, currentServers[i].real_ip, currentServers[i].port, message.channel, embed, servers);
-                //const currentMessage = await message.channel.send({ "embeds": [embed] });
-                //servers.setLastMessageId(currentServers[i].real_ip, currentServers[i].port, currentMessage.id);
-
             }
-
 
             ut99AutoQuery.startAutoQueryLoop();
 

@@ -219,8 +219,11 @@ export default class Channels{
 
         try{
 
-            if(ut99AutoQuery.autoQueryInterval !== null){
+            this.bSkipCreateAutoMessages = false;
+
+            if(ut99AutoQuery.autoQueryLoop !== null){
                 clearInterval(ut99AutoQuery.autoQueryLoop);
+                ut99AutoQuery.autoQueryLoop = null;
             }
 
             this.deleteAutoChannel();
@@ -241,6 +244,10 @@ export default class Channels{
 
             for(let i = 0; i < currentServers.length; i++){
 
+                if(this.bSkipCreateAutoMessages){
+                    return;
+
+                }
                 const embed = new EmbedBuilder()
                 .setColor(embedColor)
                 .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
@@ -255,17 +262,31 @@ export default class Channels{
         }
     }
 
+
     disableAutoQuery(message, servers, ut99AutoQuery){
 
+        this.bSkipCreateAutoMessages = true;
+
+        const autoChannelId = getAutoQueryChannel();
+
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Autoquery Channel Updates");
+
+        if(autoChannelId === null){
+            embed.setDescription(`${failIcon} Auto query channel updates are already disabled.`);
+            return message.channel.send({"embeds": [embed]});
+        }
      
         clearInterval(ut99AutoQuery.autoQueryLoop);
+        ut99AutoQuery.autoQueryLoop = null;
         this.deleteAutoChannel();
 
         servers.resetLastMessages();
+ 
+        embed.setDescription(`${passIcon} Autoquery has been disabled.`)
 
-        message.channel.send(`${passIcon} Autoquery has been disabled.`);
-
-       
+        return message.channel.send({"embeds": [embed]});   
     }
 
     deleteOldAutoMessageInfoId(){

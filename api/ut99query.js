@@ -263,6 +263,36 @@ export default class UT99Query{
         await this.startAutoQueryLoop();
     }
 
+
+    autoQueryInterval(){
+
+        let total = 0;
+
+        for(let i = 0; i < this.responses.length; i++){
+
+            const r = this.responses[i];
+            if(r.type === "full"){
+                total++;
+            }
+        }
+
+        if(total > 0){
+            this.bPreviousAutoUpdateFinished = false;
+            console.log(`${total} auto query messaged not updated, out of possible ${servers.length}`);
+        }else{
+            this.bPreviousAutoUpdateFinished = true;
+        }
+    
+        
+        if(this.bPreviousAutoUpdateFinished){
+
+            this.autoQuery();
+
+        }else{
+            console.log(`previous auto update not finished, skipping.`);
+        }
+    }
+
     async startAutoQueryLoop(){
 
         if(!this.bAuto) return;
@@ -289,35 +319,11 @@ export default class UT99Query{
 
         await this.getAutoChannelMessages(messageIds);
 
-    
+        this.autoQueryInterval();
 
         this.autoQueryLoop = setInterval(() =>{
 
-            let total = 0;
-
-            for(let i = 0; i < this.responses.length; i++){
-
-                const r = this.responses[i];
-                if(r.type === "full"){
-                    total++;
-                }
-            }
-
-            if(total > 0){
-                this.bPreviousAutoUpdateFinished = false;
-                console.log(`${total} auto query messaged not updated, out of possible ${servers.length}`);
-            }else{
-                this.bPreviousAutoUpdateFinished = true;
-            }
-        
-            
-            if(this.bPreviousAutoUpdateFinished){
-
-                this.autoQuery();
-
-            }else{
-                console.log(`previous auto update not finished, skipping.`);
-            }
+            this.autoQueryInterval();
 
         }, autoQueryInterval * 1000);
 

@@ -18,8 +18,23 @@ export default class Servers{
 
         const result = reg.exec(message.content);
 
+
+        const embed = new EmbedBuilder().setColor(embedColor).setTitle(`Add Server`);
+
         if(result === null){
-            return message.channel.send(`${failIcon} Incorrect syntax for **addserver**`);
+
+            embed.setDescription(
+                `${failIcon} Incorrect syntax for **addserver**.\n
+                Correct syntax is \`${commandPrefix}addserver serverAlias IP|Domain:port\`\n
+                If port is not specified the port will be set to 7777.\n
+                **Examples:**
+                ${commandPrefix}addserver example 1.2.3.4
+                ${commandPrefix}addserver example 1.2.3.4:7777
+                ${commandPrefix}addserver example example.com
+                ${commandPrefix}addserver example example.com:7777`
+            );
+
+            return message.channel.send({"embeds": [embed]});
         }
 
         let port = 7777;

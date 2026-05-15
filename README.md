@@ -112,6 +112,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Allow role now displays the default admin role from config.js.
 - Fixed .removerole error "Cannot read properties of null (reading 'name')"
 - .removerole is now a discordEmbed message.
+- .addserver will now display example commands if there is a syntax error in a command.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

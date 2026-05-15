@@ -105,6 +105,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .extended is now a discordEmbed message.
 - .allowrole is now a discordEmbed message.
 - .blockrole is now a discordEmbed message.
+- .listchannels is now a discordEmbed message.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

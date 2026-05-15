@@ -104,7 +104,7 @@ export default class Channels{
         if(exists){
 
             this.deleteChannel(message.channel.id);
-            
+
             embed.setDescription(`${passIcon} Users can no longer use the bot in this channel.`);
             return message.channel.send({"embeds": [embed]});
 
@@ -123,9 +123,13 @@ export default class Channels{
 
     listChannels(message){
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Channels that the bot will respond to users");
+
         const channels = this.getAllAllowedChannels();
 
-        let string = "";
+        const fields = [];
 
         const discordChannels = message.guild.channels.cache;
 
@@ -138,20 +142,37 @@ export default class Channels{
             const added = new Date(c.added * 1000);
 
             if(currentChannel !== undefined){
-                string += `:small_blue_diamond: **${currentChannel.name}** Enabled at ${added.toString()}\n`;
+
+                fields.push({
+                    "name": currentChannel.name, 
+                    "value": `Enabled at ${added.toString()}`, 
+                    "inline": false
+                });
+
             }else{
-                string += `:no_entry: Channel no longer exists, deleting it from database!\n`;
+
+                fields.push({
+                    "name": c.id, 
+                    "value": `:no_entry: Channel no longer exists, deleting it from database!`, 
+                    "inline": false
+                });
+
                 this.deleteChannel(c.id);
             }
         }
 
-        if(string == ""){
-            string = `There are currently no channels enabled for bot use.`;
+        if(fields.length === 0){
+
+            fields.push({
+                "name": "No channels", 
+                "value": `There are currently no channels enabled for bot use.`,
+                "inline": false
+            });
         }
 
-        string = `:large_orange_diamond: **Channels the bot is enabled in.\n**`+string;
+        embed.addFields(fields);
 
-        message.channel.send(string);
+        message.channel.send({"embeds": [embed]});
 
     
     }

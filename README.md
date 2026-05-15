@@ -116,6 +116,11 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .addserver is now a discordEmbed message.
 - .deleteserver is now a discordEmbed message.
 - .setauto response is now a discordEmbed message.
+- .stopauto now stops the bot posting new messages and prevents the autoquery loop from starting if you disable autoquery immediately after .setauto.
+- .stopauto is now a discordEmbed message.
+- .editserver is now a discordEmbed message.
+- .editserver now displays examples if a user makes a mistake when editing a server.
+- .editserver country will display a link to the countrycode wiki article if a user doesn't enter in a 2 character long flag code.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

@@ -244,10 +244,12 @@ export default class Channels{
 
             for(let i = 0; i < currentServers.length; i++){
 
+
+                //.stopauto called soon after .setauto
                 if(this.bSkipCreateAutoMessages){
                     return;
-
                 }
+
                 const embed = new EmbedBuilder()
                 .setColor(embedColor)
                 .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);

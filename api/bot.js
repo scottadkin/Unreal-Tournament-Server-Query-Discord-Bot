@@ -43,9 +43,14 @@ const ADMIN_COMMANDS = [
     },
     {"name": `stopauto`, "content": `Disables autoquery channel from updating.`},
     {"name": `editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country,port)**`}
-
 ];
 
+const VALID_EDITS = [
+    "alias",
+    "ip",
+    "country",
+    "port"
+];
 
 
 export default class Bot{
@@ -54,13 +59,7 @@ export default class Bot{
 
         this.client = null;
 
-        this.validEdits = [
-            "alias",
-            "ip",
-            "country",
-            "port"
-        ];
-        
+       
         this.servers = new Servers();
         this.channels = new Channels();
         this.roles = new Roles();
@@ -517,14 +516,63 @@ export default class Bot{
         }
     }
 
+
+    setEditExamples(embed, bSyntaxError){
+
+        let desc = "";
+
+        if(bSyntaxError){
+            desc = `${failIcon} Incorrect syntax for edit server.\n`;
+            desc += `Valid syntax is **${commandPrefix}editserver SERVERID OPTION VALUE**\n`;
+        }else{
+
+            desc = `${failIcon} Not a valid edit type.`;
+        }
+
+        let validString = "";
+
+        for(let i = 0; i < VALID_EDITS.length; i++){
+
+            validString += `${VALID_EDITS[i]}`;
+
+            if(i < VALID_EDITS.length - 1){
+                validString += `, `;
+            }
+        }
+
+        let examplesString = `- ${commandPrefix}editserver 1 alias newServerAlias\n`;
+        examplesString += `- ${commandPrefix}editserver 1 country us\n`;
+        examplesString += `- ${commandPrefix}editserver 1 ip 1.2.3.4\n`;
+        examplesString += `- ${commandPrefix}editserver 1 port 7777\n`;
+
+        const fields = [
+            {"name": "Valid Edit Types Are", "value":validString, "inline": false},
+            {"name": "Examples", "value": examplesString, "inline": false}
+        ];
+
+        embed.setDescription(desc);
+        embed.setFields(fields);
+    }
+
     async editServer(message){
 
         const editReg = /^.editserver (\d+) (.+?) (.+)$/i;
         
         const result = editReg.exec(message.content);
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Edit Server");
+
+        let desc = "";
+
         if(result === null){
-            return message.channel.send(`${failIcon} Incorrect syntax for edit server.`);
+
+
+            embed.setTitle("Failed To Edit Server");
+            this.setEditExamples(embed, true);
+
+            return await message.channel.send({"embeds": [embed]});
         }
 
         let currentValue = result[3];
@@ -534,26 +582,40 @@ export default class Bot{
         const server = this.servers.getServerById(serverId); 
         
         if(server === null){
-            return await message.channel.send(`${failIcon} A server with id ${serverId} does not exist.`);
+            desc = `${failIcon} A server with id ${serverId} does not exist.`;
+            return await message.channel.send({"embeds": [embed]});
         }
 
         const editType = result[2].toLowerCase();
 
-        if(this.validEdits.indexOf(editType) === -1){
+        if(VALID_EDITS.indexOf(editType) === -1){
 
-            return await message.channel.send(`${failIcon} **${editType}** is not a valid edit type for servers.`);
+            embed.setTitle("Failed To Edit Server");
+            this.setEditExamples(embed, false);
+            return await message.channel.send({"embeds": [embed]});
         }
 
         if(editType === 'country'){
 
             if(currentValue.length !== 2){
-                return await message.channel.send(`${failIcon} Server country code must be 2 characters long.`);      
+                embed.setTitle("Failed To Edit Server");
+
+                let countryString = `${failIcon} Server country code must be 2 characters long.\n\n`;
+                countryString += `Discord uses the ISO 3166-1 alpha-2 standard for country codes, `
+                countryString += `you can find the correct country codes in this wiki article:\n\n` 
+                countryString += `<https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements> `;
+
+                embed.setDescription(countryString);
+                return await message.channel.send({"embeds": [embed]});      
             }
 
         }else if(editType === 'ip'){
             
             if(currentValue.includes(':')){
-                return await message.channel.send(`${failIcon} Server ip can not include the port.`);     
+                embed.setTitle("Failed To Edit Server");
+
+                embed.setDescription(`${failIcon} Server ip can not include the port.`);
+                return await message.channel.send({"embeds": [embed]});     
             }
 
             try{
@@ -564,21 +626,32 @@ export default class Bot{
 
             }catch(err){
 
-                return await message.channel.send(`${failIcon} ${err}`);
+                embed.setTitle("Failed To Edit Server");
+                embed.setDescription(`${failIcon} ${err}`);
+
+                return await message.channel.send({"embeds": [embed]});  
             }
 
         }else if(editType === 'port'){
 
             currentValue = currentValue.replace(/\D/ig, '');
-            
-            if(currentValue < 1 || currentValue > 65535){
-                return await message.channel.send(`${failIcon} Server port must be a interger between 1 and 65535`);             
+
+            currentValue = parseInt(currentValue);
+          
+            if(currentValue !== currentValue || currentValue < 0 || currentValue > 65535){
+
+                embed.setTitle("Failed To Edit Server");
+                embed.setDescription(`${failIcon} Server port must be a interger between 1 and 65535`);
+
+                return await message.channel.send({"embeds": [embed]});             
             }     
         }
 
         this.servers.editServerValue(server.ip, server.port, editType, currentValue);
 
-        return await message.channel.send(`${passIcon} Server **${serverId}** updated, **${editType}** changed to **${currentValue}**.`);    
+        embed.setDescription(`${passIcon} Server **${serverId}** updated, **${editType}** changed to **${currentValue}**.`);
+
+        return await message.channel.send({"embeds": [embed]});  
     }
     
 }

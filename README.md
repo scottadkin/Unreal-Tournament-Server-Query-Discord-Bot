@@ -102,6 +102,9 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .ip<id> command now displays the domain address and the ip address if a server's address was set to a domain name.
 - Changed .ip to a discordEmbed message.
 - .players now displays timeouts or errors instead of failing silently
+- .extended is now a discordEmbed message.
+- .allowrole is now a discordEmbed message.
+- .blockrole is now a discordEmbed message.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

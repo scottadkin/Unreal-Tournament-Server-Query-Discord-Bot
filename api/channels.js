@@ -52,8 +52,14 @@ export default class Channels{
 
     allowChannel(message){
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`Allow Channel`);
+
         if(!this.bChannelExist(message, message.channelId)){
-            return message.channel.send(`${failIcon} There is no channel called **${message.channel.name}** in this server.`);
+
+            embed.setDescription(`${failIcon} There is no channel called **${message.channel.name}** in this server.`);
+            return message.channel.send({"embeds": [embed]});
         }
    
         const exists = this.bChannelAdded(message.channel.id);
@@ -62,14 +68,16 @@ export default class Channels{
 
             this.insertChannel(message.channel.id);
 
-            return message.channel.send(`${passIcon} The bot can now be used in this channel.`);
+            embed.setDescription(`${passIcon} The bot can now be used in this channel.`);
+
+            return message.channel.send({"embeds": [embed]});
         
         }else{
-            return message.channel.send(`${failIcon} This channel has already been enabled for bot use.`);
-        }
-        
 
-       
+            embed.setDescription(`${failIcon} This channel has already been enabled for bot use.`);
+            
+            return message.channel.send({"embeds": [embed]});
+        }
     }
 
 
@@ -82,8 +90,13 @@ export default class Channels{
 
     blockChannel(message){
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`Block Channel`);
+
         if(!this.bChannelExist(message, message.channel.id)){
-            return message.channel.send(`${failIcon} The channel specified doesn't exist.`);
+            embed.setDescription(`${failIcon} The channel specified doesn't exist.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
         const exists = this.bChannelAdded(message.channel.id);
@@ -91,11 +104,14 @@ export default class Channels{
         if(exists){
 
             this.deleteChannel(message.channel.id);
-
-            message.channel.send(`${passIcon} Users can no longer use the bot in this channel.`);
+            
+            embed.setDescription(`${passIcon} Users can no longer use the bot in this channel.`);
+            return message.channel.send({"embeds": [embed]});
 
         }else{
-            message.channel.send(`${failIcon} This channel has not been enabled for bot use.`);
+
+            embed.setDescription(`${failIcon} This channel has not been enabled for bot use.`);
+            return message.channel.send({"embeds": [embed]});
         }
     }
 

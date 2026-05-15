@@ -109,6 +109,9 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .listroles is now a discordEmbed message.
 - Fixed .allowrole displaying "undefined has already been allowed to use the bots admin commands".
 - Allow role is now a discordEmbed message.
+- Allow role now displays the default admin role from config.js.
+- Fixed .removerole error "Cannot read properties of null (reading 'name')"
+- .removerole is now a discordEmbed message.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

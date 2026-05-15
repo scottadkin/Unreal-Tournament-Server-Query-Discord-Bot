@@ -1,5 +1,5 @@
 import { EmbedBuilder } from 'discord.js';
-import { passIcon, failIcon, defaultAdminRole, embedColor } from '../config/config.js';
+import { passIcon, failIcon, defaultAdminRole, embedColor, commandPrefix } from '../config/config.js';
 import { sqliteGet, sqliteRun , sqliteGetAll} from './database.js';
 
 export default class Roles{
@@ -56,28 +56,39 @@ export default class Roles{
 
         const result = reg.exec(message.content);
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Remove Role");
+
         if(result === null){
-            return;
+            embed.setDescription(`${failIcon} Incorrect syntax for ${commandPrefix}removerole`);
+            return message.channel.send({"embeds": [embed]});
         }
 
         const roleData = this.getRole(result[1], message);
 
         if(roleData === null){
-            message.channel.send(`${failIcon} The role **${roleData.name}** does not exist in this server.`);
+            embed.setDescription(`${failIcon} The role **${result[1]}** does not exist in this server.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
         const bRoleExist = this.bRoleAdded(roleData.id);
+
+        let desc = "";
 
         if(bRoleExist){
 
             this.deleteRole(roleData.id, message, roleData.name);
 
-            message.channel.send(`${passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`);
+            desc = `${passIcon} Users with the role **${roleData.name}** can no longer use the bots admin commands.`;
 
         }else{
-            message.channel.send(`${failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`);
+            desc = `${failIcon} The role **${roleData.name}** has not been enabled to use admin commands.`;
         }
-    
+
+        
+        embed.setDescription(desc);
+        return message.channel.send({"embeds": [embed]});
     }
 
     deleteRole(role, message, roleName){

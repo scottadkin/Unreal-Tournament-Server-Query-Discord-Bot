@@ -12,6 +12,70 @@ export default class Servers{
         this.channels = new Channels();
     }
 
+    async sendSyntaxMessage(channel, embed){
+
+        embed.setDescription(
+            `${failIcon} Incorrect syntax for **addserver**.\n
+            Correct syntax is \`${commandPrefix}addserver serverAlias IP|Domain:port\`\n
+            If port is not specified the port will be set to 7777.\n
+            **Examples:**
+            ${commandPrefix}addserver example 1.2.3.4
+            ${commandPrefix}addserver example 1.2.3.4:7777
+            ${commandPrefix}addserver example example.com
+            ${commandPrefix}addserver example example.com:7777`
+        );
+
+        return await channel.send({"embeds": [embed]});
+    }
+
+    async addServerByDomain(embed, domainName, port, alias){
+
+        
+        try{
+
+            const address = await getIP4Address(domainName);
+            
+
+            if(port === undefined){
+
+                port = 7777;
+
+            }else if(port !== ""){
+
+                port = parseInt(port);
+
+                if(port !== port){
+                    throw new Error("PORT");
+                }
+            }
+
+            if(this.bServerAdded(address, port)){
+                return -1;
+            }
+
+            this.insertServer(domainName, address, alias, port);
+
+            embed.setDescription(`${passIcon} Server added successfully.`);
+
+            return {"ip": address, port};
+
+        }catch(err){
+
+            let desc = `${failIcon} Failed to add server by domain:\n`;
+
+            if(err.message === "PORT"){
+                desc += `Port my be a number between 0 and 65535`;
+            }else{
+
+                desc += err.message;
+            }
+            
+            embed.setDescription(desc);
+        }
+
+        return null;
+    }
+
     async addServer(message, ut99AutoQuery){
 
         const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
@@ -23,18 +87,7 @@ export default class Servers{
 
         if(result === null){
 
-            embed.setDescription(
-                `${failIcon} Incorrect syntax for **addserver**.\n
-                Correct syntax is \`${commandPrefix}addserver serverAlias IP|Domain:port\`\n
-                If port is not specified the port will be set to 7777.\n
-                **Examples:**
-                ${commandPrefix}addserver example 1.2.3.4
-                ${commandPrefix}addserver example 1.2.3.4:7777
-                ${commandPrefix}addserver example example.com
-                ${commandPrefix}addserver example example.com:7777`
-            );
-
-            return message.channel.send({"embeds": [embed]});
+            return await this.sendSyntaxMessage(message.channel, embed);
         }
 
         let port = 7777;
@@ -42,65 +95,58 @@ export default class Servers{
 
         if(result[3] === undefined){
 
-            try{
+            
+            const domainIpPort = await this.addServerByDomain(embed, result[6], result[8], result[1]);
 
-                const address = await getIP4Address(result[6]);
+            if(domainIpPort === null){
 
-                if(result[8] !== undefined){
+                embed.setDescription(`${failIcon} Failed to get domain ip port`);
+                return await message.channel.send({"embeds": [embed]});
 
-                    if(result[8] !== ''){
-                        port = parseInt(result[8]);
-                    }
-                }
-
-                if(!this.bServerAdded(address, port)){
-
-                    this.insertServer(result[6], address, result[1], port);
-                    await message.channel.send(`${passIcon} Server added successfully.`);
-
-                    if(ut99AutoQuery.autoQueryLoop !== null){
-
-                        const newMessage = await ut99AutoQuery.addServerToAutoQuery(result[6], address, port);
-
-                        setServerLastMessageId(address, port, newMessage.id);
-                        ut99AutoQuery.restartAutoQueryLoop();
-                    }
-
-                }else{
-                    return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
-                }
-
-            }catch(err){
-                return message.channel.send(`${failIcon} ${err.message}`);
+            }else if(domainIpPort === -1){
+                embed.setDescription(`${failIcon} A server with that ip and port is already in the database`);
+                return await message.channel.send({"embeds": [embed]});
             }
 
- 
+            await message.channel.send({"embeds": [embed]});
+
+            if(ut99AutoQuery.autoQueryLoop !== null){
+
+                const newMessage = await ut99AutoQuery.addServerToAutoQuery(result[6], domainIpPort.ip, domainIpPort.port);
+
+                setServerLastMessageId(domainIpPort.ip, domainIpPort.port, newMessage.id);
+                ut99AutoQuery.restartAutoQueryLoop();
+            }
+
+            return;  
+        }
+      
+        ip = result[3];
+
+        if(result[5] !== undefined){
+            port = parseInt(result[5]);
+        }
+
+        if(!this.bServerAdded(ip, port)){
+
+            this.insertServer(ip, ip, result[1], port);
+
+            embed.setDescription(`${passIcon} Server added successfully.`)
+
+            if(ut99AutoQuery.autoQueryLoop !== null){
+                
+                const newMessage = await ut99AutoQuery.addServerToAutoQuery(ip, ip, port);
+
+                setServerLastMessageId(ip, port, newMessage.id);
+                ut99AutoQuery.restartAutoQueryLoop();
+            }
 
         }else{
-
-            ip = result[3];
-
-            if(result[5] !== undefined){
-                port = parseInt(result[5]);
-            }
-
-            if(!this.bServerAdded(ip, port)){
-
-                this.insertServer(ip, ip, result[1], port);
-                await message.channel.send(`${passIcon} Server added successfully.`);
-
-                if(ut99AutoQuery.autoQueryLoop !== null){
-                    
-                    const newMessage = await ut99AutoQuery.addServerToAutoQuery(ip, ip, port);
-
-                    setServerLastMessageId(ip, port, newMessage.id);
-                    ut99AutoQuery.restartAutoQueryLoop();
-                }
-
-            }else{
-                return message.channel.send(`${failIcon} Server with that ip and port has already added to database.`);
-            }
+            embed.setDescription(`${failIcon} Server with that ip and port has already added to database.`)
         }
+
+        await message.channel.send({"embeds": [embed]});
+        
         
 
     }

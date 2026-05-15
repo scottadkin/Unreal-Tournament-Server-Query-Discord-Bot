@@ -113,6 +113,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Fixed .removerole error "Cannot read properties of null (reading 'name')"
 - .removerole is now a discordEmbed message.
 - .addserver will now display example commands if there is a syntax error in a command.
+- .addserver is now a discordEmbed message.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

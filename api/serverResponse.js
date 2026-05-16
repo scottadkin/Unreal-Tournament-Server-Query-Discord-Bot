@@ -19,10 +19,11 @@ export default class ServerResponse{
      * @param {*} bEdit only included in autoquery
      * @param {*} discordMessage message ref to edit
      */
-    constructor(ip, port, type, discordChannel, bEdit, discordMessage){
+    constructor(address, port, type, discordChannel, bEdit, discordMessage){
 
 
-        this.ip = ip;
+        this.ip = address.ip;
+        this.originalAddress = address.originalIP;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
         this.type = type;
@@ -350,7 +351,13 @@ export default class ServerResponse{
             const country = this.getServerCountry();
 
             let fields = this.createPlayerFields()
-            fields.push({"name": "Server Address", "value": `unreal://${this.ip}:${this.port}`, "inline": false});
+
+            if(this.ip !== this.originalAddress){
+                fields.push({"name": "Domain Address", "value": `unreal://${this.originalAddress}:${this.port}`, "inline": false});
+            }
+
+            fields.push({"name": "IP Address", "value": `unreal://${this.ip}:${this.port}`, "inline": false});
+            
                 
             const embed = new EmbedBuilder()
             .setTitle(`${country}${this.name}`)

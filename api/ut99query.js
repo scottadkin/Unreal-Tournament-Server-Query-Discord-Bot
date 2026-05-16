@@ -698,7 +698,7 @@ export default class UT99Query{
                 this.responses.push(response);
             }
 
-            this.server.send(message, port, address, (err) =>{
+            this.server.send(message, port, address.ip, (err) =>{
 
                 if(err){
                     reject(err);
@@ -713,9 +713,10 @@ export default class UT99Query{
     async getFullServer(ip, port, discordChannel, bEdit, discordMessage){
 
         try{
+            
             const address = await getIP4Address(ip);
 
-            await this.udpSend(address, port, "full", discordChannel, bEdit, discordMessage);
+            await this.udpSend({"ip": address, "originalIP": ip}, port, "full", discordChannel, bEdit, discordMessage);
         }catch(err){
             console.trace(err);
         }
@@ -731,7 +732,7 @@ export default class UT99Query{
 
             const address = await getIP4Address(ip);
 
-            await this.udpSend(address, port, "basic");
+            await this.udpSend({"ip": address, "originalIP": ip}, port, "basic");
 
         }catch(err){
             console.trace(err);
@@ -744,7 +745,7 @@ export default class UT99Query{
         try{
             const address = await getIP4Address(ip);
 
-            await this.udpSend(address, port, "players", discordChannel);
+            await this.udpSend({"ip": address, "originalIP": ip}, port, "players", discordChannel);
         }catch(err){
             console.trace(err);
             discordChannel.send(`\`\`\`${err.message}\`\`\``); 
@@ -755,7 +756,7 @@ export default class UT99Query{
 
         const address = await getIP4Address(ip);
 
-        await this.udpSend(address, port, "extended", discordMessage);
+        await this.udpSend({"ip": address, "originalIP": ip}, port, "extended", discordMessage);
     }
 
     //create new message in the auto query channel when a server is added

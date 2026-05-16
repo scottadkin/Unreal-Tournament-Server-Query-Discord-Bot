@@ -598,6 +598,7 @@ export default class Bot{
         if(editType === 'country'){
 
             if(currentValue.length !== 2){
+                
                 embed.setTitle("Failed To Edit Server");
 
                 let countryString = `${failIcon} Server country code must be 2 characters long.\n\n`;

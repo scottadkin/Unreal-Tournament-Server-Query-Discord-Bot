@@ -355,19 +355,19 @@ export default class UT99Query{
 
         this.parseMapData(data, response);
 
+        const basicServerInfo = {
+            "name": response.name,
+            "currentPlayers": response.currentPlayers,
+            "maxPlayers": response.maxPlayers,
+            "gametype": response.gametype,
+            "mapName": response.mapName,
+            "ip": response.ip,
+            "port": response.port
+        };
+
+        this.servers.updateInfo(basicServerInfo);
+
         if(response.type === "basic"){
-
-            const potato = {
-                "name": response.name,
-                "currentPlayers": response.currentPlayers,
-                "maxPlayers": response.maxPlayers,
-                "gametype": response.gametype,
-                "mapName": response.mapName,
-                "ip": response.ip,
-                "port": response.port
-            };
-
-            this.servers.updateInfo(potato);
 
             response.triggerFinished();
             

@@ -78,7 +78,7 @@ export default class Servers{
 
     async addServer(message, ut99AutoQuery){
 
-        const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+)(:(\d+)|))$/i;
+        const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
 
         const result = reg.exec(message.content);
 
@@ -261,37 +261,16 @@ export default class Servers{
     }
 
 
-    updateQuery(data, bAlt){
+    updateQuery(data){
 
         const now = Math.floor(Date.now() * 0.001);
 
         let query = `UPDATE servers 
-        SET name=?, country=?, players=?, max_players=?, gametype=?, map=?, modified=?
+        SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
         WHERE real_ip=? AND port=?`;
 
-        let vars = [];
-        
-        if(bAlt !== undefined){
-
-            query = `UPDATE servers 
-            SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
-            WHERE real_ip=? AND port=?`;
-
-            vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
-            
-        }else{
-
-            let country = "";
-
-            if(data.country != undefined){
-
-                if(data.country != '' && data.country != "none"){
-                    country = data.country;
-                }
-            }
-        
-            vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
-        }
+    
+        const vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
 
         return sqliteRun(query, vars);
  
@@ -300,13 +279,9 @@ export default class Servers{
     updateInfo(data){
 
 
-        const bCountryOverride = this.bCountryOverride(data.ip, data.port);
-
-        if(!bCountryOverride){
-            this.updateQuery(data);
-        }else{
-            this.updateQuery(data, true);
-        }
+        //const bCountryOverride = this.bCountryOverride(data.ip, data.port);
+        this.updateQuery(data);
+   
     }
 
 
@@ -440,7 +415,7 @@ export default class Servers{
 
     bCountryOverride(ip, port){
 
-        const query = `SELECT override_country FROM servers WHERE ip=? AND port=?`;
+        const query = `SELECT override_country FROM servers WHERE real_ip=? AND port=?`;
 
         const result = sqliteGet(query, [ip, port]);
         

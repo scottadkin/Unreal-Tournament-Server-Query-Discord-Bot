@@ -359,7 +359,7 @@ export default class ServerResponse{
                 description += `:shield: ${this.protection}`;
             }
 
-            const country = this.getServerCountry();
+            const country = `${this.getServerCountry()} `;
 
             let fields = this.createPlayerFields()
 

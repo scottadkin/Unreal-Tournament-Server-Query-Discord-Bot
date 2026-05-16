@@ -3,7 +3,8 @@ import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, ge
 import { getAutoQueryChannel } from "./channels.js";
 import { EventEmitter } from "node:events";
 import { serverTimeout, embedColor, commandPrefix } from "../config/config.js";
-import { setServerLastMessageId } from "./servers.js";
+import { setServerLastMessageId, getServerCountry } from "./servers.js";
+
 
 class ServerResponseEmitter extends EventEmitter {}
 
@@ -34,6 +35,7 @@ export default class ServerResponse{
         this.bUnreal = false; //Unreal instead of UT
         this.bHaveUnrealBasic = false;
         this.bHaveUnrealMutators = false;
+        this.country = "";
 
         this.bDelete = false;
 
@@ -275,12 +277,21 @@ export default class ServerResponse{
 
         let country = "";
 
-        if(this.country != undefined){
+        /*if(this.country !== '' && this.country.toLowerCase() !== 'none'){
 
-            if(this.country != '' && this.country.toLowerCase() !== 'none'){
-                country = `:flag_${this.country.toLowerCase()}: `;
+            country = `:flag_${this.country.toLowerCase()}: `;
+
+        }else{*/
+
+            country = getServerCountry(this.ip, this.port);
+
+            if(country === null || country === ""){
+                country = "";
+            }else{
+                country = `:flag_${country.toLowerCase()}:`;
             }
-        }
+        //}
+        
 
         return country;
     }

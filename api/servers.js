@@ -474,3 +474,14 @@ export function setServerLastMessageId(ip, port, id){
     const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
     return sqliteRun(query, [id, ip, port]);
 }
+
+export function getServerCountry(ip, port){
+
+    const query = `SELECT COUNTRY FROM servers WHERE real_ip=? AND port=?`;
+
+    const result = sqliteGet(query, [ip, port]);
+
+    if(result === undefined) return null;
+
+    return result.country;
+}

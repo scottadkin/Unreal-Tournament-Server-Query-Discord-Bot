@@ -78,10 +78,9 @@ export default class Servers{
 
     async addServer(message, ut99AutoQuery){
 
-        const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
+        const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+)(:(\d+)|))$/i;
 
         const result = reg.exec(message.content);
-
 
         const embed = new EmbedBuilder().setColor(embedColor).setTitle(`Add Server`);
 
@@ -165,12 +164,13 @@ export default class Servers{
 
         const now = Math.floor(Date.now() * 0.001);
 
-        const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,'None',?,0,0,'N/A','N/A',?,?,-1,0)";
+        const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,?,?,0,0,'N/A','N/A',?,?,-1,0)";
 
         const vars = [
             ip, 
             realIp, 
             port, 
+            "None",
             "Another UT Server",
             alias,
             now,

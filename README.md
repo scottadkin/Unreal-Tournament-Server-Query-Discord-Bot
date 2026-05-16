@@ -122,6 +122,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .editserver now displays examples if a user makes a mistake when editing a server.
 - .editserver country will display a link to the countrycode wiki article if a user doesn't enter in a 2 character long flag code.
 - .q now displays the servers domain address alongside the server ip.
+- Fixed .addserver inserting country and server name in wrong columns.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

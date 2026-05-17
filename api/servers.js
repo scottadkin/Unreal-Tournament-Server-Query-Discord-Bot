@@ -1,676 +1,462 @@
-const config = require('../config/config.json');
-const Database = require('./db');
-const dns = require('dns');
-const Channels = require('./channels');
+import { passIcon, failIcon, commandPrefix, embedColor } from '../config/config.js';
+import { sqliteGet, sqliteGetAll, sqliteRun } from './database.js';
+import dns from 'node:dns';
+import Channels, { getAutoQueryChannel } from './channels.js';
+import { EmbedBuilder } from 'discord.js';
+import { getIP4Address, forceStringLength } from './generic.js';
 
-class Servers{
+export default class Servers{
 
     constructor(){
-
-        this.db = new Database();
-        this.db = this.db.sqlite;
         
         this.channels = new Channels();
     }
 
-    async addServer(message){
+    async sendSyntaxMessage(channel, embed){
 
+        embed.setDescription(
+            `${failIcon} Incorrect syntax for **addserver**.\n
+            Correct syntax is \`${commandPrefix}addserver serverAlias IP|Domain:port\`\n
+            If port is not specified the port will be set to 7777.\n
+            **Examples:**
+            ${commandPrefix}addserver example 1.2.3.4
+            ${commandPrefix}addserver example 1.2.3.4:7777
+            ${commandPrefix}addserver example example.com
+            ${commandPrefix}addserver example example.com:7777`
+        );
+
+        return await channel.send({"embeds": [embed]});
+    }
+
+    async addServerByDomain(embed, domainName, port, alias){
+
+        
         try{
 
-            const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
+            const address = await getIP4Address(domainName);
+            
 
-            const result = reg.exec(message.content);
+            if(port === undefined){
 
-            if(result === null){
+                port = 7777;
 
-                message.channel.send(`${config.failIcon} Incorrect syntax for **addserver**`);
-                return;
+            }else if(port !== ""){
 
-            }else{
+                port = parseInt(port);
 
-                let port = 7777;
-                let ip = 0;
-
-                if(result[3] === undefined){
-
-                    ip = dns.lookup(result[6], async (err, ipResult) =>{
-
-                        if(err){
-                            message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
-                            return;
-                        }
-
-                        /*if(ipResult === undefined){
-
-                            message.channel.send(`${config.failIcon} There is no matching ip for that domain address.`);
-                            return;
-                        }*/
-
-                        if(result[8] !== undefined){
-
-                            if(result[8] !== ''){
-                                port = parseInt(result[8]);
-                            }
-                        }
-
-                        //console.log(await this.bServerAdded(ipResult));
-                        //ip, realIp, alias, port
-
-                        if(!await this.bServerAdded(ipResult, port)){
-
-                            await this.insertServer(result[6], ipResult, result[1], port);
-                            message.channel.send(`${config.passIcon} Server added successfully.`);
-
-                        }else{
-                            message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
-                        }
-                    });   
-
-                }else{
-
-                    ip = result[3];
-
-                    if(result[5] !== undefined){
-                        port = parseInt(result[5]);
-                    }
-
-                    if(!await this.bServerAdded(ip, port)){
-
-                        await this.insertServer(ip, ip, result[1], port);
-                        message.channel.send(`${config.passIcon} Server added successfully.`);
-
-                    }else{
-                        message.channel.send(`${config.failIcon} Server with that ip and port has already added to database.`);
-                    }
+                if(port !== port){
+                    throw new Error("PORT");
                 }
             }
 
+            if(this.bServerAdded(address, port)){
+                return -1;
+            }
+
+            this.insertServer(domainName, address, alias, port);
+
+            embed.setDescription(`${passIcon} Server added successfully.`);
+
+            return {"ip": address, port};
+
         }catch(err){
-            console.trace(err);
+
+            let desc = `${failIcon} Failed to add server by domain:\n`;
+
+            if(err.message === "PORT"){
+                desc += `Port my be a number between 0 and 65535`;
+            }else{
+
+                desc += err.message;
+            }
+            
+            embed.setDescription(desc);
         }
+
+        return null;
+    }
+
+    async addServer(message, ut99AutoQuery){
+
+        const reg = /^.addserver (.+) ((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5})|)|(.+?)(:(\d+)|))$/i;
+
+        const result = reg.exec(message.content);
+
+        const embed = new EmbedBuilder().setColor(embedColor).setTitle(`Add Server`);
+
+        if(result === null){
+
+            return await this.sendSyntaxMessage(message.channel, embed);
+        }
+
+        let port = 7777;
+        let ip = 0;
+
+        if(result[3] === undefined){
+
+            
+            const domainIpPort = await this.addServerByDomain(embed, result[6], result[8], result[1]);
+
+            if(domainIpPort === null){
+
+                embed.setDescription(`${failIcon} Failed to get domain ip port`);
+                return await message.channel.send({"embeds": [embed]});
+
+            }else if(domainIpPort === -1){
+                embed.setDescription(`${failIcon} A server with that ip and port is already in the database`);
+                return await message.channel.send({"embeds": [embed]});
+            }
+
+            await message.channel.send({"embeds": [embed]});
+
+            if(ut99AutoQuery.autoQueryLoop !== null){
+
+                const newMessage = await ut99AutoQuery.addServerToAutoQuery(result[6], domainIpPort.ip, domainIpPort.port);
+
+                setServerLastMessageId(domainIpPort.ip, domainIpPort.port, newMessage.id);
+                ut99AutoQuery.restartAutoQueryLoop();
+            }
+
+            return;  
+        }
+      
+        ip = result[3];
+
+        if(result[5] !== undefined){
+            port = parseInt(result[5]);
+        }
+
+        if(!this.bServerAdded(ip, port)){
+
+            this.insertServer(ip, ip, result[1], port);
+
+            embed.setDescription(`${passIcon} Server added successfully.`)
+
+            if(ut99AutoQuery.autoQueryLoop !== null){
+                
+                const newMessage = await ut99AutoQuery.addServerToAutoQuery(ip, ip, port);
+
+                setServerLastMessageId(ip, port, newMessage.id);
+                ut99AutoQuery.restartAutoQueryLoop();
+            }
+
+        }else{
+            embed.setDescription(`${failIcon} Server with that ip and port has already added to database.`)
+        }
+
+        await message.channel.send({"embeds": [embed]});
+        
+        
 
     }
 
     bServerAdded(ip, port){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT COUNT(id) as total_servers FROM servers WHERE real_ip=? AND port=?";
 
-            const query = "SELECT COUNT(*) as total_servers FROM servers WHERE real_ip=? AND port=?";
+        const result = sqliteGet(query, [ip, port]);
 
-            this.db.get(query, [ip, port], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row !== undefined){
-
-                    if(row.total_servers > 0){
-                        //console.log(`Total servers = ${row.total_servers}`);
-                        resolve(true);
-                    }
-                }
-                resolve(false);
-            });
-        });
+        return result.total_servers > 0;
+    
     }
 
     insertServer(ip, realIp, alias, port){
 
-        //console.log(`${ip}, ${realIp}, ${alias}, ${port}`);
+        const now = Math.floor(Date.now() * 0.001);
 
-        return new Promise((resolve, reject) =>{
+        const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,?,?,0,0,'N/A','N/A',?,?,-1,0)";
 
-            const now = Math.floor(Date.now() * 0.001);
+        const vars = [
+            ip, 
+            realIp, 
+            port, 
+            "None",
+            "Another UT Server",
+            alias,
+            now,
+            now
+        ];
 
-            const query = "INSERT INTO servers VALUES(NULL,?,?,?,?,'None',?,0,0,'N/A','N/A',?,?,-1,0)";
-
-            const vars = [
-                ip, 
-                realIp, 
-                port, 
-                "Another UT Server",
-                alias,
-                now,
-                now
-            ];
-
-            this.db.run(query, vars, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
+        return sqliteRun(query, vars);
     }
 
-    deleteServer(id){
+    deleteServerFromDatabase(id){
 
-        return new Promise((resolve, reject) =>{
-
-            const query = "DELETE FROM servers WHERE id=?";
-
-            this.db.run(query, [id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
+        const query = "DELETE FROM servers WHERE id=?";
+        return sqliteRun(query, [id]);
     }
 
 
-    getAllServers(){
-
-        return new Promise((resolve, reject) =>{
-
-            const servers = [];
-
-            const query = "SELECT * FROM servers ORDER BY created ASC";
-
-            this.db.each(query, (err, row) =>{
-
-                if(err) reject(err);
-
-                servers.push(row);
-
-            }, (err) =>{
-
-                if(err) reject(err);
-
-                resolve(servers);
-            });
-        });
+    getAllActiveServers(){
+        return sqliteGetAll(`SELECT * FROM servers WHERE players>0 ORDER BY created ASC`);
     }
 
 
+    async deleteServer(message, ut99AutoQuery){
 
-    async removeServer(message){
+        const reg = /^.deleteserver (\d+)$/i;
 
-        try{
+        const result = reg.exec(message.content);
 
-            const reg = /^.removeserver (\d+)$/i;
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Delete Server");
 
-            const result = reg.exec(message.content);
+        if(result === null){
 
-            if(result !== null){
-
-                const servers = await this.getAllServers();
-
-                //console.table(servers);
-
-                let id = parseInt(result[1]);
-
-                if(id !== id){
-
-                    message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver, id must be a valid integer.`);
-                    return;
-
-                }else if(id > servers.length || id < 1){
-
-                    message.channel.send(`${config.failIcon} There are no servers with the id ${id}`);
-                    return;
-
-                }
-
-                id = id - 1;
-
-                const s = servers[id];
-
-                await this.deleteServer(s.id);
-
-                message.channel.send(`${config.passIcon} Deleted server successfully.`);        
-
-            }else{
-
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}removeserver.`);
-            }
-
-
-        }catch(err){
-            console.trace(err);
+            embed.setDescription(`${failIcon} Incorrect syntax for ${commandPrefix}deleteserver.`);
+            return await message.channel.send({"embeds": [embed]});
         }
-    }
 
+      
+        const servers = getAllServers();
 
-    updateQuery(data, bAlt){
+        let id = parseInt(result[1]);
 
-        return new Promise((resolve, reject) =>{
+        let desc = "";
 
-            const now = Math.floor(Date.now() * 0.001);
+        if(id !== id){
 
-            let query = `UPDATE servers 
-            SET name=?, country=?, players=?, max_players=?, gametype=?, map=?, modified=?
-            WHERE real_ip=? AND port=?`;
-
-
-            let vars = [];
+            desc = `${failIcon} Incorrect syntax for ${commandPrefix}deleteserver, id must be a valid integer.`;
             
+        }else if(id > servers.length || id < 1){
 
-            if(bAlt !== undefined){
-
-                query = `UPDATE servers 
-                SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
-                WHERE real_ip=? AND port=?`;
-
-                vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
-                
-            }else{
-
-                let country = "";
-
-                if(data.country != undefined){
-
-                    if(data.country != '' && data.country != "none"){
-                        country = data.country;
-                    }
-                }
-            
-                vars = [data.name, country, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
-            }
-
-                 
-            this.db.run(query, vars, (err) =>{
-
-                if(err){
-                   // console.log(vars);
-                    reject(err);
-                }
-
-                resolve();
-            });
-        });
-
-    }
-
-    async updateInfo(data){
-
-        try{
-
-            const bCountryOverride = await this.bCountryOverride(data.ip, data.port);
-
-            //console.log(bCountryOverride);
-
-            if(!bCountryOverride){
-                await this.updateQuery(data);
-            }else{
-                await this.updateQuery(data, true);
-            }
-
-        }catch(err){
-            console.trace(err);
+            desc = `${failIcon} There are no servers with the id ${id}`
         }
-        
-    }
 
+        if(desc !== ""){
 
-    async getIp(message){
+            embed.setDescription(desc);
+            return await message.channel.send({"embeds": [embed]});
+        }
 
-        try{
+        id = id - 1;
 
-            const reg = /^.ip(\d+)$/i;
+        const s = servers[id];
 
-            const result = reg.exec(message.content);
+        if(s.last_message !== "-1"){
 
-            if(result !== null){
+            try{
 
-                const server = await this.getServerById(result[1]);
+                const autoMessage = await ut99AutoQuery.autoChannel.messages.fetch(s.last_message);
 
+                await autoMessage.delete();
 
-                if(server === null){
+            }catch(err){
 
-                   // throw new Error("");
-                    message.channel.send(`${config.failIcon} A server with that id does not exist.`);
-                    return;
-
-                }else{
-
-                    let flag = server.country;
-
-                    if(flag == '' || flag == 'none'){
-                        flag = ':video_game:';
-                    }else{
-                        flag = `:flag_${flag.toLowerCase()}:`;
-                    }
-
-                    flag = `${flag} `;
-
-                    let string = `${flag}**${server.name}**\n**<unreal://${server.ip}:${server.port}>**`;
-
-                    message.channel.send(string);
-                    
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}ip command.`);
+                await message.channel.send(`${failIcon} There was an issue deleting the server's autoquery channel message.`);
+                //post may have been deleted by someone else or doesn't exist in the current channel
+                console.trace(err);
             }
 
-
-
-        }catch(err){
-            console.trace(err);
         }
+
+        this.deleteServerFromDatabase(s.id);
+
+        ut99AutoQuery.restartAutoQueryLoop();
+
+        embed.setDescription(`${passIcon} Deleted server successfully.`);
+
+        return message.channel.send({"embeds": [embed]});        
     }
 
 
-    createServerString(id, server){
-
-        const idLength = 2;
-        const aliasLength = 25;
-        const mapLength = 25;
-        const playersLength = 7;
+    updateQuery(data){
 
         const now = Math.floor(Date.now() * 0.001);
-        const diff = now - server.modified;
 
-        
+        let query = `UPDATE servers 
+        SET name=?, players=?, max_players=?, gametype=?, map=?, modified=?
+        WHERE real_ip=? AND port=?`;
 
-        const fixValue = (input, limit, bSpecial) =>{
+    
+        const vars = [data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port];
 
-            input = input.toString();
+        return sqliteRun(query, vars);
+ 
+    }
 
-            if(input.length > limit){
-                input = input.substring(0, limit);
-            }
+    updateInfo(data){
 
-            while(input.length < limit){
 
-                if(bSpecial === undefined){
-                    input += " ";
-                }else{
-                    input = " "+input;
-                }
-           
-            }
+        //const bCountryOverride = this.bCountryOverride(data.ip, data.port);
+        this.updateQuery(data);
+   
+    }
 
-            return input;
+
+    getIp(message){
+
+        const reg = /^.ip(\d+)$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}ip command.`);
+        }
+        const server = this.getServerById(result[1]);
+
+        if(server === null){
+            return message.channel.send(`${failIcon} A server with that id does not exist.`);
         }
 
+        let flag = server.country;
 
-        let serverId = fixValue(id, idLength);
-        let alias = fixValue(server.alias, aliasLength);
-        
-
-        let playerString = "";
-
-        if(server.max_players == "ers"){
-            playerString = "Players";
+        if(flag == '' || flag == 'none'){
+            flag = ':video_game:';
         }else{
-            playerString = server.players+"/"+server.max_players;
+            flag = `:flag_${flag.toLowerCase()}:`;
         }
 
-        if(diff >= config.serverInfoPingInterval * 2 && server.modified !== undefined){
-            server.map = "Timed Out!";
-            playerString = "N/A";
-        }
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${flag} ${server.name}`);
 
-        let map = fixValue(server.map, mapLength)+" ";
-      
+        const fields = [];
 
-        let players = fixValue(playerString, playersLength, true);
+        if(server.ip !== server.real_ip){
 
-        let string = `\`${serverId} - ${alias} ${map} ${players}\``;
-
-        return string;
-    }
-
-
-    async listServers(Discord, message, bOnlyActive){
-
-        try{
-
-            const servers = await this.getAllServers();
-            
-            const maxPerBlock = config.maxServersPerBlock;
-
-            let string = "";
-
-            let s = 0;
-
-           // let currentBlock = '';
-            let currentBlockSize = 0;
-            const serverBlocks = [];
-
-            for(let i = 0; i < servers.length; i++){
-
-                s = servers[i];
-
-                if(currentBlockSize >= maxPerBlock){
-                    serverBlocks.push(string);
-                    currentBlockSize = 0;
-                    string = '';
-                }
-
-                if(bOnlyActive === undefined){
-                    currentBlockSize++;
-                    string += this.createServerString(i + 1, s)+"\n";
-                }else{
-
-                    if(s.players > 0){
-                        currentBlockSize++;
-                        string += this.createServerString(i + 1, s)+"\n";
-                    }
-                }
-                
-            }
-
-            
-
-            let embed = new Discord.EmbedBuilder()
-
-            let title = "Unreal Tournament Server List";
-
-            if(bOnlyActive !== undefined){
-
-                title = "Active Unreal Tournament Server List";
-
-                if(string == "" && serverBlocks.length === 0){
-                    string = "There are currently no active servers.";
-                }
-
-            }else{
-
-                if(string == "" && serverBlocks.length === 0){
-                    string = "There are currently no servers added.";
-                }
-            }
-
-            if(string !== ''){
-                serverBlocks.push(string);
-            }
-
-           // console.log(serverBlocks);
-
-            embed.setColor(config.embedColor)
-            .setTitle(title)
-
-            let fields = [];
-            if(servers.length > 0){
-                fields.push({
-                    name: this.createServerString("ID", {
-                        "alias": "Alias",
-                        "players": "Play",
-                        "max_players": "ers",
-                        "map": "Map"
-                    }),
-                    value: serverBlocks[0],
-                    inline: false
-                });
-            }else{
-                fields.push({
-                    name: serverBlocks[0],
-                    value: '\u200B',
-                    inline: false
-                });
-            }
-
-            if(serverBlocks.length == 1){
-                fields.push({
-                    name: "Shorter server query command",
-                    value: `Type **${config.commandPrefix}q id** to query a server instead of ip:port.`,
-                    inline: false
-                });
-            }
-            embed.addFields(fields);
-            
-            await message.channel.send({ embeds: [embed] });
-
-            for(let i = 1; i < serverBlocks.length; i++){
-
-                embed = new Discord.EmbedBuilder()
-                embed = new Discord.Mess()
-                    .setColor(config.embedColor)
-                    .setDescription(serverBlocks[i]);
-
-                if(i === serverBlocks.length - 1){
-                    embed.addFields("Shorter server query command", `Type **${config.commandPrefix}q id** to query a server instead of ip:port.` ,false);
-                }
-
-                await message.channel.send({ embeds: [embed] });
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
-
-
-    setLastMessageId(ip, port, id){
-
-        return new Promise((resolve, reject) =>{
-
-            const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
-
-            this.db.run(query, [id, ip, port], (err) =>{
-
-                if(err) reject(err);
-
-               // console.log(`Set message_id = ${id} WHERE address is ${ip}:${port}`);
-                resolve();
+            fields.push({
+                "name": "Domain Address",
+                "value": `${server.ip}:${server.port}`,
+                "inline": false
             });
-        });
+        }
+
+        fields.push({
+                "name": "IP Address",
+                "value": `${server.real_ip}:${server.port}`,
+                "inline": false
+            });
+
+        embed.addFields(fields)
+
+        return message.channel.send({"embeds": [embed]});
+        
     }
 
 
     resetLastMessages(){
 
-        return new Promise((resolve, reject) =>{
+        const query = "UPDATE servers SET last_message=-1";
 
-            const query = "UPDATE servers SET last_message=-1";
-
-            this.db.run(query, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
+        return sqliteRun(query);
     }
 
-    async bValidServerId(id){
+    getServerById(id){
 
-        try{
 
-            id = parseInt(id);
+        const servers = getAllServers();
 
-            if(id !== id) throw new Error("Id must be a valid integer.");
+        id = parseInt(id);
 
-            id--;
+        id--;
 
-            if(id < 0) throw new Error("Id must be a positive integer.");
+        if(servers[id] === undefined) return null;
 
-            const servers = await this.getAllServers();
-
-            if(id < servers.length){
-
-                return true;
-            }
-
-            return false;
-
-        }catch(err){
-            console.trace(err);
-        }
-
+        return servers[id];
+            
+       
     }
 
-    async getServerById(id){
-
-        try{
-
-            if(await this.bValidServerId(id)){
-
-                const servers = await this.getAllServers();
-
-                id = parseInt(id);
-
-                id--;
-
-                return servers[id];
-                
-            }else{
-                return null;
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
-
-    editServerValue(ip, port, key, value){
+    editServerValue(ip, port, type, value){
         
-        return new Promise((resolve, reject) =>{
 
-            const query = `UPDATE servers SET ${key}=? WHERE ip=? AND port=?`;
+        type = type.toLowerCase();
 
-            if(key === 'country' && value === 'uk'){
-                value = 'gb';
-            }
 
-            this.db.run(query, [value, ip, port], (err) =>{
+        const query = `UPDATE servers SET ${type}=? WHERE ip=? AND port=?`;
 
-                if(err) reject(err);
+        if(type === 'country' && value === 'uk'){
+            value = 'gb';
+        }
 
-                if(key === 'country'){
+        sqliteRun(query, [value, ip, port]);
 
-                    const countryQuery = `UPDATE servers SET override_country=1 WHERE ip=? AND port=?`;
+        if(type !== 'country') return;
 
-                    this.db.run(countryQuery, [ip, port], (err) =>{
+        const countryQuery = `UPDATE servers SET override_country=1 WHERE ip=? AND port=?`;
 
-                        if(err) reject(err);
-
-                        resolve();
-                    });
-
-                }else{
-                    resolve();
-                }
-            });
-        });
+        sqliteRun(countryQuery, [ip, port]);
     }
+
+    getServerByRealIpPort(realIp, port){
+
+
+        const result = sqliteGet(`SELECT name,ip,real_ip,port,alias FROM servers WHERE real_ip=? AND port=?`, [realIp, port]);
+
+        if(result === undefined){
+            throw new Error("There was an issue getting server information by realIp and port");
+        }
+
+        return result;
+    }
+
+    changeServerAddress(serverRowId, newAddress, newRealIp, currentPort){
+
+        const query = `UPDATE servers SET ip=?, real_ip=? WHERE id=?`;
+
+        //need top check if same address and port already used
+
+        if(this.bServerAdded(newRealIp, currentPort)){
+
+            const duplicateServer = this.getServerByRealIpPort(newRealIp, currentPort);
+
+            let errorMessage = `A server with that ip and port already exists as: `;
+
+            errorMessage += `**${duplicateServer.alias}** ${duplicateServer.ip}:${duplicateServer.port}(${duplicateServer.real_ip})`;
+
+            throw new Error(errorMessage);
+        }
+
+        sqliteRun(query, [newAddress, newRealIp, serverRowId]);
+    }
+
 
     bCountryOverride(ip, port){
 
-        return new Promise((resolve, reject) =>{
+        const query = `SELECT override_country FROM servers WHERE real_ip=? AND port=?`;
 
-            const query = `SELECT override_country FROM servers WHERE ip=? AND port=?`;
+        const result = sqliteGet(query, [ip, port]);
+        
+        if(result === undefined){
+            //console.log(`TODO: Need to add support so domain names can get the correct country`);
+            return false;
+        }
 
-            this.db.get(query, [ip, port], (err, result) =>{
+        return result.override_country > 0;
 
-                if(err) reject(err);
-
-                if(result !== undefined){
-                    if(result.override_country > 0) resolve(true);
-                    
-                }
-                
-                resolve(false);
-                
-            });
-        });
     }
-
-    
-
 }
 
+export function getAllServers(){
 
-module.exports = Servers;
+    const query = "SELECT * FROM servers ORDER BY created ASC";
+
+    const result = sqliteGetAll(query);
+
+    //set the current .q ids at this time
+    for(let i = 0; i < result.length; i++){
+
+        result[i].current_index = i + 1;
+    }
+
+    return result;
+}
+
+export function setServerLastMessageId(ip, port, id){
+
+    const query = "UPDATE servers SET last_message=? WHERE real_ip=? AND port=?";
+    return sqliteRun(query, [id, ip, port]);
+}
+
+export function getServerCountry(ip, port){
+
+    const query = `SELECT COUNTRY FROM servers WHERE real_ip=? AND port=?`;
+
+    const result = sqliteGet(query, [ip, port]);
+
+    if(result === undefined) return null;
+
+    return result.country;
+}

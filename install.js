@@ -1,6 +1,4 @@
-const Database = require('./api/db');
-let db = new Database();
-db = db.sqlite;
+import { createTable } from "./api/database.js";
 
 const queries = [
     `CREATE TABLE IF NOT EXISTS roles(
@@ -37,18 +35,15 @@ const queries = [
 
 ];
 
+for(let i = 0; i < queries.length; i++){
 
-db.serialize(() =>{
-
-    
-    for(let i = 0; i < queries.length; i++){
-
-        db.run(queries[i], (err) =>{
-
-            if(err) console.trace(err);
-        });
+    try{
+        createTable(queries[i]);
+    }catch(err){
+        console.trace(err);
     }
-});
+}
+
 
 console.log("Database install completed.");
 

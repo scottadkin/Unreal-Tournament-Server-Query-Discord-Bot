@@ -1,28 +1,65 @@
-const Discord = require('discord.js');
-const { GatewayIntentBits, Partials } = require('discord.js');
-const config = require('../config/config.json');
-const UT99Query = require('./ut99query.js');
-const Database = require('./db');
-const Servers = require('./servers');
-const Channels = require('./channels');
-const Roles = require('./roles');
+import { Client,  EmbedBuilder, Events, GatewayIntentBits, Partials } from "discord.js";
+import { commandPrefix, failIcon, passIcon, token, bDisplayNotEnabledMessage, embedColor, bSkipAdminHelpToNonAdmins } from "../config/config.js";
+import UT99Query from "./ut99query.js";
+import Servers from "./servers.js";
+import Channels from "./channels.js";
+import Roles from "./roles.js";
+import diagnosticsChannel from 'node:diagnostics_channel';
+import { bIP4Address, getIP4Address } from "./generic.js";
 
-class Bot{
+const USER_COMMANDS = [
+    {"name": `servers`, "content": `Lists all servers added to the database.`},
+    {"name": `active`, "content": `Lists all servers added to the database that have at least one player.`},
+    {"name": `q ip:port`, "content": `Query an Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
+    {"name": `q serverID`, "content": `Query an Unreal Tournament server by just using the server's id. Use the ${commandPrefix}servers command to find a server's id.`},
+    {"name": `ip serverID`, "content": `Displays the specified server's address.`},
+    {"name": `players serverID`, "content": `Displays extended information about players on the server.`},
+    {"name": `players ip:port`, "content": `Displays extended information about players on the server, domain address also work, if no port specified 7777 is used.`},
+    {"name": `extended serverID`, "content": `Displays extended information about the server.`},
+    {"name": `help`, "content": `Shows this command.`},
+    {
+        "name": "Bot Github", 
+        "content": `<https://github.com/scottadkin/Unreal-Tournament-Server-Query-Discord-Bot>`,
+        "bSkipPrefix": true
+    }
+];
+
+const ADMIN_COMMANDS = [
+
+    {"name": `allowchannel`, "content": `Enables the bot to be used in the current channel.`},
+    {"name": `blockchannel`, "content": `Disables the bot in the current channel.`},
+    {"name": `listchannels`, "content": `Displays a list of channels the bot can be used in.`},
+    {"name": `allowrole role`, "content": `Allows users with specified role to use admin bot commands.`},
+    {"name": `removerole role`, "content": `Stops users with specified role being able to use admin bot commands.`},
+    {"name": `listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
+    {"name": `addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
+    {"name": `deleteserver serverID`, "content": `Removes the specified server from the database.`},
+    {
+        "name": `setauto`, 
+        "content": 
+            "- Sets the current channel as the auto query channel.\n"+
+            "- The bot will post a message for each server added in the database, and the messages will be updated periodically with the current server info.\n"+
+            "- If a server is added, edited or deleted after this has started the bot will update the messages accordingly."
+    },
+    {"name": `stopauto`, "content": `Disables autoquery channel from updating.`},
+    {"name": `editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country,port)**`}
+];
+
+const VALID_EDITS = [
+    "alias",
+    "ip",
+    "country",
+    "port"
+];
+
+
+export default class Bot{
 
     constructor(){
 
         this.client = null;
 
-        this.validEdits = [
-            "alias",
-            "ip",
-            "country",
-            "port"
-        ];
-        
-        this.db = new Database();
-        this.db = this.db.sqlite;
-
+       
         this.servers = new Servers();
         this.channels = new Channels();
         this.roles = new Roles();
@@ -31,15 +68,16 @@ class Bot{
     }
 
     createClient(name){
+
         this.name = name;
 
-        this.client = new Discord.Client({
-            messageCacheMaxSize: 1,
-            messageCacheLifetime: 10,
-            messageSweepInterval: 30,
-            messageEditHistoryMaxSize: 0,
-            partials: [Partials.Channel],
-            intents: [
+        this.client = new Client({
+            "messageCacheMaxSize": 1,
+            "messageCacheLifetime": 10,
+            "messageSweepInterval": 30,
+            "messageEditHistoryMaxSize": 0,
+            "partials": [Partials.Channel],
+            "intents": [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent
@@ -49,7 +87,7 @@ class Bot{
 
         this.client.on('clientReady', () =>{
 
-            this.query = new UT99Query(this.client);
+            this.query = new UT99Query(this.client, false);
             this.queryAuto = new UT99Query(this.client, true);
             console.log(`I'm in the discord server...`);
        
@@ -65,203 +103,169 @@ class Bot{
 
         this.client.on('messageCreate', (message) =>{
 
-            if(!message.author.bot){
+            if(message.author.bot) return;
+            
+            try{
 
                 this.checkCommand(message);
+
+            }catch(err){
+                console.trace(err);
+            }
+            
+        });
+
+
+        this.client.rest.on('rateLimited', (a) =>{
+            console.log(a);
+            console.log("I Have been rate LIMITED")
+        }); 
+
+        this.client.login(token);
+    }
+
+    checkCommand(message){
+
+        if(!message.content.startsWith(commandPrefix) || message.content.length === 1){
+            return;
+        }
+
+        //ignore double in case someone wants to show another user how to use a command like ..q1
+        if(message.content[0] == commandPrefix && message.content[1] == commandPrefix){
+            return;
+        }
+
+        if(this.roles.bUserAdmin(message)){
+
+            if(this.adminCommands(message)){
+                return;
+            }
+            
+        }else{
+
+            if(this.adminCommands(message, true)){
+                return;
+            }
+        }
+
+        this.normalCommands(message);
+
+    }
+
+    normalCommands(message){
+
+        if(!this.channels.bBotCanCommentInChannel(message)){
+
+            if(bDisplayNotEnabledMessage){
+                message.channel.send(`${failIcon} The bot is not enabled in this channel.`);
+            }
+
+            return;
+        }
+
+        const helpReg = /^.help$/i;
+        const shortServerQueryReg = /^.q\d+$/i;
+        const serverQueryReg = /^.q .+$/i;
+        const listReg = /^.servers/i;
+        const activeReg = /^.active/i;
+        const ipReg = /^.ip\d+/i;
+        const extendedReg = /^.extended \d+$/i;
+        const altExtendedReg = /^.extended .+$/i;
+        const playersReg = /^.players \d+$/i;
+        const altPlayersReg = /^.players .+\..+/i;
+
+        if(helpReg.test(message.content)){
+
+            this.helpCommand(message);
+
+        }else if(shortServerQueryReg.test(message.content)){
+        
+            this.shortQueryServer(message);
+            
+        }else if(serverQueryReg.test(message.content)){
+    
+            this.queryServer(message);
+
+        }else if(listReg.test(message.content)){
+        
+            this.queryAuto.createServersRequest(message, false);
+
+
+        }else if(activeReg.test(message.content)){
+
+            this.queryAuto.createServersRequest(message, true);
+
+        }else if(ipReg.test(message.content)){
+      
+            this.servers.getIp(message);
+
+        }else if(extendedReg.test(message.content)){
+   
+            this.queryServerExtended(message);
+
+        }else if(altExtendedReg.test(message.content)){
+
+            this.queryServerExtendedAlt(message);
+
+        }else if(playersReg.test(message.content)){
+
+            this.queryPlayers(message);
+
+        }else if(altPlayersReg.test(message.content)){
+
+            this.queryPlayersAlt(message);
+
+        }
+    }
+
+    createHelpEmbed(message, bAdmin){
+
+        const p = commandPrefix;
+        const commands = (bAdmin) ? ADMIN_COMMANDS : USER_COMMANDS;
+
+        const fields = commands.map((c) =>{
+            return {
+                "name": `${(c.bSkipPrefix === undefined) ? p : "" }${c.name}`, 
+                "value": c.content, 
+                "inline": false
             }
         });
 
-        this.client.login(config.token);
-    }
-
-    async checkCommand(message){
-
-        try{
-
-            if(message.content == "test"){
-
-                this.query.pingAllServers();
-                return;
-            }
-
-            if(message.content.startsWith(config.commandPrefix) && message.content.length > 1){
-
-                if(message.content[0] == config.commandPrefix && message.content[1] == config.commandPrefix) return;
-
-                if(await this.roles.bUserAdmin(message)){
-
-                    //console.log("user is an admin");
-
-                    if(this.adminCommands(message)){
-                        return;
-                    }
-                    
-                }else{
-                    console.log("user is not an admin");
-                    if(this.adminCommands(message, true)){
-                        return;
-                    }
-                }
-
-                this.normalCommands(message);
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-
-    }
-
-    async normalCommands(message){
-
-        try{
-
-            if(await this.channels.bBotCanCommentInChannel(message)){
-
-                const helpReg = /^.help$/i;
-                const shortServerQueryReg = /^.q\d+$/i;
-                const serverQueryReg = /^.q .+$/i;
-                const listReg = /^.servers/i;
-                const activeReg = /^.active/i;
-                const ipReg = /^.ip\d+/i;
-                const extendedReg = /^.extended \d+$/i;
-                const altExtendedReg = /^.extended .+$/i;
-                const playersReg = /^.players \d+$/i;
-                const altPlayersReg = /^.players .+/i;
-
-                if(helpReg.test(message.content)){
-
-                    this.helpCommand(message);
-
-                }else if(shortServerQueryReg.test(message.content)){
-                    
-                    this.shortQueryServer(message);
-                    
-                }else if(serverQueryReg.test(message.content)){
-
-                    this.queryServer(message);
-
-                }else if(listReg.test(message.content)){
-
-                    this.servers.listServers(Discord, message);
-
-                }else if(activeReg.test(message.content)){
-
-                    this.servers.listServers(Discord, message, true);
-
-                }else if(ipReg.test(message.content)){
-
-                    this.servers.getIp(message);
-
-                }else if(extendedReg.test(message.content)){
-
-                    this.queryServerExtended(message);
-
-                }else if(altExtendedReg.test(message.content)){
-
-                    this.queryServerExtendedAlt(message);
-
-                }else if(playersReg.test(message.content)){
-
-                    this.queryPlayers(message);
-
-                }else if(altPlayersReg.test(message.content)){
-
-                    this.queryPlayersAlt(message);
-
-                }
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${(bAdmin) ? "Admin Commands" : "User Commands"}`)
+        .setFields(fields);
 
 
-            }else{
-                if(config.bDisplayNotEnabledMessage){
-                    message.channel.send(`${config.failIcon} The bot is not enabled in this channel.`);
-                }
-            }
+        message.channel.send({"embeds": [embed]});
 
-        }catch(err){
-            console.trace(err);
-        }
     }
 
     helpCommand(message){
 
-        const p = config.commandPrefix;
+        this.createHelpEmbed(message, false);
 
-        const adminCommands = [
-
-            {"name": `${p}allowchannel`, "content": `Enables the bot to be used in the current channel.`},
-            {"name": `${p}blockchannel`, "content": `Disables the bot in the current channel.`},
-            {"name": `${p}listchannels`, "content": `Displays a list of channels the bot can be used in.`},
-            {"name": `${p}allowrole role`, "content": `Allows users with specified role to use admin bot commands.`},
-            {"name": `${p}removerole role`, "content": `Stops users with specified role being able to use admin bot commands.`},
-            {"name": `${p}listroles`, "content": `Displays a list of roles that can use the bots admin commands.`},
-            {"name": `${p}addserver alias ip:port`, "content": `Adds the specified server details into the database.`},
-            {"name": `${p}removeserver serverID`, "content": `Removes the specified server from the database.`},
-            {"name": `${p}setauto`, "content": `Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. :no_entry: Do not enable in an existing channel, non autoquery messages are deleted by default.`},
-            {"name": `${p}stopauto`, "content": `Disables autoquery channel from updating.`},
-            {"name": `${p}editserver id type value`, "content": `Edit selected server's value type. Types:**(alias,ip,country,port)**`}
-
-        ];
-
-        const userCommands = [
-            {"name": `${p}servers`, "content": `Lists all servers added to the database.`},
-            {"name": `${p}active`, "content": `Lists all servers added to the database that have at least one player.`},
-            {"name": `${p}q ip:port`, "content": `Query a Unreal Tournament server, if no port is specified 7777 is used. Domain names can also be used instead of an ip.`},
-            {"name": `${p}q serverID`, "content": `Query a Unreal Tournament server by just using the server's id instead of it's ip and port. Use the ${config.commandPrefix}servers command to find a server's id.`},
-            {"name": `${p}ip serverID`, "content": `Displays the specified server's name with a clickable link.`},
-            {"name": `${p}players serverID`, "content": `Displays extended information about players on the server.`},
-            {"name": `${p}players ip:port`, "content": `Displays extended information about players on the server, domain address also work, if no port specified 7777 is used.`},
-            {"name": `${p}extended serverID`, "content": `Displays extended information about the server.`},
-            {"name": `${p}help`, "content": `Shows this command.`}
-        ];
-
-        const icon = `:small_orange_diamond:`;
-
-        let string = ` ${icon} ${icon} **Unreal Tournament Server Query Discord Bot Help** ${icon} ${icon}\n\n`;
-
-        string += `${icon+icon} **User Commands** ${icon+icon}\n`;
-
-        let c = 0;
-
-        for(let i = 0; i < userCommands.length; i++){
-
-            c = userCommands[i];
-
-            string += `**${c.name}** ${c.content}\n`;
+        if(!this.roles.bUserAdmin(message) && bSkipAdminHelpToNonAdmins){
+            return;
         }
 
-        message.channel.send(string);
-
-        string = "";
-    
-        string += `\n${icon+icon} **Admin Commands** ${icon+icon}\n`;
-
-        for(let i = 0; i < adminCommands.length; i++){
-
-            c = adminCommands[i];
-
-            string += `**${c.name}** ${c.content}\n`;
-        }
-
-        string += `\n:orange_book: **Github Repo** <https://github.com/scottadkin/Unreal-Tournament-Server-Query-Discord-Bot>`;
-
-        message.channel.send(string);
+        this.createHelpEmbed(message, true);
     }
 
     adminCommands(message, bFailed){
 
         const m = message.content;
-        const p = config.commandPrefix;
+        const p = commandPrefix;
 
         const commands = [
-            `${p}allowrole `,
+            `${p}allowrole`,
             `${p}removerole `,
             `${p}listroles`,
             `${p}allowchannel`,
             `${p}blockchannel`,
             `${p}listchannels`,
             `${p}addserver`,
-            `${p}removeserver`,
+            `${p}deleteserver`,
             `${p}setauto`,
             `${p}stopauto`,
             `${p}editserver`
@@ -273,111 +277,82 @@ class Bot{
             for(let i = 0; i < commands.length; i++){
 
                 if(message.content.startsWith(commands[i])){
-                    message.channel.send(`${config.failIcon} Only users with an admin role can use that command.`);
+                    message.channel.send(`${failIcon} Only users with an admin role can use that command.`);
                     return true;
                 }
-            }
-
-            
+            } 
         }
 
         if(m.startsWith(commands[0])){
 
             this.roles.allowRole(message);
 
-            return true;
-
         }else if(m.startsWith(commands[1])){
 
             this.roles.removeRole(message);
-            
-            return true;
 
         }else if(m.startsWith(commands[2])){
 
             this.roles.listRoles(message);
 
-            return true;
-            
         }else if(m.startsWith(commands[3])){
 
             this.channels.allowChannel(message);
-
-            return true;
 
         }else if(m.startsWith(commands[4])){
 
             this.channels.blockChannel(message);
 
-            return true;
-
         }else if(m.startsWith(commands[5])){
 
             this.channels.listChannels(message);
 
-            return true;
-
         }else if(m.startsWith(commands[6])){
 
-            this.servers.addServer(message);
-
-            return true;
+            this.servers.addServer(message, this.queryAuto);
 
         }else if(m.startsWith(commands[7])){
 
-            this.servers.removeServer(message);
-
-            return true;
+            this.servers.deleteServer(message, this.queryAuto);
 
         }else if(m.startsWith(commands[8])){
 
-            this.channels.enableAutoQuery(message, this.servers, Discord);
-
-            return true;
+            this.channels.enableAutoQuery(message, this.servers, this.queryAuto);
 
         }else if(m.startsWith(commands[9])){
 
-            this.channels.disableAutoQuery(message, this.servers);
-            return true;
+            this.channels.disableAutoQuery(message, this.servers, this.queryAuto);
 
         }else if(m.startsWith(commands[10])){
 
             this.editServer(message);
 
-            return true;
+        }else{
+
+            return false;
         }
 
-        return false;
+        return true;
     }
 
-    async shortQueryServer(message){
+    shortQueryServer(message){
 
-        try{
+        const reg = /^.q(\d+)$/i;
 
-            const reg = /^.q(\d+)$/i;
+        const result = reg.exec(message.content);
 
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-       
-                const server = await this.servers.getServerById(result[1]);
-
-                if(server !== null){
-
-                    this.query.getFullServer(server.ip, server.port, message.channel);
-
-                }else{
-                    message.channel.send(`${config.failIcon} There is no server with the id of ${parseInt(result[1])}.`);
-                }
-                
-            }else{
-
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}q serverid.`);
-            }
-
-        }catch(err){
-            console.trace(err);
+        if(result === null){
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}q serverid.`);
         }
+
+        const server = this.servers.getServerById(result[1]);
+
+        if(server === null){
+            return message.channel.send(`${failIcon} There is no server with the id of ${parseInt(result[1])}.`);
+        }
+
+
+        this.query.getFullServer(server.ip, server.port, message.channel);
     }
 
     queryServer(message){
@@ -386,261 +361,298 @@ class Bot{
 
         const result = reg.exec(message.content);
 
-        if(result !== null){
-      
-            //check if an ip or domain name
-            if(result[2] === undefined){
+        if(result === null) return;
 
-                const domainName = result[6];
+        //check if an ip or domain name
+        if(result[2] === undefined){
 
-                let port = 7777;
+            const domainName = result[6];
 
-                if(result[7] !== ''){
+            let port = 7777;
 
-                    port = parseInt(result[7].replace(':',''));            
+            if(result[7] !== ''){
 
-                }
+                port = parseInt(result[7].replace(':',''));            
 
-                this.query.getFullServer(domainName, port, message.channel);
+            }
 
+            this.query.getFullServer(domainName, port, message.channel);
+
+        }else{
+
+            const ip = result[3];
+
+            let port = 7777;
+
+            if(result[4] !== ''){      
+                port = parseInt(result[4].replace(':',''));
+            }
+
+            this.query.getFullServer(ip, port, message.channel);
+        }
+        
+    }
+
+
+    queryServerExtended(message){
+
+        const reg = /^.extended (\d+)$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${failIcon} Not valid syntax for ${commandPrefix}extended`);
+        }
+
+        const server = this.servers.getServerById(result[1]);
+
+        if(server != null){
+
+            let id = parseInt(result[1]);
+
+            id--;
+
+            this.query.getExtended(server.ip, server.port, message.channel);
+            
+        }else{
+        
+            message.channel.send(`${failIcon} There is no server with that id.`);
+        }
+    }
+
+    queryServerExtendedAlt(message){
+
+        const reg = /^.extended (((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+|))|(.+?(:\d+|)))$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${failIcon} Incorrect syntax for queryServerExtended.`);
+        }
+
+        let port = 7777;
+
+        if(result[3] === undefined) return;
+        if(result[3] === "") return;
+
+        const ip = result[3];
+
+        if(result[4] !== undefined && result[4] !== ""){
+
+            port = result[4].replace(':','');
+            port = parseInt(port);
+
+            if(port !== port){
+                message.channel.send(`${failIcon} Port must be a valid integer`);
                 return;
-
-            }else{
-
-                const ip = result[3];
-
-                let port = 7777;
-
-                if(result[4] !== ''){      
-                    port = parseInt(result[4].replace(':',''));
-                }
-
-                this.query.getFullServer(ip, port, message.channel);
             }
+        }
+
+        this.query.getExtended(ip, port, message.channel);
+        
+    }
+
+
+    queryPlayers(message){
+
+        const reg = /^.players (\d+)$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}players.`);
+        }
+
+        const server = this.servers.getServerById(result[1]);
+
+
+        if(server !== null){
+
+            this.query.getPlayers(server.ip, server.port, message.channel);
+
+        }else{
+            message.channel.send(`${failIcon} A server with id ${parseInt(result[1])} does not exist.`);
+        }
+
+    }
+
+    queryPlayersAlt(message){
+        
+
+        const reg = /^.players ((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(:\d+|)|(.+?)(:\d+|))$/i;
+
+        const result = reg.exec(message.content);
+
+        if(result === null){
+            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}players command.`);
+        }
+
+        let ip = "";
+        let port = 7777;
+
+        if(result[2] === undefined){
+
+            if(result[8] !== ''){
+
+                result[8] = result[8].replace(':','');
+
+                port = parseInt(result[8]);
+            }
+
+            this.query.getPlayers(result[7], port, message.channel);
+
+        }else{
+
+            ip = `${result[2]}.${result[3]}.${result[4]}.${result[5]}`;
+
+            if(result[6] !== ''){
+
+                result[6] = result[6].replace(':','');
+
+                port = parseInt(result[6]);
+            }
+
+            this.query.getPlayers(ip, port, message.channel);
         }
     }
 
 
-    async queryServerExtended(message){
+    setEditExamples(embed, bSyntaxError){
 
-        try{
+        let desc = "";
 
-            const reg = /^.extended (\d+)$/i;
+        if(bSyntaxError){
+            desc = `${failIcon} Incorrect syntax for edit server.\n`;
+            desc += `Valid syntax is **${commandPrefix}editserver SERVERID OPTION VALUE**\n`;
+        }else{
 
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                const server = await this.servers.getServerById(result[1]);
-
-                if(server != null){
-
-                    let id = parseInt(result[1]);
-
-                    id--;
-
-                    this.query.getExtended(server.ip, server.port, message.channel);
-                 
-                }else{
-                
-                    message.channel.send(`${config.failIcon} There is no server with that id.`);
-                }
-            }
-
-        }catch(err){
-            console.trace(err);
+            desc = `${failIcon} Not a valid edit type.`;
         }
-    }
 
-    async queryServerExtendedAlt(message){
+        let validString = "";
 
-        try{
+        for(let i = 0; i < VALID_EDITS.length; i++){
 
-            const reg = /^.extended (((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+|))|(.+?(:\d+|)))$/i;
+            validString += `${VALID_EDITS[i]}`;
 
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                let ip = "";
-                let port = 7777;
-
-                if(result[3] !== ''){
-
-                    ip = result[3];
-
-                    if(result[4] !== ''){
-
-                        port = result[4].replace(':','');
-                        port = parseInt(port);
-
-                        if(port !== port){
-                            message.channel.send(`${config.failIcon} Port must be a valid integer`);
-                            return;
-                        }
-                    }
-
-                    this.query.getExtended(ip, port, message.channel);
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for queryServerExtended.`);
+            if(i < VALID_EDITS.length - 1){
+                validString += `, `;
             }
-
-        }catch(err){
-            console.trace(err);
         }
-    }
 
+        let examplesString = `- ${commandPrefix}editserver 1 alias newServerAlias\n`;
+        examplesString += `- ${commandPrefix}editserver 1 country us\n`;
+        examplesString += `- ${commandPrefix}editserver 1 ip 1.2.3.4\n`;
+        examplesString += `- ${commandPrefix}editserver 1 port 7777\n`;
 
-    async queryPlayers(message){
+        const fields = [
+            {"name": "Valid Edit Types Are", "value":validString, "inline": false},
+            {"name": "Examples", "value": examplesString, "inline": false}
+        ];
 
-        try{
-
-            const reg = /^.players (\d+)$/i;
-
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                const server = await this.servers.getServerById(result[1]);
-
-                if(server !== null){
-
-                    this.query.getPlayers(server.ip, server.port, message.channel);
-
-                }else{
-                    message.channel.send(`${config.failIcon} A server with id ${parseInt(result[1])} does not exist.`);
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players.`);
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
-
-    async queryPlayersAlt(message){
-
-        try{
-
-            const reg = /^.players ((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(:\d+|)|(.+?)(:\d+|))$/i;
-
-            const result = reg.exec(message.content);
-
-            if(result !== null){
-
-                let ip = "";
-                let port = 7777;
-
-                if(result[2] === undefined){
-
-                    if(result[8] !== ''){
-
-                        result[8] = result[8].replace(':','');
-
-                        port = parseInt(result[8]);
-                    }
-
-                    this.query.getPlayers(result[7], port, message.channel);
-
-                }else{
-
-                    ip = `${result[2]}.${result[3]}.${result[4]}.${result[5]}`;
-
-                    if(result[6] !== ''){
-
-                        result[6] = result[6].replace(':','');
-
-                        port = parseInt(result[6]);
-                    }
-
-                    this.query.getPlayers(ip, port, message.channel);
-                }             
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for ${config.commandPrefix}players command.`);
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
+        embed.setDescription(desc);
+        embed.setFields(fields);
     }
 
     async editServer(message){
 
-        //this.servers.editServer(message.content);
+        const editReg = /^.editserver (\d+) (.+?) (.+)$/i;
+        
+        const result = editReg.exec(message.content);
 
-        try{
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Edit Server");
 
-            const editReg = /^.editserver (\d+) (.+?) (.+)$/i;
-            
-            const result = editReg.exec(message.content);
+        let desc = "";
 
-            if(result != null){
+        if(result === null){
 
-                const serverId = parseInt(result[1]);
 
-                const server = await this.servers.getServerById(serverId);        
+            embed.setTitle("Failed To Edit Server");
+            this.setEditExamples(embed, true);
 
-                if(server != null){
-
-                    const editType = result[2].toLowerCase();
-
-                    if(editType == 'country'){
-
-                        if(result[3].length !== 2){
-                            message.channel.send(`${config.failIcon} Server country code must be 2 characters long.`);
-                            return;
-                        }
-
-                    }else if(editType == 'ip'){
-                        
-                        if(result[3].includes(':')){
-                            message.channel.send(`${config.failIcon} Server ip can not include the port.`);
-                            return;
-                        }
-
-                    }else if(editType == 'port'){
-
-                        result[3] = result[3].replace(/\D/ig, '');
-                        
-                        if(result[3] < 1 || result[3] > 65535){
-                            message.channel.send(`${config.failIcon} Server port must be a interger between 1 and 65535`);
-                            return;
-                        }
-                        
-                    }
-
-                    //console.log(result);
-
-                    if(this.validEdits.indexOf(editType) !== -1){
-
-                        await this.servers.editServerValue(server.ip, server.port, result[2], result[3]);
-
-                        message.channel.send(`${config.passIcon} Server **${serverId}** updated, **${result[2]}** changed to **${result[3]}**.`);
-                        
-                    }else{
-                        message.channel.send(`${config.failIcon} **${result[2]}** is not a valid edit type for servers.`);
-                    }
-
-                }else{
-                    message.channel.send(`${config.failIcon} A server with id ${serverId} does not exist.`);
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} Incorrect syntax for edit server.`);
-            }
-
-        }catch(err){
-            console.trace(err);
+            return await message.channel.send({"embeds": [embed]});
         }
 
+        let currentValue = result[3];
+
+        const serverId = parseInt(result[1]);
+
+        const server = this.servers.getServerById(serverId); 
+        
+        if(server === null){
+            desc = `${failIcon} A server with id ${serverId} does not exist.`;
+            return await message.channel.send({"embeds": [embed]});
+        }
+
+        const editType = result[2].toLowerCase();
+
+        if(VALID_EDITS.indexOf(editType) === -1){
+
+            embed.setTitle("Failed To Edit Server");
+            this.setEditExamples(embed, false);
+            return await message.channel.send({"embeds": [embed]});
+        }
+
+        if(editType === 'country'){
+
+            if(currentValue.length !== 2){
+                
+                embed.setTitle("Failed To Edit Server");
+
+                let countryString = `${failIcon} Server country code must be 2 characters long.\n\n`;
+                countryString += `Discord uses the ISO 3166-1 alpha-2 standard for country codes, `
+                countryString += `you can find the correct country codes in this wiki article:\n\n` 
+                countryString += `<https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements> `;
+
+                embed.setDescription(countryString);
+                return await message.channel.send({"embeds": [embed]});      
+            }
+
+        }else if(editType === 'ip'){
+            
+            if(currentValue.includes(':')){
+                embed.setTitle("Failed To Edit Server");
+
+                embed.setDescription(`${failIcon} Server ip can not include the port.`);
+                return await message.channel.send({"embeds": [embed]});     
+            }
+
+            try{
+
+                const realIp = await getIP4Address(currentValue);
+
+                this.servers.changeServerAddress(server.id, currentValue, realIp, server.port);
+
+            }catch(err){
+
+                embed.setTitle("Failed To Edit Server");
+                embed.setDescription(`${failIcon} ${err}`);
+
+                return await message.channel.send({"embeds": [embed]});  
+            }
+
+        }else if(editType === 'port'){
+
+            currentValue = currentValue.replace(/\D/ig, '');
+
+            currentValue = parseInt(currentValue);
+          
+            if(currentValue !== currentValue || currentValue < 0 || currentValue > 65535){
+
+                embed.setTitle("Failed To Edit Server");
+                embed.setDescription(`${failIcon} Server port must be a interger between 1 and 65535`);
+
+                return await message.channel.send({"embeds": [embed]});             
+            }     
+        }
+
+        this.servers.editServerValue(server.ip, server.port, editType, currentValue);
+
+        embed.setDescription(`${passIcon} Server **${serverId}** updated, **${editType}** changed to **${currentValue}**.`);
+
+        return await message.channel.send({"embeds": [embed]});  
     }
     
 }
-
-
-module.exports = Bot;

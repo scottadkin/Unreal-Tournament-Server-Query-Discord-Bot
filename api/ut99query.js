@@ -1,27 +1,23 @@
-const config = require('../config/config.json');
-const dgram = require('dgram');
-const ServerResponse = require('./serverResponse');
-const dns = require('dns');
-const Servers = require('./servers');
-const Channels = require('./channels');
-const Database = require('./db');
-const Discord = require('discord.js');
+import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serversCommandTimeout } from '../config/config.js';
+import dgram from 'node:dgram';
+import ServerResponse from './serverResponse.js';
+import Servers, {getAllServers} from './servers.js';
+import Channels, { getAutoQueryChannel } from './channels.js';
+import { bValidPort, getIP4Address } from './generic.js';
+import { EmbedBuilder } from 'discord.js';
+import ServersCommand from './serversCommand.js';
 
-class UT99Query{
+export default class UT99Query{
 
     constructor(discord, bAuto){
 
-        this.db = new Database();
-        this.db = this.db.sqlite;
         this.server = null;
-
         this.responses = [];
-
         this.bAuto = false;
 
-        if(bAuto !== undefined){
-            this.bAuto = true;
-        }
+        this.serverListCommand = null;
+
+        this.bAuto = bAuto;
 
         this.createClient();
 
@@ -29,233 +25,12 @@ class UT99Query{
         this.channels = new Channels();
         this.discord = discord;
 
+        this.bPreviousAutoUpdateFinished = true;
         this.autoQueryLoop = null;
 
+        this.autoQueryDiscordMessages = [];
+
         this.init();
-
-    }
-
-    init(){
-
-        setInterval(() =>{
-
-            //console.log(`Total Responses = ${this.responses.length} (${this.bAuto})`);
-
-            const now = Math.floor(Date.now() * 0.001);
-
-            let r = 0;
-
-            for(let i = 0; i < this.responses.length; i++){
-
-                r = this.responses[i];
-      
-                if(now - r.timeStamp > config.serverTimeout && !r.bSentMessage){
-
-                    r.bReceivedFinal = true;
-                    r.bTimedOut = true;
-
-                    if(r.type !== "basic"){
-                        r.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
-                    }else{
-
-                        r.bSentMessage = true;
-                    }
-
-                    continue;
-                }
-            }
-
-            this.responses = this.responses.filter((a) =>{
-
-                if(!a.bSentMessage){
-                    return true;
-                }
-            });
-
-        }, (config.serverTimeout * 2) * 1000);
-
-
-        if(this.bAuto){
-
-            this.startAutoQueryLoop();
-        
-            this.initServerPingLoop();
-        }
-    }
-
-
-    deleteAllBasic(){
-
-        const potatoes = [];
-
-        let r = 0;
-
-        for(let i = 0; i < this.responses.length; i++){
-
-            r = this.responses[i];
-
-            if(r.type !== "basic"){
-
-                potatoes.push(r);
-            }
-        }
-
-        this.responses = potatoes;
-    }
-
-
-    async pingAllServers(){
-
-        try{
-
-            this.deleteAllBasic();
-
-            const servers = await this.servers.getAllServers();
-            
-            for(let i = 0; i < servers.length; i++){
-
-                await this.getBasicServer(servers[i].ip, servers[i].port);
-              
-            }
-
-        }catch(err){
-            console.trace(err);
-        }
-    }
-
-
-    updateAutoQueryMessage(channel, messageId, serverInfo){
-
-        return new Promise((resolve, reject) =>{
-
-            if(messageId !== '-1'){
-
-                channel.messages.fetch(messageId).then(() =>{
-
-                    this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, messageId);
-
-                    resolve();
-
-                }).catch((err) =>{
-                    
-                   // console.log(`Message has been deleted ${err}`);
-                    
-                    this.getFullServer(serverInfo.ip, serverInfo.port, channel);
-
-                    resolve();
-                });
-       
-            }else{
-
-                this.getFullServer(serverInfo.ip, serverInfo.port, channel);
-               // console.log("Message doesn't exist");
-            }
-
-        });
-    }
-
-    startAutoQueryLoop(){
-
-        this.autoQueryLoop = setInterval(async () =>{
-
-            const queryChannelId = await this.channels.getAutoQueryChannel();
-
-            if(queryChannelId !== null){
-
-                this.discord.channels.fetch(queryChannelId).then(async (channel) =>{
-
-                    const servers = await this.servers.getAllServers();  
-                    
-                    /*if(config.bAutoQueryMessagesOnly){
-
-                        const serverMessageIds = [];
-                        
-                        for(let i = 0; i < servers.length; i++){
-
-                            if(serverMessageIds.indexOf(servers[i].last_message) === -1){
-                                serverMessageIds.push(servers[i].last_message);
-                            }
-                        }
-
-
-                        const autoQueryInfoPostId = await this.channels.getAutoQueryMessageId();
-
-                        let messages = await channel.messages.fetch({"limit": 20});
-
-                        messages = messages.array();
-
-                        for(let i = 0; i < messages.length; i++){
-
-
-                            //console.log(i);
-                            //console.log(`autoQueryInfoPostId = ${autoQueryInfoPostId}`);
-                            if(autoQueryInfoPostId !== null){
-
-                                if(messages[i].id == autoQueryInfoPostId){
-                                    //console.log("FOUND AUTO QUERY MESSAGE ID");
-                                    continue;
-                                }
-                            }
-
-                            if(!messages[i].author.bot || serverMessageIds.indexOf(messages[i].id) === -1){
-
-                                await messages[i].delete().then(() =>{
-
-                                   // console.log("Old message deleted");
-
-                                }).catch((err) =>{
-                                    //console.trace(err);
-                                    console.log('Error deleting old message.');
-                                });
-                            }
-                        }
-                    }  */
-
-                    for(let i = 0; i < servers.length; i++){
-
-                        //setTimeout(async () =>{
-                            await this.updateAutoQueryMessage(channel, servers[i].last_message, servers[i]);
-                       // }, 500);     
-                    }
-                    
-                }).catch((err) =>{
-                    console.trace(err);
-                });
-
-
-
-            }else{
-
-                //console.log(`AutoqueryChannel is not SET!`);
-            }
-
-        }, config.autoQueryInterval * 1000);
-    }
-
-
-    async initServerPingLoop(){
-
-        //this.pingAllServers();
-        try{
-
-            await this.pingAllServers();
-
-        }catch(err){
-            console.trace(err);
-        }
-
-        this.pingLoop = setInterval(async () =>{
-
-            //console.log("PING INTERVAL")
-            
-            try{
-                await this.pingAllServers();
-            }catch(err){
-                console.trace(err);
-            }
-
-        }, config.serverInfoPingInterval * 1000);
-
 
     }
 
@@ -265,24 +40,27 @@ class UT99Query{
 
         this.server.on('message', (message, rinfo) =>{
 
-            //message = message.toString();
-            //console.log(`*******************************************************`);
-            //console.log(`${message}`);
-            //console.log(`-------------------------------------------------------`);
+            try{
 
-            const matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
+                let matchingResponse = this.getMatchingResponse(rinfo.address, rinfo.port - 1);
 
-            //BUFFER IS CAUSING THE MEMORY LEAK
+                if(matchingResponse === null){
 
-            //MOVE PARSING STUFF INSIDE THIS CLASS NOT SERVER RESPOSE
-            if(matchingResponse !== null){
+                    if(this.bAuto && this.serverListCommand !== null){
+
+                        matchingResponse = this.serverListCommand.getMatchingResponse(rinfo.address, rinfo.port - 1);
+                        if(matchingResponse === null) return;
+
+                    }else{
+                        return;
+                    }
+                }
 
                 this.parsePacket(message, matchingResponse);
 
-            }else{
-                //console.log("There is no matching data for this server");
+            }catch(err){
+                console.trace(err);
             }
-
         });
 
         this.server.on('listening', () =>{
@@ -294,131 +72,347 @@ class UT99Query{
             console.trace(err);
         });
 
-       // console.log(`this.bAuto = ${this.bAuto}`);
         if(!this.bAuto){
-            this.server.bind(config.udpPort);
+            this.server.bind(udpPort);
         }else{
-            this.server.bind(config.udpPortAuto);
+            this.server.bind(udpPortAuto);
         }
     }
 
-    async parsePacket(data, response){
+    init(){
+
+        setInterval(() =>{
+
+            this.responses = this.responses.filter((r) =>{
+
+                return !r.bDelete;
+            });
+
+            //console.log(this.responses.length, this.bAuto);
+
+        }, 1000);
+
+
+        if(!this.bAuto) return
+        this.startAutoQueryLoop();       
+    }
+
+    async createServersRequest(message, bOnlyActive){
+
+
+        if(this.serverListCommand !== null){
+
+            const now = Math.floor(Date.now() * 0.001);
+
+            const age = now - this.serverListCommand.created;
+
+            if(age < serversCommandTimeout && !this.serverListCommand.bFinalUpdateComplete){
+                return await message.channel.send("Previous command still being processed.");
+            }else{
+
+                //delete this.serverListCommand;
+                this.serverListCommand = null;
+            }
+        }
+
+        const servers = getAllServers();
+
+        if(servers.length === 0){
+            return await message.channel.send("You have no servers added to your database.");
+        }
+
+        this.serverListCommand = new ServersCommand(message.channel, servers, bOnlyActive);
+        await this.serverListCommand.createMessage();
+
+        this.pingAllServers();
+
+        /*this.serverListCommand.events.once("delete", () =>{
+
+            this.serverListCommand = null;
+        });*/
+    }
+
+     pingAllServers(){
+
+        const servers = getAllServers();
+
+        const pings = [];
+
+        for(let i = 0; i < servers.length; i++){
+                   
+            this.getBasicServer(servers[i].ip, servers[i].port);
+        }
+    }
+
+
+    async updateAutoQueryMessage(channel, message, serverInfo){
 
         try{
 
-            const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
-
-            if(unrealCheckReg.test(data)){
-
-                const typeResult = unrealCheckReg.exec(data);
-
-                if(typeResult[1].toLowerCase() === 'mapfilename'){
-                    response.bHaveUnrealMutators = true;
-                }
-                
-                response.bUnreal = true;
-            }
-
-            this.parseServerInfoData(data, response);
-
-            this.parseMapData(data, response);
-
-            if(response.type !== "basic"){
-
-                this.parseTeamData(data, response);
-                this.parseMutators(data, response);
-                this.parsePlayerData(data, response);
-            }
-
-            const finalReg = /\\final\\$/i;
-
-            //unreal queries don;t end with /final/ so we have to do different checks
-            if(response.bUnreal){
-
-                if(response.type === 'basic'){
-
-                   // response.bHaveUnrealBasic = true;
-                    response.bSentMessage = true;
-
-                    const potato = {
-                        "name": response.name,
-                        "currentPlayers": response.currentPlayers,
-                        "maxPlayers": response.maxPlayers,
-                        "gametype": response.gametype,
-                        "mapName": response.mapName,
-                        "ip": response.ip,
-                        "port": response.port
-                    };
-
-                    await this.servers.updateInfo(potato);
-                    
-                    return;
-
-                }else if(response.type === 'players'){
-
-                   // console.log(response);
-
-                    if(response.bFetchedAllPlayers()){
-                        response.sendPlayersResponse();
-                    }
-
-                    return;
-
-                }else if(response.type === 'extended' && response.bHaveUnrealMutators){
-                    
-                    response.sendExtendedResponse();
-
-                    return;
-
-                }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
-                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
-                    return;
-                }
-
-            }
-
-            if(finalReg.test(data)){
-
-                if(response.type == "full"){
-
-                    response.sendFullServerResponse(this.channels, this.servers, config.embedColor, Discord);
-                    return true;
-
-                }else if(response.type == "basic"){
-
-                    response.bSentMessage = true;
-                   
-                    //data.name, data.currentPlayers, data.maxPlayers, data.gametype, data.mapName, now, data.ip, data.port
-                    const potato = {
-                        "name": response.name,
-                        "currentPlayers": response.currentPlayers,
-                        "maxPlayers": response.maxPlayers,
-                        "gametype": response.gametype,
-                        "mapName": response.mapName,
-                        "ip": response.ip,
-                        "port": response.port
-                    };
-
-                    await this.servers.updateInfo(potato);
-                    
-                    return true;
-
-                }else if(response.type == "players"){
-
-                    response.sendPlayersResponse();
-                    return true;
-
-                }else if(response.type == "extended"){
-
-                    response.sendExtendedResponse();
-                    return true;
-                }
-            }
-
-            return false;
+            await this.getFullServer(serverInfo.ip, serverInfo.port, channel, true, message);
 
         }catch(err){
-            console.trace(err);
+            await this.getFullServer(serverInfo.ip, serverInfo.port, channel);
+        } 
+    }
+
+
+    delayedUpdateMessage(delay, channel, discordMessage, serverInfo){
+
+        return new Promise((resolve, reject) =>{
+
+            setTimeout(async () =>{
+
+                await this.updateAutoQueryMessage(channel, discordMessage, serverInfo);
+             
+                resolve();
+            }, delay * 1000);
+        });
+    }
+
+    //auto query message updating
+    async autoQuery(){
+
+
+
+        const servers = getAllServers();  
+
+        //discord rate limit of 5 edits per 5 seconds
+        // const maxPerSecond = 2;
+
+        for(let i = 0; i < servers.length; i++){
+
+            try{
+
+                const s = servers[i];
+                const message = this.autoQueryDiscordMessages[s.last_message] ?? null;
+
+                if(message === null){
+
+                    //console.log(`failed to find message in autoQueryDiscordMessages`);
+                    continue;
+                }
+
+                if(i === 0){
+                    await this.updateAutoQueryMessage(this.autoChannel, message, s); 
+                }else{
+                    //wait 1 second before starting update for next server to avoid edit rate limit
+                    await this.delayedUpdateMessage(1, this.autoChannel, message, s);
+                } 
+
+            }catch(err){
+                console.trace(err);
+            }
+
+        }
+    }
+
+
+    async delayedGetAutoChannelMessageById(id, delay){
+
+        return new Promise((resolve, reject) =>{
+
+            setTimeout(async () =>{
+
+                try{
+                    const message = await this.autoChannel.messages.fetch(id);
+
+                    resolve(message);
+                }catch(err){
+                    reject(err)
+                }
+
+            }, delay * 1000);
+        });
+    }
+
+    async getAutoChannelMessages(messageIds){
+
+        const test = {};
+
+        this.autoQueryDiscordMessages = {};
+
+        for(let i = 0; i < messageIds.length; i++){
+
+            const id = messageIds[i];
+
+            try{
+                this.autoQueryDiscordMessages[id] = await this.delayedGetAutoChannelMessageById(id, 1)//this.autoChannel.messages.fetch(id);
+            }catch(err){
+                console.trace(err);
+
+                this.autoQueryDiscordMessages[id] = null;
+            }
+        }
+    }
+
+    async restartAutoQueryLoop(){
+
+        //loop not active
+        if(this.autoQueryLoop === null){
+            return;
+        }
+
+        console.log("restarting autoquery loop");
+        clearInterval(this.autoQueryLoop);
+        this.autoQueryLoop = null;
+        this.bPreviousAutoUpdateFinished = true;
+
+        this.responses = [];
+
+        await this.startAutoQueryLoop();
+    }
+
+
+    autoQueryInterval(){
+
+        let total = 0;
+
+        for(let i = 0; i < this.responses.length; i++){
+
+            const r = this.responses[i];
+            if(r.type === "full"){
+                total++;
+            }
+        }
+
+        if(total > 0){
+            this.bPreviousAutoUpdateFinished = false;
+            console.log(`${total} auto query messaged not updated, out of possible ${servers.length}`);
+        }else{
+            this.bPreviousAutoUpdateFinished = true;
+        }
+    
+        
+        if(this.bPreviousAutoUpdateFinished){
+
+            this.autoQuery();
+
+        }else{
+            console.log(`previous auto update not finished, skipping.`);
+        }
+    }
+
+    async startAutoQueryLoop(){
+
+        if(!this.bAuto) return;
+
+        console.log("START AUTO QUERY");
+
+        const autoQueryChannelId = getAutoQueryChannel();
+
+        if(autoQueryChannelId === null){
+            console.log("auto query not enabled");
+            return;
+        }
+        const servers = getAllServers();
+
+        const messageIds = [];
+
+        for(let i = 0; i < servers.length; i++){
+
+            if(servers[i].last_message === "-1") continue;
+            messageIds.push(servers[i].last_message);
+        }
+
+        this.autoChannel = await this.discord.channels.fetch(autoQueryChannelId);
+
+        await this.getAutoChannelMessages(messageIds);
+
+        this.autoQueryInterval();
+
+        this.autoQueryLoop = setInterval(() =>{
+
+            this.autoQueryInterval();
+
+        }, autoQueryInterval * 1000);
+
+        
+    }
+
+
+    parsePacket(data, response){
+
+        if(response.bDelete){
+            console.log(`Response already finished, why am i getting called again`);
+            return;
+        }
+
+        const unrealCheckReg = /\\(shortname|mapfilename)\\.*?\\/i;
+
+        if(unrealCheckReg.test(data)){
+
+            const typeResult = unrealCheckReg.exec(data);
+
+            if(typeResult[1].toLowerCase() === 'mapfilename'){
+                response.bHaveUnrealMutators = true;
+            }
+            
+            response.bUnreal = true;
+        }
+        
+        this.parseServerInfoData(data, response);
+
+        this.parseMapData(data, response);
+
+        const basicServerInfo = {
+            "name": response.name,
+            "currentPlayers": response.currentPlayers,
+            "maxPlayers": response.maxPlayers,
+            "gametype": response.gametype,
+            "mapName": response.mapName,
+            "ip": response.ip,
+            "port": response.port
+        };
+
+        this.servers.updateInfo(basicServerInfo);
+
+        if(response.type === "basic"){
+
+            response.triggerFinished();
+            
+            return;
+        }
+
+        this.parseTeamData(data, response);
+        this.parseMutators(data, response);
+        this.parsePlayerData(data, response);
+   
+
+        const finalReg = /\\final\\$/i;
+
+        //unreal queries don;t end with /final/ so we have to do different checks
+        if(response.bUnreal){
+
+            if(response.type === 'players'){
+
+                if(response.bFetchedAllPlayers()){
+                    response.sendPlayersResponse();
+                }
+
+
+            }else if(response.type === 'extended' && response.bHaveUnrealMutators){
+                
+                response.sendExtendedResponse();
+
+            }else if(response.type === 'full' && response.bFetchedAllPlayers() && response.bHaveUnrealMutators){
+
+                response.sendFullServerResponse();       
+            }
+
+            return;
+        }
+
+        if(!finalReg.test(data)){
+            return;
+        }
+
+        if(response.type == "full"){
+            response.sendFullServerResponse();
+        }else if(response.type == "players"){
+            response.sendPlayersResponse();
+        }else if(response.type == "extended"){
+            response.sendExtendedResponse();
         }
     }
 
@@ -481,12 +475,8 @@ class UT99Query{
             "adminName",
             "adminEmail",
             "country",
-
             "shortname"
         ];
-
-        let result = "";
-
 
         const tOrF = [
             "dedicated",
@@ -499,25 +489,17 @@ class UT99Query{
 
         for(let i = 0; i < regs.length; i++){
 
-            if(regs[i].test(data)){
+            if(!regs[i].test(data)) continue;
 
-                result = regs[i].exec(data);
+            const result = regs[i].exec(data);
 
-                if(tOrF.indexOf(keys[i]) == -1){
+            if(tOrF.indexOf(keys[i]) == -1){
 
-                    response[keys[i]] = result[1];
-
-                }else{
-
-                    result[1] = result[1].toLowerCase();
-
-                    if(result[1] == "false"){
-                        response[keys[i]] = false;
-                    }else if(result[1] == "true"){
-                        response[keys[i]] = true;
-                    }             
-                }
+                response[keys[i]] = result[1];
+                continue;
             }
+
+            response[keys[i]] = result[1].toLowerCase() === "true";     
         }
     }
 
@@ -564,23 +546,22 @@ class UT99Query{
 
                 response.mutators = result[1].split(', ');
             }     
+            return;
+        }
+        
 
-        }else{
+        const uReg = /\\mutator\\(.+?)\\/ig;
 
-            const uReg = /\\mutator\\(.+?)\\/ig;
+        let result = '';
 
-            let result = '';
+        while(result !== null){
 
-            while(result !== null){
+            result = uReg.exec(message);
 
-                result = uReg.exec(message);
+            if(result !== null){
 
-                if(result !== null){
-
-                    response.mutators.push(result[1]);
-                }
+                response.mutators.push(result[1]);
             }
-
         }
     }
 
@@ -598,14 +579,11 @@ class UT99Query{
         const healthReg = /\\health_(\d+?)\\(.*?)\\/ig;
         const spreeReg = /\\spree_(\d+?)\\(.*?)\\/ig;
 
-        let result = "";
-        let currentMesh = "";
-
         while(true){
 
-            currentMesh = "";
+            let currentMesh = "";
 
-            result = nameReg.exec(data);
+            let result = nameReg.exec(data);
 
             if(result !== null){
                 response.updatePlayer(result[1], "name", result[2]);
@@ -620,7 +598,6 @@ class UT99Query{
 
             result = meshReg.exec(data);
 
-           // console.log(result);
             if(result !== null){
                 currentMesh = result[2].toLowerCase();
                 response.updatePlayer(result[1], "mesh", result[2]);
@@ -661,27 +638,15 @@ class UT99Query{
         }
     }
 
-    //ADD COUNTRY REG FOR SERVERSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
-
-    getMatchingResponse(ip, port, ignoreTimeStamp){
-
-        //console.log(`Looking for ${ip}:${port}`);
-        let r = 0;
+    getMatchingResponse(ip, port){
 
         for(let i = 0; i < this.responses.length; i++){
 
-            r = this.responses[i];
+            const r = this.responses[i];
 
-            if(r.ip == ip && r.port == port && !r.bSentMessage){
+            if(r.ip == ip && r.port == port && !r.bDelete && !r.bSentMessage){
 
-                if(ignoreTimeStamp === undefined){
-                    return r;
-                }else{
-
-                    if(r.timeStamp !== ignoreTimeStamp){
-                        return r;
-                    }
-                }
+                return r;
             }
         }
 
@@ -689,120 +654,123 @@ class UT99Query{
 
     }
 
-    getFullServer(ip, port, message, bEdit, messageId){
 
-        try{
+    getQueryMessage(type){
 
-            //console.log(arguments);
-            port = parseInt(port);
+        type = type.toLowerCase();
 
-            if(port !== port){
-                throw new Error("Port must be a valid integer!");
-            }
-
-            port = port + 1;
-
-            dns.lookup(ip, (err, address) =>{
-
-                if(err) console.trace(err);
-
-                //console.log('address: %j family: IPv%s', address, family);
-
-
-                if(bEdit === undefined){
-                    this.responses.push(new ServerResponse(address, port, "full", message));
-                }else{
-                    this.responses.push(new ServerResponse(address, port, "full", message, true, messageId));
-                }
-
-                this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\', port, address, (err) =>{
-
-                    if(err){
-                        console.trace(err);
-                    }
-
-                });
-            });
-
-
-        }catch(err){
-            console.trace(err);
+        if(type === "basic"){
+            return `\\info\\xserverquery\\`;
+        }else if(type === "players"){
+            return `\\info\\xserverquery\\\\players\\xserverquery\\`;
+        }else if(type === "extended"){
+            return `\\info\\xserverquery\\\\rules\\xserverquery\\`;
+        }else if(type === "full"){
+            return `\\info\\xserverquery\\\\players\\xserverquery\\\\rules\\xserverquery\\\\teams\\xserverquery\\`;
         }
+
+
+        throw new Error("Unknown Message Type");
+        
     }
 
-    getBasicServer(ip, port){
+    udpSend(address, port, type, discordChannel, bEdit, discordMessage){
 
         return new Promise((resolve, reject) =>{
 
             port = parseInt(port);
 
-            if(port !== port){
-                //console.trace("port must be a valid integer.");
-                reject("port must be a valid integer.");
-                //throw new Error("port must be a valid integer.");
-            }
+            if(!bValidPort(port)) return reject("Not a valid port");
 
             port = port + 1;
 
-            dns.lookup(ip, (err, address) =>{
+            if(type === undefined) return reject("Message type is required");
+            
+            const message = this.getQueryMessage(type);
 
-                if(err) reject(err);
+            const response = new ServerResponse(address, port, type, discordChannel, bEdit, discordMessage);
+            
+            if(this.bAuto && type === "basic"){
+                //do .servers on autoquery port instead of main
+                this.serverListCommand.addResponse(response);
+                //this.serverListCommand.responses.push(response);
+            }else{
+                this.responses.push(response);
+            }
 
-                //MEMORY LEAK
-                this.responses.push(new ServerResponse(address, port, "basic"));
-
-                //constructor(ip, port, type, discordMessage, bEdit, messageId)
-
-                this.server.send('\\info\\xserverquery\\', port, address, (err) =>{
-
-                    if(err){
-                        reject(err);
-                    }
-
-                    resolve();
-                });
-            });
-
-        });
-       
-        
-
-    }
-
-    getPlayers(ip, port, message){
-
-        dns.lookup(ip, (err, address) =>{
-
-            if(err) console.trace(err);
-
-            this.responses.push(new ServerResponse(address, port + 1, "players", message));
-
-            this.server.send('\\info\\xserverquery\\\\players\\xserverquery\\', port + 1, address, (err) =>{
+            this.server.send(message, port, address.ip, (err) =>{
 
                 if(err){
-                    console.log(err);
+                    reject(err);
+                    return;
                 }
+
+                resolve();
             });
         });
     }
 
-    getExtended(ip, port, message){
+    async getFullServer(ip, port, discordChannel, bEdit, discordMessage){
 
-        dns.lookup(ip, (err, address, family) =>{
+        try{
+            
+            const address = await getIP4Address(ip);
 
-            if(err) console.trace(err);
+            await this.udpSend({"ip": address, "originalIP": ip}, port, "full", discordChannel, bEdit, discordMessage);
+        }catch(err){
+            console.trace(err);
+        }
 
-            this.responses.push(new ServerResponse(address, port + 1, "extended", message));
+    }
 
-            this.server.send('\\info\\xserverquery\\\\rules\\xserverquery\\', port + 1, address, (err) =>{
+    //catch errors here so pingAllServers doesn't stop before the last server
+    async getBasicServer(ip, port){
 
-                if(err){
-                    console.log(err);
-                }
-            });
-        });
+        try{
+
+            const started = new Date(Date.now());
+
+            const address = await getIP4Address(ip);
+
+            await this.udpSend({"ip": address, "originalIP": ip}, port, "basic");
+
+        }catch(err){
+            console.trace(err);
+        }
+
+    }
+
+    async getPlayers(ip, port, discordChannel){
+
+        try{
+            const address = await getIP4Address(ip);
+
+            await this.udpSend({"ip": address, "originalIP": ip}, port, "players", discordChannel);
+        }catch(err){
+            console.trace(err);
+            discordChannel.send(`\`\`\`${err.message}\`\`\``); 
+        }
+    }
+
+    async getExtended(ip, port, discordMessage){
+
+        const address = await getIP4Address(ip);
+
+        await this.udpSend({"ip": address, "originalIP": ip}, port, "extended", discordMessage);
+    }
+
+    //create new message in the auto query channel when a server is added
+    async addServerToAutoQuery(address, realIp, port){
+
+        try{
+
+            const embed = new EmbedBuilder().setColor(embedColor).setDescription(`Waiting for data from recently added server ${realIp}:${port}`);
+
+            return await this.autoChannel.send({"embeds": [embed]});
+            
+        }catch(err){
+            console.trace(err);
+            return null;
+        }
     }
 }
-
-
-module.exports = UT99Query;

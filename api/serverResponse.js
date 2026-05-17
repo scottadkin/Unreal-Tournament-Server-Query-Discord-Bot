@@ -1,42 +1,87 @@
-class ServerResponse{
+import { EmbedBuilder } from "discord.js";
+import { getTeamName, getMMSS, appendSpaces, prependSpaces, getTrueFalseIcon, getFlag } from "./generic.js";
+import { getAutoQueryChannel } from "./channels.js";
+import { EventEmitter } from "node:events";
+import { serverTimeout, embedColor, commandPrefix } from "../config/config.js";
+import { setServerLastMessageId, getServerCountry } from "./servers.js";
 
-    constructor(ip, port, type, discordMessage, bEdit, messageId){
 
-        this.ip = ip;
+class ServerResponseEmitter extends EventEmitter {}
+
+
+export default class ServerResponse{
+
+    /**
+     * 
+     * @param {*} ip 
+     * @param {*} port 
+     * @param {*} type 
+     * @param {*} discordChannel only included in autoquery
+     * @param {*} bEdit only included in autoquery
+     * @param {*} discordMessage message ref to edit
+     */
+    constructor(address, port, type, discordChannel, bEdit, discordMessage){
+
+
+        this.ip = address.ip;
+        this.originalAddress = address.originalIP;
         this.port = port - 1;
         this.timeStamp = Math.floor(Date.now() * 0.001);
         this.type = type;
-        this.bReceivedFinal = false;
         this.bTimedOut = false;
+        //used for full server query to prevent bot editing same message twice if edit is taking a long time
         this.bSentMessage = false;
-        this.discordMessage = 0;
+        this.discordChannel = 0;
         this.bUnreal = false; //Unreal instead of UT
         this.bHaveUnrealBasic = false;
         this.bHaveUnrealMutators = false;
+        this.country = "";
 
-        if(discordMessage !== undefined){
+        this.bDelete = false;
 
-            this.discordMessage = discordMessage;
-            //this.channels = new Channels();
+        this.events = new ServerResponseEmitter(); 
+
+
+        this.events.once("timeout", () =>{
+
+            if(this.bSentMessage || this.bDelete) return;
+            this.bTimedOut = true;
+            if(this.type === "players"){
+
+                this.sendPlayersResponse();
+                //this.bDelete = true;
+            }else if(this.type === "extended"){
+                
+               // process.exit();
+               this.sendExtendedResponse();
+            }else{
+                this.sendFullServerResponse();
+            }
+            //process.exit();
+        });
+        
+        setTimeout(() =>{
+
+            this.events.emit("timeout");
+
+        }, serverTimeout * 1000);
+   
+        
+
+        if(discordChannel !== undefined){
+
+            this.discordChannel = discordChannel;
 
             this.bEdit = false;
-            this.messageId = -1;
+            this.discordMessage = discordMessage;
 
             if(bEdit !== undefined){
                 this.bEdit = true;
             }
-
-            if(messageId !== undefined){
-                this.messageId = messageId;
-            }
         }
-
-        //this.servers = new Servers();
-
 
         this.name = "Another UT Server";
         this.gametype = "Deathmatch";
-       // this.map = "DM-MapName";
         this.mapName = "DM-MapName";
         this.currentPlayers = 0;
         this.maxPlayers = 0;
@@ -49,9 +94,9 @@ class ServerResponse{
         this.adminName = "N/A";
         this.adminEmail = "N/A";
         this.friendlyFire = "0%";
-        this.changeLevels = "N/A";
-        this.balancedTeams = "N/A";
-        this.playersBalanceTeams = "N/A";
+        this.changeLevels = false;
+        this.balancedTeams = false;
+        this.playersBalanceTeams = false;
         this.maxTeams = "N/A";
 
 
@@ -61,28 +106,14 @@ class ServerResponse{
             {"score": 0, "size": 0},
             {"score": 0, "size": 0}
         ];
-
     }
 
+    triggerFinished(){
 
-    getFlag(country){
-
-        if(country === undefined){
-            return ":video_game:";
-        }else{
-
-            let currentFlag = "";
-
-            currentFlag = `:flag_${country}:`;
-
-            if(country.toLowerCase() == "none"){
-                return ":video_game:";
-            }
-
-            return currentFlag;
-        }
+        this.bSentMessage = true;
+        this.bDelete = true;
+        this.events.emit("loaded-data");
     }
-
 
     getSex(mesh){
 
@@ -100,11 +131,9 @@ class ServerResponse{
 
         let longest = 0;
 
-        let p = 0;
-
         for(let i = 0; i < this.players.length; i++){
 
-            p = this.players[i];
+            const p = this.players[i];
 
             if(p.name.length > longest){
                 longest = p.name.length;
@@ -118,21 +147,17 @@ class ServerResponse{
 
         let string = "";
 
-        let p = 0;
-
-        let currentFlag = "";
-
-        //console.table(this.players);
-
         for(let i = 0; i < this.players.length; i++){
 
-            p = this.players[i];
+            const p = this.players[i];
 
-            currentFlag = this.getFlag(p.country);
+            let currentFlag = getFlag(p.country);
+
 
             if(!bSpectator){
-                
+
                 if(p.mesh?.toLowerCase() != "spectator"){
+
                     if(team == -99){
 
                         if(p.frags !== undefined){
@@ -143,27 +168,26 @@ class ServerResponse{
 
                         if(parseInt(p.team) == team){
 
-                            //if(p.mesh.toLowerCase() != "spectator"){
-                                string += `${currentFlag} ${this.sanitizeName(p.name)} **${p.frags}**\n`;
-                           // }
+                            string += `${currentFlag} ${this.sanitizeName(p.name)} **${p.frags}**\n`;
+                          
                         }
                     }
                 }
-
-            }else if(bSpectator){
-                    
-                if(p.mesh?.toLowerCase() == "spectator" || p.frags === undefined){
-
-                    if(string != ""){
-                        string += ", ";
-                    }
-
-                    if(currentFlag == ":video_game:"){
-                       currentFlag = ":eyes:";
-                    }
-                    string += `${currentFlag} ${this.sanitizeName(p.name)}`;
-                }
+                continue;
             }
+     
+            if(p.mesh?.toLowerCase() == "spectator" || p.frags === undefined){
+
+                if(string != ""){
+                    string += ", ";
+                }
+
+                if(currentFlag == ":video_game:"){
+                    currentFlag = ":eyes:";
+                }
+                string += `${currentFlag} ${this.sanitizeName(p.name)}`;
+            }
+           
         }
 
         if(string == ""){
@@ -194,50 +218,32 @@ class ServerResponse{
 
         this.maxTeams = parseInt(this.maxTeams);
 
+        if(this.maxTeams !== this.maxTeams){
 
-        if(this.maxTeams === this.maxTeams){
-
-            for(let i = 0; i < this.maxTeams; i++){
-                if(this.totalPlayers > 0) {
-                 fields.push(
-                      {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
-                   );
-                }
-                else{}
-            }
-
-        }else{
             fields.push(
                 {"name": "Players", "value":this.createPlayersString(-99, false), "inline": false}
             );
+
+        }else if(this.totalPlayers > 0){
+
+            for(let i = 0; i < this.maxTeams; i++){
+
+                fields.push(
+                    {"name": teamNames[i], "value": this.createPlayersString(i, false), "inline": true }
+                );
+            }
         }
+
         if(this.spectators > 0) {
-           fields.push({
-            "name": `${this.spectators} ${this.spectators === 1 ? 'Spectator' : 'Spectators'}`, "value": `${this.createPlayersString(-1, true)}`, "inline": false}
-        );}
-        else{}
+
+            fields.push({
+                "name": `${this.spectators} ${this.spectators === 1 ? 'Spectator' : 'Spectators'}`, "value": `${this.createPlayersString(-1, true)}`, "inline": false
+            });
+        }
 
 
         return fields;
     }
-
-    getMMSS(input){
-
-        let seconds = Math.floor(input % 60);
-        let minutes = Math.floor(input / 60);
-
-        if(seconds < 10){
-            seconds = "0"+seconds;
-        }
-
-        if(minutes < 10){
-            minutes = "0"+minutes;
-        }
-
-        return minutes+":"+seconds;
-        
-    }
-
 
     sortPlayersByScore(){
 
@@ -271,72 +277,73 @@ class ServerResponse{
 
         let country = "";
 
-        if(this.country != undefined){
+        /*if(this.country !== '' && this.country.toLowerCase() !== 'none'){
 
-            if(this.country != '' && this.country.toLowerCase() !== 'none'){
-                country = `:flag_${this.country.toLowerCase()}: `;
+            country = `:flag_${this.country.toLowerCase()}: `;
+
+        }else{*/
+
+            country = getServerCountry(this.ip, this.port);
+
+            if(country === null || country === ""){
+                country = "";
+            }else{
+                country = `:flag_${country.toLowerCase()}:`;
             }
-        }
+        //}
+        
 
         return country;
     }
 
-    async sendFullServerResponse(channels, servers,embedColor, Discord){
+    async sendFullServerResponse(){
 
         try{
-            if(this.type != "full"){
-                return;
-            }
-
-            if(this.bTimedOut){
-
-                if(!this.bEdit){
-
-
-                    const autoChannelId = await channels.getAutoQueryChannel();
-
-                    if(autoChannelId !== null){
-                        //stop bot posting timeouts in autochannel
-                        if(this.discordMessage.id === autoChannelId){
-                            this.bSentMessage = true;
-                            return;
-                        }
-                    }
-
-                    let string = `:no_entry: **${this.ip}:${this.port}** has timed out!`;
-
-                    if(this.ip === undefined){
-                        string = `:no_entry: That ip does not exist!`;
-                    }
-
-                    this.bSentMessage = true;
-                    this.discordMessage.send(string);
-                    return;
-                }
                 
 
-                this.bSentMessage = true;
+            if(this.type != "full"){
+
                 return;
             }
 
+            //prevent bot trying to edit the same message twice
+            this.bSentMessage = true;
+
+            if(this.bTimedOut && !this.bEdit){
+
+                const autoChannelId = getAutoQueryChannel();
+
+                if(autoChannelId !== null){
+                    //stop bot posting timeouts in autochannel
+                    if(this.discordChannel.id === autoChannelId){
+                        this.bDelete = true;
+                        return;
+                    }
+                }
+
+                let string = `:no_entry: **${this.ip}:${this.port}** has timed out!`;
+
+                if(this.ip === undefined){
+                    string = `:no_entry: That ip does not exist!`;
+                }
+
+                
+                await this.discordChannel.send(string);
+                this.bDelete = true;
+                return;
+        
+            }
+    
             this.sortPlayersByScore();
-
-            //console.table(this.players);
-
-            this.bReceivedFinal = true;
-
             
-            let description = `
-:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}
-:pushpin: ${this.gametype}
-:map: ${this.mapName}**\n`;
+            let description = `:wrestling: Players **${this.totalPlayers}/${this.maxPlayers}\n`;
+            description += `:pushpin: ${this.gametype}\n`;
+            description += `:map: ${this.mapName}**\n`;
+
             
             if(!this.bUnreal){
                 description += `:goal: Target Score **${this.goalscore}**\n`;
             }
-
-            /*description = :stopwatch: Time Limit ${this.timeLimit} Minutes
-            :stopwatch: Time Remaining ${this.getMMSS(this.remainingTime)} Minutes*/
 
             if(this.timeLimit !== undefined){
                 description += `:stopwatch: Time Limit **${this.timeLimit} Minutes**
@@ -344,71 +351,64 @@ class ServerResponse{
             }
 
             if(this.remainingTime !== undefined){
-                description += `:stopwatch: Time Remaining **${this.getMMSS(this.remainingTime)} Minutes**
+                description += `:stopwatch: Time Remaining **${getMMSS(this.remainingTime)} Minutes**
                 `;
             }
 
             if(this.protection !== undefined){
                 description += `:shield: ${this.protection}`;
             }
-        // console.table(this.players);
 
-            const country = this.getServerCountry();
+            const country = `${this.getServerCountry()} `;
 
             let fields = this.createPlayerFields()
-            fields.push({"name": "Join Server", "value": `<unreal://${this.ip}:${this.port}>`, "inline": false});
+
+            if(this.ip !== this.originalAddress){
+                fields.push({"name": "Domain Address", "value": `unreal://${this.originalAddress}:${this.port}`, "inline": false});
+            }
+
+            fields.push({"name": "IP Address", "value": `unreal://${this.ip}:${this.port}`, "inline": false});
+            
                 
-            const embed = new Discord.EmbedBuilder()
+            const embed = new EmbedBuilder()
             .setTitle(`${country}${this.name}`)
             .setColor(embedColor)
             .setDescription(`${description}`)
             .addFields(fields)
-            .setTimestamp();
+            .setTimestamp(new Date(Date.now()));
 
 
             if(!this.bEdit){
 
-                this.discordMessage.send({ embeds: [embed] }).then(async (m) =>{
+                const m = await this.discordChannel.send({ embeds: [embed] });
 
-                    try{
+                const autoQueryChannelId = getAutoQueryChannel();
 
-                        const autoQueryChannelId = await channels.getAutoQueryChannel();
+                if(autoQueryChannelId !== null){
 
-                        if(autoQueryChannelId !== null){
+                    if(autoQueryChannelId === m.channel.id){
+                        
+                        setServerLastMessageId(this.ip, this.port, m.id);
+                    }
+                }
 
-                            if(autoQueryChannelId === m.channel.id){
-                                
-                                servers.setLastMessageId(this.ip, this.port, m.id);
-
-                            }
-                        }
-
-                        this.bSentMessage = true;
-
-                    }catch(err){
-                        console.trace(err);
-                    }    
-                });
+                this.bDelete = true;
 
             }else{
 
-                this.discordMessage.messages.fetch(this.messageId).then((message) =>{
+                embed.setTimestamp(new Date(Date.now()));
 
-                    message.edit({ embeds: [embed]}).then(() =>{
+                await this.discordMessage.edit({ embeds: [embed]});
 
-                        this.bSentMessage = true;
-
-                    }).catch((err) =>{
-                        console.trace(err);
-                    });
-
-                }).catch((err) =>{
-
-                    console.trace(err);
-                });
+                this.bDelete = true;
+            
+                
             }
+
         }catch(err){
             console.trace(err);
+            
+            this.bDelete = true;
         }
     }
 
@@ -418,21 +418,20 @@ class ServerResponse{
 
         for(let i = 0; i < this.players.length; i++){
 
-            if(this.players[i].id === id){
+            if(this.players[i].id !== id) continue;
 
-                if(key === "mesh"){
+            if(key === "mesh"){
 
-                    if(value.toLowerCase() == "spectator"){
-                        this.spectators++;
-                    }else{
-
-                        this.totalPlayers++;
-                    }
+                if(value.toLowerCase() == "spectator"){
+                    this.spectators++;
+                }else{
+                    this.totalPlayers++;
                 }
-
-                this.players[i][key] = value;
-                return;
             }
+
+            this.players[i][key] = value;
+            return;
+            
         }
 
         this.players.push(
@@ -440,75 +439,23 @@ class ServerResponse{
         );
     }
 
-    appendSpaces(value, targetLength){
-
-        value = value.toString();
-
-        //console.log(`Input = ${value}`);
-
-        if(value.length > targetLength){
-
-            return value.substring(0, targetLength)
-
-        }else{
-
-            while(value.length < targetLength){
-
-                value += " ";
-            }
-        }
-
-        return value;
-    }
-
-    prependSpaces(value, targetLength){
-
-        if(value === undefined){
-            value = 0;
-        }
-
-        value = value.toString();
-
-        if(value.length > targetLength){
-
-            return value.substring(0, targetLength)
-
-        }else{
-
-            while(value.length < targetLength){
-
-                value = ` ${value}`;
-            }
-        }
-
-        return value;
-    }
-
-
     getLongestDeaths(bAlt){
 
         let best = 0;
 
-        let length = 0;
-
-        let c = 0;
-
         for(let i = 0; i < this.players.length; i++){
 
-            if(bAlt === undefined){
-                c = this.players[i].deaths;
-            }else{
-                c = this.players[i].frags;
-            }
+            const p = this.players[i];
 
-            if(c !== undefined){
+            const c = (bAlt === undefined) ? p.deaths : p.frags;
 
-                length = c.toString().length
+            if(c === undefined) continue;
 
-                if(length > best){
-                    best = length;
-                }
-            }
+            const length = c.toString().length;
+
+            if(length > best){
+                best = length;
+            }  
         }
 
         return best;
@@ -528,9 +475,12 @@ class ServerResponse{
 
     sendPlayersResponse(){
 
-        let string = `${this.getServerCountry()}**${this.name}**\n`;
+        if(this.mapName === "DM-MapName"){
 
-        let p = 0;
+            this.discordChannel.send("```Failed to get data from server.```");
+            this.bDelete = true;
+            return;
+        }
 
         let playerNameLength = this.getMaxPlayerNameLength() + 1;
 
@@ -551,15 +501,15 @@ class ServerResponse{
 
         this.sortPlayersByScore();
         
-        let nameTitle = this.appendSpaces("Name", playerNameLength);
-        let sexTitle = this.appendSpaces("Model", 7);
-        let teamTitle = this.prependSpaces("Team", 9);
-        let deathsTitle = this.prependSpaces("Deaths", longestDeaths);
-        let fragsTitle = this.prependSpaces("Frags", longestFrags);
-        let timeTitle = this.prependSpaces("Time", 6);
-        let pingTitle = this.prependSpaces("Ping", 6);
-        let spreeTitle = this.prependSpaces("Spree", 5);
-        let healthTitle = this.prependSpaces("Health", 7);
+        const nameTitle = appendSpaces("Name", playerNameLength);
+        const sexTitle = appendSpaces("Model", 7);
+        const teamTitle = prependSpaces("Team", 9);
+        let deathsTitle = prependSpaces("Deaths", longestDeaths);
+        const fragsTitle = prependSpaces("Frags", longestFrags);
+        let timeTitle = prependSpaces("Time", 6);
+        const pingTitle = prependSpaces("Ping", 6);
+        let spreeTitle = prependSpaces("Spree", 5);
+        let healthTitle = prependSpaces("Health", 7);
 
         let bIgnoreDeaths = false;
         let bIgnoreTime = false;
@@ -586,22 +536,22 @@ class ServerResponse{
             bIgnoreHealth = true;
         }    
 
-        string += `:rainbow_flag: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
 
-        let name = "";
-        let flag = "";
-        let sex = "";
-        let deaths = "";
-        let frags = "";
-        let time = "";
-        let ping = "";
-        let spree = 0;
-        let health = 0;
-        let team = "Red";
+        let string = "";
+
+        if(this.players.length > 0){
+
+            string = `:flag_white: \`${nameTitle}${sexTitle}${teamTitle}${pingTitle}${timeTitle}${healthTitle} ${spreeTitle} ${deathsTitle}${fragsTitle}\`\n`;
+        }
+
+
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${this.getServerCountry()} ${this.name}`);
 
         for(let i = 0; i < this.players.length; i++){
 
-            p = this.players[i];
+            const p = this.players[i];
 
             if(p.country == ""){
                 p.country = "None";
@@ -623,88 +573,58 @@ class ServerResponse{
                 p.health = "";
             }
 
-            name = this.appendSpaces(p.name, playerNameLength);
+            const name = appendSpaces(p.name, playerNameLength);
 
-            flag = this.getFlag(p.country);
-            sex = this.appendSpaces(this.getSex(p.mesh), 7);
+            const flag = getFlag(p.country);
+            const sex = appendSpaces(this.getSex(p.mesh), 7);
+
+            let deaths = "";
 
             if(!bIgnoreDeaths){
-                deaths = this.prependSpaces(p.deaths, longestDeaths);
-            }else{
-                deaths = "";
+                deaths = prependSpaces(p.deaths, longestDeaths);
             }
 
-            frags = this.prependSpaces(p.frags, longestFrags);
+            const frags = prependSpaces(p.frags, longestFrags);
+
+            let time = "";
 
             if(!bIgnoreTime){
-                time = this.prependSpaces(p.time, 6);
-            }else{
-                time = "";
+                time = prependSpaces(p.time, 6);
             }
 
-            ping = this.prependSpaces(p.ping, 6);  
+            const ping = prependSpaces(p.ping, 6);  
+
+            let health = "";
 
             if(!bIgnoreHealth){
-                health = this.prependSpaces(p.health, 7);
-            }else{
-                health = "";
+                health = prependSpaces(p.health, 7);
             }
+
+            let spree = "";
 
             if(!bIgnoreSpree){
-                spree = this.prependSpaces(p.spree, 5);
-            }else{
-                spree = "";
+                spree = prependSpaces(p.spree, 5);
             }
 
-            if(p.team == '0'){
-                team = "Red";
-                //teamIcon = ":red_square:";
-            }else if(p.team == '1'){
-                team = "Blue";
-               // teamIcon = ":blue_square:"
-            }else if(p.team == '2'){
-                //teamIcon = ":green_square:";
-                team = "Green";
-            }else if(p.team == '3'){
-                //teamIcon = ":yellow_square:";
-                team = "Yellow";
-            }else{
-                //teamIcon = ":white_large_square:";
-                team = "None";
-            }
+            let team = getTeamName(p.team);
 
             if(p.mesh == "Spectator"){
                 team = "Spectator";
             }
 
-            team = this.prependSpaces(team, 9);
-            //console.log(`name = ${test} (${p.name}) targetLength = ${playerNameLength}`);
-            string += `${this.getFlag(p.country)} \`${name}${sex}${team}${ping}${time}${health} ${spree} ${deaths}${frags}\`\n`;
+            team = prependSpaces(team, 9);
+            string += `${getFlag(p.country)} \`${name}${sex}${team}${ping}${time}${health} ${spree} ${deaths}${frags}\`\n`;
         }
 
         if(this.players.length == 0){
-            string += `:zzz: **There are currently no players in the servers.**`
+            string += `:zzz: **There are currently no players in the server.**`;
         }
 
-        this.discordMessage.send(string);
+        embed.setDescription(string)
 
-        this.bSentMessage = true;
-    }
+        this.discordChannel.send({"embeds": [embed]});
 
-    getTrueFalseIcon(value){
-
-        if(value === undefined) return;
-
-        value = value.toString().toUpperCase();
-
-        if(value == 'TRUE'){
-            return ':white_check_mark:';
-        }else if(value == 'FALSE'){
-            return ':x:';
-        }
-
-        return value;
-
+        this.bDelete = true;
     }
 
     sendExtendedResponse(){
@@ -714,123 +634,149 @@ class ServerResponse{
             return;
         }
 
-        let string = `${this.getServerCountry()}**${this.name}**\n`;
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${this.getServerCountry()} ${this.name}`);
+
+        if(this.serverVersion === undefined){
+
+            embed.setDescription("Failed to fetch data.")
+            .setTitle(`${commandPrefix}extended ${this.ip}:${this.port}`);
+            this.discordChannel.send({"embeds": [embed]});
+            this.bDelete = true;
+            return;
+        }
+
+        const fields = [];
 
         const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
 
-        this.password = this.getTrueFalseIcon(this.password);
-        this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
-        this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
-        
+        this.password = getTrueFalseIcon(this.password);
+        this.balancedTeams = getTrueFalseIcon(this.balancedTeams);
+        this.playersBalanceTeams = getTrueFalseIcon(this.playersBalanceTeams);
+        this.changeLevels = getTrueFalseIcon(this.changeLevels);
+        this.tournament = getTrueFalseIcon(this.tournament);
 
-        this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
+        fields.push({"name": "Address", "value": `${this.ip}:${this.port}`, "inline": false});
+        fields.push({"name": "Admin Info", "value": `**Admin:** ${this.adminName} **Email:** ${this.adminEmail}`, "inline": false});
+        fields.push({"name": "Patch Info", "value": `**Server Version: ** ${this.serverVersion}, **Min Compatible Client: **${this.minClientVersion} `, "inline": false});
+        fields.push({
+            "name": "Server Settings", 
+            "value": 
+                `**Server Type:** ${dedicated}
+                **Password Protected:** ${this.password}
+                **Change Levels:** ${this.changeLevels}
+                **Balance Teams:** ${this.balancedTeams}
+                **Players Balance Teams:** ${this.playersBalanceTeams}
+                **Max Teams:** ${this.maxTeams}
+                **FriendlyFire:** ${this.friendlyFire}
+                **Tournament Mode:** ${this.tournament}
+                **Gamestyle:** ${this.gamestyle}`, 
+            "inline": false
+        });
 
-        this.tournament = this.getTrueFalseIcon(this.tournament);
+        fields.push({
+            "name": "Current Match",
+            "inline": false,
+            "value": `**Gametype:** ${this.gametype}
+                **Map:** ${this.mapName}
+                **Players:** ${this.currentPlayers}/${this.maxPlayers}`
+        });
 
-        string += `**Address:** ${this.ip}:${this.port}\n`;
-        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName} **Email:** ${this.adminEmail}\n`;
-        string += `**Server Type:** ${dedicated} **Password Protected:** ${this.password} **Change Levels:** ${this.changeLevels}\n`;
-        string += `**Balance Teams:** ${this.balancedTeams} **Players Balance Teams:** ${this.playersBalanceTeams} **Max Teams:** ${this.maxTeams}\n`;
-        string += `**FriendlyFire:** ${this.friendlyFire} **Tournament Mode:** ${this.tournament} **Gamestyle:** ${this.gamestyle}\n`;
-        string += `**Gametype:** ${this.gametype} `;
-        string += `**Map:** ${this.mapName} `;
-        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
-        
+        let mutatorString = "";
 
-        let m = 0;
+        if(this.mutators.length === 0 || (this.mutators.length === 1 && this.mutators[0] === " ")){
+            mutatorString += `None publicly listed.`;
+            this.mutators = [];
 
-        //console.table(this.mutators);
-
-        string += `**Mutators: **`;
-
-        if(this.mutators.length == 0){
-            string += `None publicly listed.`;
         }
+
 
         for(let i = 0; i < this.mutators.length; i++){
 
-            m = this.mutators[i];
+            const m = this.mutators[i];
 
-            string += `${m}`;
+            mutatorString += `${m}`;
 
             if(i < this.mutators.length - 1){
-                string += ', ';
+                mutatorString += ', ';
             }else{
-                string += '.';
+                mutatorString += '.';
             }
-
         }
 
+        fields.push({"name": "Mutators", "value": mutatorString, "inline": false});
 
-        this.discordMessage.send(string);
-
-        this.bSentMessage = true;
+        embed.addFields(fields);
+        this.discordChannel.send({"embeds": [embed]});
+        //this.discordChannel.send(string);
+        this.bDelete = true;
     }
 
 
     sendUnrealExtendedResponse(){
 
-        let string = `${this.getServerCountry()}**${this.name}**\n`;
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`${this.getServerCountry()} ${this.name}`);
 
-        const dedicated = (this.dedicated) ? "Listen" : "Dedicated";
+        const fields = [];
 
-        this.password = this.getTrueFalseIcon(this.password);
-        this.balancedTeams = this.getTrueFalseIcon(this.balancedTeams);
-        this.playersBalanceTeams = this.getTrueFalseIcon(this.playersBalanceTeams);
-        
+        fields.push({"name": "Address", "value": `${this.ip}:${this.port}`, "inline": false});
+        fields.push({
+            "name": "Patch Info", 
+            "value": `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName}`,
+            "inline": false
+        });
+        fields.push({
+            "name": "Current Match", 
+            "value": 
+                `**Gametype:** ${this.gametype}
+                **Map:** ${this.mapName}
+                **Players:** ${this.currentPlayers}/${this.maxPlayers}`, 
+            "inline": false
+        });
 
-        this.changeLevels = this.getTrueFalseIcon(this.changeLevels);
-
-        this.tournament = this.getTrueFalseIcon(this.tournament);
-
-        string += `**Address:** ${this.ip}:${this.port}\n`;
-        string += `**Server Version:** ${this.serverVersion} **Min Compatible: **${this.minClientVersion} **Admin:** ${this.adminName}\n`;
-        string += `**Gametype:** ${this.gametype} `;
-        string += `**Map:** ${this.mapName} `;
-        string += `**Players:** ${this.currentPlayers}/${this.maxPlayers}\n`;
-        
-
-        let m = 0;
-
-        //console.table(this.mutators);
-
-        string += `**Mutators: **`;
+        let mutatorString = "";
 
         if(this.mutators.length == 0){
-            string += `None publicly listed.`;
+            mutatorString += `None publicly listed.`;
         }
 
         for(let i = 0; i < this.mutators.length; i++){
 
-            m = this.mutators[i];
+            const m = this.mutators[i];
 
-            string += `${m}`;
+            mutatorString += `${m}`;
 
             if(i < this.mutators.length - 1){
-                string += ', ';
+                mutatorString += ', ';
             }else{
-                string += '.';
+                mutatorString += '.';
             }
-
         }
 
+        fields.push({
+            "name": "Mutators", 
+            "value": mutatorString,
+            "inline": false
+        });
 
-        this.discordMessage.send(string);
 
-        this.bSentMessage = true;
+        embed.setFields(fields);
+
+        this.discordChannel.send({"embeds": [embed]});
+        this.bDelete = true;
     }
-
 
     //used to check unreal player count
     getCurrentPlayers(){
 
         let total = 0;
 
-        let p = 0;
-
         for(let i = 0; i < this.players.length; i++){
 
-            p = this.players[i];
+            const p = this.players[i];
 
             if(p.mesh.toLowerCase() !== 'spectator'){
                 total++;
@@ -851,5 +797,3 @@ class ServerResponse{
         return false;
     }
 }
-
-module.exports = ServerResponse;

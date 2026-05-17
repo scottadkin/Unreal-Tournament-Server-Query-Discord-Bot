@@ -1,45 +1,30 @@
-const config = require('../config/config.json');
-const Database = require('./db');
+import { failIcon, passIcon, embedColor, autoQueryInterval } from '../config/config.js';
+import { sqliteGet, sqliteRun, sqliteGetAll } from './database.js';
+import { EmbedBuilder } from 'discord.js';
+import { getAllServers, setServerLastMessageId } from './servers.js';
 
-class Channels{
+export default class Channels{
 
     constructor(){
 
-        this.db = new Database();
-        this.db = this.db.sqlite;
     }
 
     bBotCanCommentInChannel(message){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT COUNT(*) as total_channels from channels WHERE id=?";
 
-            const channelId = message.channel.id;
+        const result = sqliteGet(query, [message.channel.id]);
 
-            const query = "SELECT COUNT(*) as total_channels from channels WHERE id=?";
-
-            this.db.get(query, [channelId], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row.total_channels > 0){
-
-                    resolve(true);
-                }
-
-                resolve(false);
-            });
-        });
+        return result.total_channels > 0;
     }
 
     bChannelExist(message, channelId){
 
         const channels = message.guild.channels.cache;
 
-        let c = 0;
-
         for(let i = 0; i < channels.size; i++){
 
-            c = channels.at(i);
+            const c = channels.at(i);
 
             if(c.id == channelId){
                 return true;
@@ -51,372 +36,306 @@ class Channels{
 
     bChannelAdded(id){
 
-        return new Promise((resolve, reject) =>{
-
-            const query = "SELECT COUNT(*) as total_channels FROM channels WHERE id=?";
-
-            this.db.get(query, [id], (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row !== undefined){
-
-                    if(row.total_channels > 0){
-                        resolve(true);
-                    }
-                }
-
-                resolve(false);
-            });
-
-        });
-        
+        const query = "SELECT COUNT(*) as total_channels FROM channels WHERE id=?";
+        const result = sqliteGet(query, [id]);
+        return result.total_channels > 0;        
     }
 
     insertChannel(id){
 
-        return new Promise((resolve, reject) =>{
+        const query = "INSERT INTO channels VALUES(?,?)";
 
-            const query = "INSERT INTO channels VALUES(?,?)";
+        const now = Math.floor(Date.now() * 0.001);
 
-            const now = Math.floor(Date.now() * 0.001)
-
-            this.db.run(query, [id, now], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-
-        });
+        return sqliteRun(query, [id, now]);
     }
 
-    async allowChannel(message){
+    allowChannel(message){
 
-        try{
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`Allow Channel`);
 
-            if(!this.bChannelExist(message, message.channelId)){
+        if(!this.bChannelExist(message, message.channelId)){
 
-                message.channel.send(`${config.failIcon} There is no channel called **${message.channel.name}** in this server.`);
+            embed.setDescription(`${failIcon} There is no channel called **${message.channel.name}** in this server.`);
+            return message.channel.send({"embeds": [embed]});
+        }
+   
+        const exists = this.bChannelAdded(message.channel.id);
 
-            }else{
+        if(!exists){
 
-                const exists = await this.bChannelAdded(message.channel.id);
+            this.insertChannel(message.channel.id);
 
-                if(!exists){
+            embed.setDescription(`${passIcon} The bot can now be used in this channel.`);
 
-                    await this.insertChannel(message.channel.id);
+            return message.channel.send({"embeds": [embed]});
+        
+        }else{
 
-                    message.channel.send(`${config.passIcon} The bot can now be used in this channel.`);
-                
-                }else{
-                    message.channel.send(`${config.failIcon} This channel has already been enabled for bot use.`);
-                }
-            }
-
-        }catch(err){
-            console.trace(err);
+            embed.setDescription(`${failIcon} This channel has already been enabled for bot use.`);
+            
+            return message.channel.send({"embeds": [embed]});
         }
     }
 
 
     deleteChannel(id){
 
-        return new Promise((resolve, reject) =>{
+        const query = "DELETE FROM channels WHERE id=?";
 
-            const query = "DELETE FROM channels WHERE id=?";
-
-            this.db.run(query, [id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
+        return sqliteRun(query, [id]);
     }
 
-    async blockChannel(message){
+    blockChannel(message){
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle(`Block Channel`);
 
-        try{
+        if(!this.bChannelExist(message, message.channel.id)){
+            embed.setDescription(`${failIcon} The channel specified doesn't exist.`);
+            return message.channel.send({"embeds": [embed]});
+        }
 
-            if(this.bChannelExist(message, message.channel.id)){
+        const exists = this.bChannelAdded(message.channel.id);
 
-                const exists = this.bChannelAdded(message.channel.id);
+        if(exists){
 
-                if(exists){
+            this.deleteChannel(message.channel.id);
 
-                    await this.deleteChannel(message.channel.id);
+            embed.setDescription(`${passIcon} Users can no longer use the bot in this channel.`);
+            return message.channel.send({"embeds": [embed]});
 
-                    message.channel.send(`${config.passIcon} Users can no longer use the bot in this channel.`);
+        }else{
 
-                }else{
-                    message.channel.send(`${config.failIcon} This channel has not been enabled for bot use.`);
-                }
-
-            }else{
-                message.channel.send(`${config.failIcon} The channel specified doesn't exist.`);
-            }
-
-        }catch(err){
-            console.trace(err);
+            embed.setDescription(`${failIcon} This channel has not been enabled for bot use.`);
+            return message.channel.send({"embeds": [embed]});
         }
     }
 
     getAllAllowedChannels(){
 
-        return new Promise((resolve, reject) =>{
-
-            const channels = [];
-
-            const query = "SELECT * FROM channels";
-
-            this.db.each(query, (err, row) =>{
-
-                if(err) reject(err);
-
-                channels.push(row);
-
-            }, (err, totalRows) =>{
-
-                if(err) reject(err);
-
-                resolve(channels);
-            });
-        });
+        return sqliteGetAll("SELECT * FROM channels");
     }
 
 
-    async listChannels(message){
+    listChannels(message){
 
-        try{
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Channels that the bot will respond to users");
 
-            const channels = await this.getAllAllowedChannels();
+        const channels = this.getAllAllowedChannels();
 
-            //console.table(channels);
+        const fields = [];
 
-            let string = "";
+        const discordChannels = message.guild.channels.cache;
 
-            let c = 0;
-            let added = 0;
+        for(let i = 0; i < channels.length; i++){
 
-            const discordChannels = message.guild.channels.cache;
+            const c = channels[i];
 
-            let currentChannel = 0;
+            const currentChannel = discordChannels.get(c.id)
 
-            for(let i = 0; i < channels.length; i++){
+            const added = new Date(c.added * 1000);
 
-                c = channels[i];
+            if(currentChannel !== undefined){
 
-                currentChannel = discordChannels.get(c.id)
+                fields.push({
+                    "name": `:small_blue_diamond: ${currentChannel.name}`, 
+                    "value": `Enabled at ${added.toString()}`, 
+                    "inline": false
+                });
 
-                added = new Date(c.added * 1000);
+            }else{
 
-                if(currentChannel !== undefined){
-                    string += `:small_blue_diamond: **${currentChannel.name}** Enabled at ${added.toString()}\n`;
-                }else{
-                    string += `:no_entry: Channel no longer exists, deleting it from database!\n`;
-                    await this.deleteChannel(c.id);
-                }
+                fields.push({
+                    "name": c.id, 
+                    "value": `:no_entry: Channel no longer exists, deleting it from database!`, 
+                    "inline": false
+                });
+
+                this.deleteChannel(c.id);
             }
-
-            if(string == ""){
-                string = `There are currently no channels enabled for bot use.`;
-            }
-
-            string = `:large_orange_diamond: **Channels the bot is enabled in.\n**`+string;
-
-            message.channel.send(string);
-
-        }catch(err){
-            console.trace(err);
         }
+
+        if(fields.length === 0){
+
+            fields.push({
+                "name": "No channels", 
+                "value": `There are currently no channels enabled for bot use.`,
+                "inline": false
+            });
+        }
+
+        embed.addFields(fields);
+
+        message.channel.send({"embeds": [embed]});
+
+    
     }
 
     deleteAutoChannel(){
 
-        return new Promise((resolve, reject) =>{
+        return sqliteRun("DELETE FROM auto_query");
 
-            const query = "DELETE FROM auto_query";
-
-            this.db.run(query, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-
-            });
-        });
     }
 
     setAutoChannel(message){
 
-        return new Promise((resolve, reject) =>{
+        const query = "INSERT INTO auto_query VALUES(?)";
 
-            const query = "INSERT INTO auto_query VALUES(?)";
+        return sqliteRun(query, [message.channel.id]);
 
-            this.db.run(query, [message.channel.id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
     }
 
 
-    getAutoQueryChannel(){
+    async delayedCreateMessage(delay, realIp, port, channel, embed, servers){
 
         return new Promise((resolve, reject) =>{
 
-            const query = "SELECT * FROM auto_query LIMIT 1";
+            setTimeout(async () =>{
+               
+                    try{
+                        const currentMessage = await channel.send({ "embeds": [embed] });
+                        setServerLastMessageId(realIp, port, currentMessage.id);
+                    
+                        resolve();
+                        
+                    }catch(err){
+                        console.log(`Failed to create message`);
+                        reject(err);
+                    }
+              
+            }, delay * 1000);
 
-            this.db.get(query, (err, row) =>{
-
-                if(err) reject(err);
-
-                if(row !== undefined){
-                    resolve(row.id);
-                }
-
-                resolve(null);
-            });
         });
+
     }
 
-    async enableAutoQuery(message, servers, Discord){
+    async enableAutoQuery(message, servers, ut99AutoQuery){
 
         try{
 
-            await this.deleteAutoChannel();
-            console.log("Deleted old autoquery channel from database.");
+            this.bSkipCreateAutoMessages = false;
 
-            await servers.resetLastMessages();
-            console.log("Reset all servers last_message ids");
+            if(ut99AutoQuery.autoQueryLoop !== null){
+                clearInterval(ut99AutoQuery.autoQueryLoop);
+                ut99AutoQuery.autoQueryLoop = null;
+            }
 
-            await this.setAutoChannel(message);
-            let string = `:arrow_right: :arrow_right: :arrow_right: **This channel is the autoquery channel.** :arrow_left: :arrow_left: :arrow_left:
-The server status posts will be updated every **${config.autoQueryInterval} seconds.**`;
+            this.deleteAutoChannel();
 
-            /*if(config.bAutoQueryMessagesOnly){
-                string += `\n:warning: **Posts that are not posted by the bot will be deleted.** :warning:`;
-            }*/
+            servers.resetLastMessages();
 
-            await message.channel.send(string).then((message) =>{
+            this.setAutoChannel(message);
 
-                this.setAutoQueryMessageInfoId(message.id);
+            const embed = new EmbedBuilder()
+            .setColor(embedColor)
+            .setTitle(`This channel is the autoquery channel`)
+            .setDescription(`The server status posts below will be updated periodically.`);
 
-            })
+            const autoQueryMessage = await message.channel.send({"embeds": [embed]});
+            this.setAutoQueryMessageInfoId(autoQueryMessage.id);
 
-            const currentServers = await servers.getAllServers();
-
-            let currentMessage = 0;
-
-            let embed = 0;
+            const currentServers = getAllServers();       
 
             for(let i = 0; i < currentServers.length; i++){
 
-                embed = new Discord.EmbedBuilder()
-                    .setColor(config.embedColor)
-                    .setDescription(`Waiting for data for server **${currentServers[i].name}** id (${i+1})`);
 
-                await message.channel.send({ embeds: [embed] }).then((message) =>{
-          
-                    currentMessage = message;
-                });
+                //.stopauto called soon after .setauto
+                if(this.bSkipCreateAutoMessages){
+                    return;
+                }
 
-                await servers.setLastMessageId(currentServers[i].real_ip, currentServers[i].port, currentMessage.id);
-               // console.log(currentMessage.id);
+                const embed = new EmbedBuilder()
+                .setColor(embedColor)
+                .setDescription(`Waiting for data from server **${currentServers[i].name}** id (${i+1})`);
+
+                await this.delayedCreateMessage(1, currentServers[i].real_ip, currentServers[i].port, message.channel, embed, servers);
             }
 
-
-        }catch(err){
-            console.trace(err);
-        }   
-    }
-
-    async disableAutoQuery(message, servers){
-
-        try{
-
-            await this.deleteAutoChannel();
-
-            await servers.resetLastMessages();
-
-            message.channel.send(`${config.passIcon} Autoquery has been disabled.`);
+            ut99AutoQuery.startAutoQueryLoop();
 
         }catch(err){
             console.trace(err);
         }
     }
 
+
+    disableAutoQuery(message, servers, ut99AutoQuery){
+
+        this.bSkipCreateAutoMessages = true;
+
+        const autoChannelId = getAutoQueryChannel();
+
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Autoquery Channel Updates");
+
+        if(autoChannelId === null){
+            embed.setDescription(`${failIcon} Auto query channel updates are already disabled.`);
+            return message.channel.send({"embeds": [embed]});
+        }
+     
+        clearInterval(ut99AutoQuery.autoQueryLoop);
+        ut99AutoQuery.autoQueryLoop = null;
+        this.deleteAutoChannel();
+
+        servers.resetLastMessages();
+ 
+        embed.setDescription(`${passIcon} Autoquery has been disabled.`)
+
+        return message.channel.send({"embeds": [embed]});   
+    }
+
     deleteOldAutoMessageInfoId(){
 
-        return new Promise((resolve, reject) =>{
+        return sqliteRun("DELETE FROM auto_query_info");
 
-            const query = "DELETE FROM auto_query_info";
-
-            this.db.run(query, (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-            });
-        });
     }
 
     insertAutoMessageInfoId(id){
 
-        return new Promise((resolve, reject) =>{
-
-            const query = "INSERT INTO auto_query_info VALUES(?)";
-
-            this.db.run(query, [id], (err) =>{
-
-                if(err) reject(err);
-
-                resolve();
-
-            });
-        });
+        const query = "INSERT INTO auto_query_info VALUES(?)";
+        return sqliteRun(query, [id]);
     }
 
     async setAutoQueryMessageInfoId(id){
 
-        try{
+   
+        this.deleteOldAutoMessageInfoId();
 
-            await this.deleteOldAutoMessageInfoId();
+        this.insertAutoMessageInfoId(id);
 
-            await this.insertAutoMessageInfoId(id);
+        console.log(`New auto query message set. (${id})`);
 
-            console.log(`New auto query message set. (${id})`);
-
-        }catch(err){
-            console.trace(err);
-        }   
+    
     }
 
     getAutoQueryMessageId(){
 
-        return new Promise((resolve, reject) =>{
+        const query = "SELECT id FROM auto_query_info";
 
-            const query = "SELECT * FROM auto_query_info LIMIT 1";
+        const result = sqliteGet(query);
 
-            this.db.get(query, (err, row) =>{
+        if(result === undefined) return null;
 
-                if(err) reject(err);
-
-                if(row !== undefined){
-
-                    resolve(row.id);
-                }
-
-                resolve(null);
-            });
-        });
+        return result.id;
     }
-
 }
 
 
-module.exports = Channels;
+export function getAutoQueryChannel(){
+
+    const query = `SELECT id FROM auto_query`;
+
+    const result = sqliteGet(query);
+
+    if(result === undefined) return null;
+
+    return result.id;
+
+}

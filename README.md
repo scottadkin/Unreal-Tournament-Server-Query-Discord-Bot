@@ -12,6 +12,7 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - Copy **config/config-example.js** to **config/config.js**.
 - Edit **config.js**
     - Now set the Discord token **token** to connect the bot to the server. [How to add a Discord bot](https://discordjs.guide/legacy/preparations/app-setup)
+    - The bot requires **Message Content Intent**, and send messages permissions.
     - Now set **defaultAdminRole** to a role name that is in your Discord server, do not add a common role name as it gives those users access to admin commands.
 - Install process is now completed.
 
@@ -57,9 +58,11 @@ export const token = "";
 export const defaultAdminRole = "Toilet Brush";
 //The character the bot will look for at the start of messages
 export const commandPrefix = ".";
-export const databaseFile = "./db/data_test.db";
+export const databaseFile = "./db/data.db";
 //how long to wait until giving up and showing server timed out message
 export const serverTimeout = 2;
+//max total time a .servers command will have to process before starting a new request.
+export const serversCommandTimeout = 5;
 //                          R,G,B
 export const embedColor = [255,0,0];
 export const failIcon = ":no_entry:";
@@ -72,6 +75,7 @@ export const autoQueryInterval = 30;
 export const bDisplayNotEnabledMessage = true;
 //Only display admin help commands to admins
 export const bSkipAdminHelpToNonAdmins = true;
+
 ```
 
 # Screenshots

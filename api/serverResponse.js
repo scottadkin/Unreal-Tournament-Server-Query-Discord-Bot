@@ -285,7 +285,8 @@ export default class ServerResponse{
 
             country = getServerCountry(this.ip, this.port);
 
-            if(country === null || country === ""){
+
+            if(country === null || country === "" || country.toLowerCase() === "none"){
                 country = "";
             }else{
                 country = `:flag_${country.toLowerCase()}:`;

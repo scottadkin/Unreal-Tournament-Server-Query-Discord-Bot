@@ -341,14 +341,18 @@ export default class Bot{
 
         const result = reg.exec(message.content);
 
+        const embed = new EmbedBuilder().setColor(embedColor).setTitle("Short Query Servers");
+
         if(result === null){
-            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}q serverid.`);
+            embed.setDescription(`${failIcon} Incorrect syntax for ${commandPrefix}q serverid.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
         const server = this.servers.getServerById(result[1]);
 
         if(server === null){
-            return message.channel.send(`${failIcon} There is no server with the id of ${parseInt(result[1])}.`);
+            embed.setDescription(`${failIcon} There is no server with the id of ${parseInt(result[1])}.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
 
@@ -400,8 +404,11 @@ export default class Bot{
 
         const result = reg.exec(message.content);
 
+        const embed = new EmbedBuilder().setColor(embedColor).setTitle("Extended Server Query");
+
         if(result === null){
-            return message.channel.send(`${failIcon} Not valid syntax for ${commandPrefix}extended`);
+            embed.setDescription(`${failIcon} Not valid syntax for ${commandPrefix}extended`);
+            return message.channel.send({"embeds": [embed]});
         }
 
         const server = this.servers.getServerById(result[1]);
@@ -416,7 +423,8 @@ export default class Bot{
             
         }else{
         
-            message.channel.send(`${failIcon} There is no server with that id.`);
+            embed.setDescription(`${failIcon} There is no server with that id.`);
+            return message.channel.send({"embeds": [embed]});
         }
     }
 
@@ -426,14 +434,16 @@ export default class Bot{
 
         const result = reg.exec(message.content);
 
+        const embed = new EmbedBuilder().setColor(embedColor).setTitle("Extended Server Query");
+
         if(result === null){
-            return message.channel.send(`${failIcon} Incorrect syntax for queryServerExtended.`);
+            embed.setDescription(`${failIcon} Not valid syntax for ${commandPrefix}extended`);
+            return message.channel.send({"embeds": [embed]});
         }
 
         let port = 7777;
 
-        if(result[3] === undefined) return;
-        if(result[3] === "") return;
+        if(result[3] === undefined || result[3] === "") return;
 
         const ip = result[3];
 
@@ -443,8 +453,8 @@ export default class Bot{
             port = parseInt(port);
 
             if(port !== port){
-                message.channel.send(`${failIcon} Port must be a valid integer`);
-                return;
+                embed.setDescription(`${failIcon} Port must be a valid integer`);
+                return message.channel.send({"embeds": [embed]});
             }
         }
 

@@ -291,13 +291,18 @@ export default class Servers{
 
         const result = reg.exec(message.content);
 
+        const embed = new EmbedBuilder().setColor(embedColor).setTitle("Failed To Get Server IP");
+
         if(result === null){
-            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}ip command.`);
+            embed.setDescription(`${failIcon} Incorrect syntax for ${commandPrefix}ip command.`);
+            return message.channel.send({"embeds": [embed]});
         }
+        
         const server = this.getServerById(result[1]);
 
         if(server === null){
-            return message.channel.send(`${failIcon} A server with that id does not exist.`);
+            embed.setDescription(`${failIcon} A server with that id does not exist.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
         let flag = server.country;
@@ -308,9 +313,7 @@ export default class Servers{
             flag = `:flag_${flag.toLowerCase()}:`;
         }
 
-        const embed = new EmbedBuilder()
-        .setColor(embedColor)
-        .setTitle(`${flag} ${server.name}`);
+        embed.setTitle(`${flag} ${server.name}`);
 
         const fields = [];
 

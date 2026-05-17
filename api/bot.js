@@ -459,8 +459,15 @@ export default class Bot{
 
         const result = reg.exec(message.content);
 
+        const embed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTitle("Players");
+
+
         if(result === null){
-            return message.channel.send(`${failIcon} Incorrect syntax for ${commandPrefix}players.`);
+
+            embed.setDescription(`${failIcon} Incorrect syntax for ${commandPrefix}players.`)
+            return message.channel.send({"embeds": [embed]});
         }
 
         const server = this.servers.getServerById(result[1]);
@@ -471,7 +478,9 @@ export default class Bot{
             this.query.getPlayers(server.ip, server.port, message.channel);
 
         }else{
-            message.channel.send(`${failIcon} A server with id ${parseInt(result[1])} does not exist.`);
+
+            embed.setDescription(`${failIcon} A server with id ${parseInt(result[1])} does not exist.`);
+            return message.channel.send({"embeds": [embed]});
         }
 
     }

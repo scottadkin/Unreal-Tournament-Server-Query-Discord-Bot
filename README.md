@@ -41,8 +41,8 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - **.removerole role** Stops users with specified role being able to use admin bot commands.
 - **.listroles** Displays a list of roles that can use the bots admin commands.
 - **.addserver alias ip:port** Adds the specified server details into the database.
-- **.removeserver serverID** Removes the specified server from the database.
-- **.setauto** Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server. **Do not enable in an existing channel, non autoquery messages are deleted by default.**
+- **.deleteserver serverID** Removes the specified server from the database.
+- **.setauto** Sets the current channel as the auto query and display channel where the posts are updated in regualr intervals with the latest information from the server.
 - **.stopauto** Disables autoquery channel from updating.
 - **.editserver id type value** Edit selected server's value type. Types:(alias,ip,country,port)
 
@@ -79,9 +79,9 @@ export const bSkipAdminHelpToNonAdmins = true;
 ```
 
 # Screenshots
-![alt text](https://i.imgur.com/3f5XkaV.png "test")
-![alt text](https://i.imgur.com/vQ5jNMw.png "test")
-![alt text](https://i.imgur.com/od3eEHf.png "test")
+<img src="./sshots/servers_q.png" alt="image">
+<img src="./sshots/players_extended.png" alt="image">
+<img src="./sshots/iplistroles.png" alt="image">
 
 # Release Log
 ## 2026-xx-xx

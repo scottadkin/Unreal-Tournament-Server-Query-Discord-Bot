@@ -1,4 +1,4 @@
-import { embedColor, commandPrefix, serversCommandTimeout } from "../config/config.js";
+import { embedColor, commandPrefix, serverTimeout } from "../config/config.js";
 import { EventEmitter } from "node:events";
 import { EmbedBuilder } from "discord.js";
 import { forceStringLength } from "./generic.js";
@@ -27,12 +27,14 @@ export default class ServersCommand{
         this.lastEditTime = 0;
         this.bFinalEdit = false;
         this.bTimedOut = false;
+        this.totalEdits = 0;
+
+        this.bAllDataLoaded = false;
 
         this.bFinalUpdateComplete = false;
         
         
         this.responsesCompleted = 0;
-        this.lastResponsesCompleted = 0;
         
         this.events = new ServersCommandEmitter();
         
@@ -41,33 +43,38 @@ export default class ServersCommand{
 
     async createMessage(){
 
+
         const embed = new EmbedBuilder()
         .setColor(embedColor)
         .setTitle((this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE)
         .setDescription("Pinging servers...")
-        .setFields([INFO_FIELD])
-        .setTimestamp();
+        //.setFields([INFO_FIELD]);
 
-        this.lastEditTime = Date.now();
+        this.lastEditTime = 0//Date.now();
         this.discordMessage = await this.discordChannel.send({"embeds": [embed]});
 
         this.createEvents();
 
-        this.checkLoop = setInterval(() =>{
+        this.checkLoop = setInterval(async () =>{
 
+            if(this.bFinalUpdateComplete || this.bTimedOut){
+                clearInterval(this.checkLoop);
+            }
             const now = Date.now();
             const diff = now - this.lastEditTime;
+
             if(diff > 1000){
                 this.updateMessage();
             }
-        }, 100);
+
+        }, 250);
 
         setTimeout(() =>{
 
-            clearInterval(this.checkLoop);
+           // clearInterval(this.checkLoop);
             this.events.emit("timeout");
             
-        }, serversCommandTimeout * 1000);
+        }, serverTimeout * 1000);
     }
 
 
@@ -75,7 +82,7 @@ export default class ServersCommand{
 
         this.events.once("timeout", () =>{
 
-            if(this.bFinalUpdateComplete) return;
+            //if(this.bFinalUpdateComplete) return;
             //edit message with timeout for missing servers
 
             this.bTimedOut = true;
@@ -103,9 +110,12 @@ export default class ServersCommand{
 
                 this.responsesCompleted++;
 
+
                 if(this.responsesCompleted === this.servers.length){
-                    this.updateMessage();
-                    return;
+      
+                    this.bAllDataLoaded = true;
+                    return this.updateMessage();
+            
                 }
 
                 const now = Date.now();
@@ -126,62 +136,79 @@ export default class ServersCommand{
         }
     }
 
-    updateMessage(){
-
-
-        //don't want to edit the message with the exact same content
-        if(!this.bTimedOut && this.lastResponsesCompleted === this.responsesCompleted){
-            return;
-        }
-
-        this.lastResponsesCompleted = this.responsesCompleted;
+    async updateMessage(){
 
         if(this.bFinalEdit){
-            //console.log("dont update again");
+            //already in process of editing
             return;
         }
+
+        if(this.bAllDataLoaded){
+            this.bFinalEdit = true;
+        }
+
+        if((this.lastTotalResponses === this.responsesCompleted && this.responsesCompleted !== this.servers.length) && !this.bTimedOut){
+            return;
+        }
+
+        this.totalEdits++;
+
+        this.lastTotalResponses = this.responsesCompleted;
+
 
         this.lastEditTime = Date.now();
 
         const serverParts = this.createServerListParts(this.responses);
 
-        if(serverParts === null){
+        if(serverParts === null && !this.bOnlyActive){
+
             return this.sendNoServers();
+            
         }
 
         const embeds = [];
 
-        for(let i = 0; i < serverParts.length; i++){
+        if(serverParts === null){
 
             const embed = new EmbedBuilder()
             .setColor(embedColor);
 
-            if(i === 0){
-                embed.setTitle((this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE)
-            }
-
+            embed.setTitle( ACTIVE_SERVERS_TITLE)
+           
        
-            embed.setDescription(serverParts[i]);
-            
-
-            if(i === serverParts.length - 1){
-                embed.setFields([INFO_FIELD]);
-            }
+            embed.setDescription(`There are currently no active servers.`);
 
             embeds.push(embed);
+
+        }else{
+
+            
+
+            for(let i = 0; i < serverParts.length; i++){
+
+                const embed = new EmbedBuilder()
+                .setColor(embedColor);
+
+                if(i === 0){
+                    embed.setTitle((this.bOnlyActive) ? ACTIVE_SERVERS_TITLE : SERVERS_TITLE)
+                }
+
+        
+                embed.setDescription(serverParts[i]);
+                
+
+                if(i === serverParts.length - 1){
+                    embed.setFields([INFO_FIELD]);
+                }
+
+                embeds.push(embed);
+            }
         }
 
 
-        if(this.responsesCompleted === this.responses.length){
-            this.bFinalEdit = true;
-        }
-
-        this.discordMessage.edit({"embeds": embeds}).then(() =>{
-
-            if(!this.bFinalEdit) return;
-
-            this.bFinalUpdateComplete = true;
-        });
+        await this.discordMessage.edit({"embeds": embeds});
+        if(!this.bFinalEdit) return;
+        this.bFinalUpdateComplete = true;
     }
 
     getMatchingResponse(ip, port){

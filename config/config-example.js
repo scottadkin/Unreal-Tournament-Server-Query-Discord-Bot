@@ -10,8 +10,6 @@ export const commandPrefix = ".";
 export const databaseFile = "./db/data.db";
 //how long to wait until giving up and showing server timed out message
 export const serverTimeout = 2;
-//max total time a .servers command will have to process before starting a new request.
-export const serversCommandTimeout = 5;
 //                          R,G,B
 export const embedColor = [255,0,0];
 export const failIcon = ":no_entry:";

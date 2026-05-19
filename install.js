@@ -1,4 +1,4 @@
-import { createTable } from "./api/database.js";
+import { createTable } from "./src/database.js";
 
 const queries = [
     `CREATE TABLE IF NOT EXISTS roles(

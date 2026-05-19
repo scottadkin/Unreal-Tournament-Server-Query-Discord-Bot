@@ -11,7 +11,7 @@ A discord bot that communicates with Unreal Tournament, and Unreal servers and d
 - Run the command **node install** to install the database.
 - Copy **config/config-example.js** to **config/config.js**.
 - Edit **config.js**
-    - Now set the Discord token **token** to connect the bot to the server. [How to add a Discord bot](https://discordjs.guide/legacy/preparations/app-setup)
+    - Now set the Discord **token** to connect the bot to the server. [How to add a Discord bot](https://discordjs.guide/legacy/preparations/app-setup)
     - The bot requires **Message Content Intent**, and send messages permissions.
     - Now set **defaultAdminRole** to a role name that is in your Discord server, do not add a common role name as it gives those users access to admin commands.
 - Install process is now completed.
@@ -82,7 +82,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 <img src="./sshots/iplistroles.png" alt="image">
 
 # Release Log
-## 2026-xx-xx
+## 2026-05-19
 - **Breaking Change:** config file is now a .js file instead of a json file.
 - .removeserver has been changed to .deleteserver.
 - Added bSkipAdminHelpToNonAdmins to config.js, setting this value to false will hide the admin help commands to users that don’t have admin roles.
@@ -129,6 +129,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .q serverID has been changed to match the format of other commands(was previously .qID, now it's .q ID)
 - .ip serverID has been changed to match the format of other commands(was previously .ipID, now it's .ip ID)
 - Updated DiscordClient cache settings so they work again with discord.js v14, was using unsupported v13 options.
+- Renamed **/api** directory to **/src**.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

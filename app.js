@@ -1,4 +1,4 @@
-import Bot from "./api/bot.js";
+import Bot from "./src/bot.js";
 
 new Bot();
 

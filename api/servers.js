@@ -287,7 +287,7 @@ export default class Servers{
 
     getIp(message){
 
-        const reg = /^.ip(\d+)$/i;
+        const reg = /^.ip (\d+)$/i;
 
         const result = reg.exec(message.content);
 
@@ -305,9 +305,9 @@ export default class Servers{
             return message.channel.send({"embeds": [embed]});
         }
 
-        let flag = server.country;
+        let flag = server.country.toLowerCase();
 
-        if(flag == '' || flag == 'none'){
+        if(flag === '' || flag === 'none'){
             flag = ':video_game:';
         }else{
             flag = `:flag_${flag.toLowerCase()}:`;

@@ -164,11 +164,11 @@ export default class Bot{
         }
 
         const helpReg = /^.help$/i;
-        const shortServerQueryReg = /^.q\d+$/i;
+        const shortServerQueryReg = /^.q (\d+)$/i;
         const serverQueryReg = /^.q .+$/i;
         const listReg = /^.servers/i;
         const activeReg = /^.active/i;
-        const ipReg = /^.ip\d+/i;
+        const ipReg = /^.ip \d+/i;
         const extendedReg = /^.extended \d+$/i;
         const altExtendedReg = /^.extended .+$/i;
         const playersReg = /^.players \d+$/i;
@@ -337,7 +337,7 @@ export default class Bot{
 
     shortQueryServer(message){
 
-        const reg = /^.q(\d+)$/i;
+        const reg = /^.q (\d+)$/i;
 
         const result = reg.exec(message.content);
 

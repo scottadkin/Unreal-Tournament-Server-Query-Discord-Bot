@@ -126,6 +126,8 @@ export const bSkipAdminHelpToNonAdmins = true;
 - .q now displays the servers domain address alongside the server ip.
 - Fixed .addserver inserting country and server name in wrong columns.
 - Fixed server countries being reset on update.
+- .q serverID has been changed to match the format of other commands(was previously .qID, now it's .q ID)
+- .ip serverID has been changed to match the format of other commands(was previously .ipID, now it's .ip ID)
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

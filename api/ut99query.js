@@ -1,4 +1,4 @@
-import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval, serversCommandTimeout } from '../config/config.js';
+import { udpPort, udpPortAuto, serverTimeout, embedColor, autoQueryInterval } from '../config/config.js';
 import dgram from 'node:dgram';
 import ServerResponse from './serverResponse.js';
 import Servers, {getAllServers} from './servers.js';
@@ -106,7 +106,7 @@ export default class UT99Query{
 
             const age = now - this.serverListCommand.created;
 
-            if(age < serversCommandTimeout && !this.serverListCommand.bFinalUpdateComplete){
+            if(age < serverTimeout && !this.serverListCommand.bFinalUpdateComplete){
                 return await message.channel.send("Previous command still being processed.");
             }else{
 

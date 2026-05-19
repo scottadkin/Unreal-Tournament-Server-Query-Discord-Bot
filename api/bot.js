@@ -1,4 +1,4 @@
-import { Client,  EmbedBuilder, Events, GatewayIntentBits, Partials } from "discord.js";
+import { Client, Options,  EmbedBuilder, Events, GatewayIntentBits, Partials } from "discord.js";
 import { commandPrefix, failIcon, passIcon, token, bDisplayNotEnabledMessage, embedColor, bSkipAdminHelpToNonAdmins } from "../config/config.js";
 import UT99Query from "./ut99query.js";
 import Servers from "./servers.js";
@@ -72,10 +72,11 @@ export default class Bot{
         this.name = name;
 
         this.client = new Client({
-            "messageCacheMaxSize": 1,
-            "messageCacheLifetime": 10,
-            "messageSweepInterval": 30,
-            "messageEditHistoryMaxSize": 0,
+            "makeCache": Options.cacheWithLimits({
+                ...Options.DefaultMakeCacheSettings,
+                "MessageManager": 50,
+                "ReactionManager": 0,
+            }),
             "partials": [Partials.Channel],
             "intents": [
                 GatewayIntentBits.Guilds,

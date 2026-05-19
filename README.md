@@ -128,6 +128,7 @@ export const bSkipAdminHelpToNonAdmins = true;
 - Fixed server countries being reset on update.
 - .q serverID has been changed to match the format of other commands(was previously .qID, now it's .q ID)
 - .ip serverID has been changed to match the format of other commands(was previously .ipID, now it's .ip ID)
+- Updated DiscordClient cache settings so they work again with discord.js v14, was using unsupported v13 options.
 
 ## 2026-05-03
 - Upgrade all packages to their latest.

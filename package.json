@@ -20,7 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "country-list": "^2.4.1",
-    "discord.js": "^14.26.4",
+    "discord.js": "^14.27.0",
     "geoip-lite": "^2.0.2"
   }
 }
